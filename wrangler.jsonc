@@ -1,0 +1,61 @@
+/**
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "nanobanana",
+  "main": "./workers/app.ts",
+  "compatibility_date": "2024-09-23",
+  "upload_source_maps": true,
+  // "routes": [
+  //   {
+  //     "pattern": "example.com",
+  //     "custom_domain": true
+  //   },
+  //   {
+  //     "pattern": "www.example.com",
+  //     "custom_domain": true
+  //   }
+  // ],
+  "vars": {
+    // Essential Variables Only
+    "INITLIZE_CREDITS": 3,
+    "DOMAIN": "https://nanobanana.slideology0816.workers.dev",
+    "CDN_URL": "https://nanobanana.slideology0816.workers.dev",
+    "GOOGLE_ANALYTICS_ID": "",
+    "GOOGLE_ADS_ID": ""
+    // Sensitive variables like API keys should be set using 'wrangler secret put'
+    // GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, KIEAI_APIKEY, CREEM_KEY, etc.
+  },
+  "observability": {
+    "enabled": true
+  },
+  /**
+   * Bindings
+   * Bindings allow your Worker to interact with resources on the Cloudflare Developer Platform, including
+   * databases, object storage, AI inference, real-time communication and more.
+   * https://developers.cloudflare.com/workers/runtime-apis/bindings/
+   */
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "nanobanana",
+      "database_id": "58998e54-6c65-43b5-9ffe-8d659e4514d7",
+      "migrations_dir": "./app/.server/drizzle/migrations"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "KV",
+      "id": "7b71e875e136417abbfc28f512c487d6",
+      "preview_id": "081f1e6d571843fc9b2fb9459469c21e"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "R2",
+      "bucket_name": "nanobanan-images-prod"
+    }
+  ]
+}
