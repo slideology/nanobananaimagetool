@@ -55,7 +55,7 @@ export const createAiImageSchema = z.object({
   prompt: z.string().min(1, "Prompt is required"),
   negative_prompt: z.string().optional(),
   style: z.string().optional(),
-  type: z.enum(["gpt-4o", "kontext"]).default("gpt-4o"),
+  type: z.enum(["gpt-4o", "kontext", "nano-banana", "nano-banana-edit"]).default("nano-banana"),
   width: z.number().optional().default(1024),
   height: z.number().optional().default(1024),
   steps: z.number().optional().default(30),

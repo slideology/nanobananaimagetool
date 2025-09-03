@@ -229,17 +229,24 @@ function parseHttpError(error: any): ErrorInfo {
  * 显示错误提示
  */
 function showErrorToast(error: ErrorInfo) {
-  // 这里可以集成实际的Toast组件
-  console.error("Error Toast:", error);
+  // 格式化错误信息以便调试
+  const errorMessage = `${error.title}: ${error.message} [${error.code}]`;
+  console.error("Error Toast:", {
+    title: error.title,
+    message: error.message,
+    code: error.code,
+    severity: error.severity,
+    action: error.action,
+    details: error.details
+  });
   
   // 简单的浏览器原生提示
   if (typeof window !== "undefined") {
     // 可以使用更好的UI库替换
-    const message = `${error.title}: ${error.message}`;
     if (error.severity === "error") {
-      alert(message);
+      alert(errorMessage);
     } else {
-      console.warn(message);
+      console.warn(errorMessage);
     }
   }
 }
@@ -250,13 +257,23 @@ function showErrorToast(error: ErrorInfo) {
 function logError(error: ErrorInfo, context?: string) {
   const logData = {
     timestamp: new Date().toISOString(),
-    error,
+    error: {
+      title: error.title,
+      message: error.message,
+      code: error.code,
+      severity: error.severity,
+      action: error.action,
+      details: error.details
+    },
     context,
     userAgent: typeof window !== "undefined" ? window.navigator.userAgent : null,
     url: typeof window !== "undefined" ? window.location.href : null,
   };
 
-  console.error("Error Log:", logData);
+  console.error("Error Log:", JSON.stringify(logData, null, 2));
+  
+  // 同时输出简化版本便于快速查看
+  console.error(`[${error.code}] ${error.title}: ${error.message}${context ? ` (Context: ${context})` : ''}`);
 
   // 这里可以发送错误日志到监控服务
   // 例如：sendToErrorTracking(logData);

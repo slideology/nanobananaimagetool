@@ -506,7 +506,71 @@ export const createAiImage = async (
 
   let insertPayload: InsertAiTask;
 
-  if (type === "gpt-4o") {
+  if (type === "nano-banana" || type === "nano-banana-edit") {
+    // Nano Banana 模型处理
+    const inputParams = {
+      mode,
+      image: fileUrl,
+      prompt,
+      negative_prompt,
+      style,
+      width,
+      height,
+    };
+
+    const ext = {
+      mode,
+      style: style || "default",
+      prompt_preview: prompt.substring(0, 100),
+    };
+
+    // 构建完整的提示词
+    let fullPrompt = prompt;
+    if (style) {
+      fullPrompt = `${prompt}, ${style} style`;
+    }
+    if (negative_prompt) {
+      fullPrompt += `. Negative: ${negative_prompt}`;
+    }
+
+    const kieAI = new KieAI({ accessKey: env.KIEAI_APIKEY });
+    let kieResponse;
+
+    if (type === "nano-banana") {
+      // Text-to-Image 模式
+      kieResponse = await kieAI.createNanoBananaTask({
+        prompt: fullPrompt,
+        callBackUrl: import.meta.env.PROD ? callbakUrl : undefined,
+      });
+    } else {
+      // Image-to-Image 模式
+      if (!fileUrl) {
+        throw new Error("Image is required for nano-banana-edit model");
+      }
+      kieResponse = await kieAI.createNanoBananaEditTask({
+        prompt: fullPrompt,
+        image_urls: [fileUrl],
+        callBackUrl: import.meta.env.PROD ? callbakUrl : undefined,
+      });
+    }
+
+    insertPayload = {
+      user_id: user.id,
+      status: "pending",
+      estimated_start_at: new Date(),
+      input_params: inputParams,
+      ext,
+      aspect: aspect,
+      provider: "kie_nano_banana",
+      task_id: kieResponse.taskId,
+      request_param: {
+        model: type === "nano-banana" ? "google/nano-banana" : "google/nano-banana-edit",
+        prompt: fullPrompt,
+        ...(fileUrl ? { image_urls: [fileUrl] } : {}),
+        callBackUrl: import.meta.env.PROD ? callbakUrl : undefined,
+      },
+    };
+  } else if (type === "gpt-4o") {
     const inputParams = {
       mode,
       image: fileUrl,

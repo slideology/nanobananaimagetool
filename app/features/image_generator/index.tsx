@@ -63,7 +63,16 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
     const { handleError, withErrorHandling, clearError } = useErrorHandler({
       showToast: true,
       onError: (error) => {
-        console.error("ImageGenerator Error:", error);
+        console.error("ImageGenerator Error Detail:", {
+          component: "ImageGenerator",
+          error: {
+            title: error.title,
+            message: error.message,
+            code: error.code,
+            severity: error.severity
+          },
+          timestamp: new Date().toISOString()
+        });
       }
     });
     const { validateFile } = useFileValidation();
@@ -133,7 +142,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           id: "nano-banana",
           name: "Nano Banana",
           description: "🍌 经济实惠 | 快速生成",
-          credits: 4,
+          credits: 1,
           recommended: true
         },
         {
@@ -154,7 +163,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           id: "nano-banana-edit",
           name: "Nano Banana Edit",
           description: "🍌 快速编辑 | 经济实惠",
-          credits: 4,
+          credits: 1,
           recommended: true
         },
         {
@@ -286,6 +295,16 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         clearError();
         
       } catch (error: any) {
+        console.error("ImageGenerator Submit Error:", {
+          error: error,
+          message: error.message,
+          stack: error.stack,
+          mode,
+          selectedModel,
+          hasFile: !!file,
+          promptLength: prompt.length
+        });
+                
         handleError(error, "Image generation");
         
         // 特殊错误处理
