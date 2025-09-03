@@ -1,4 +1,4 @@
-import { useState, forwardRef } from "react";
+import { useState, forwardRef, useEffect } from "react";
 import { useMatches } from "react-router";
 import { useUser } from "~/store";
 
@@ -12,7 +12,7 @@ interface GoogleOAuthProps {
   onSuccess?: () => void;
 }
 export const GoogleOAuth = forwardRef<GoogleOAuthBtnRef, GoogleOAuthProps>(
-  ({ useOneTap, onSuccess }, ref) => {
+  ({ useOneTap = false, onSuccess }, ref) => {
     const matches = useMatches();
     const rootMatch = matches[0].data as { GOOGLE_CLIENT_ID: string };
     const clientId = rootMatch.GOOGLE_CLIENT_ID;
@@ -56,7 +56,7 @@ export const GoogleOAuth = forwardRef<GoogleOAuthBtnRef, GoogleOAuthProps>(
           ref={ref}
           loading={signing}
           onSuccess={handleSuccess}
-          useOneTap={useOneTap}
+          useOneTap={false}
         />
       </GoogleOAuthProvider>
     );

@@ -46,11 +46,11 @@ interface Get4oDirectDownloadURLOptions {
 }
 
 export class KieAI {
-  private API_URL = new URL("https://kieai.erweima.ai");
+  private API_URL = new URL("https://api.kie.ai");
   private readonly config: KieAIModelConfig;
 
-  constructor(config?: KieAIModelConfig) {
-    this.config = config || { accessKey: env.KIEAI_APIKEY };
+  constructor(config: KieAIModelConfig) {
+    this.config = config;
   }
 
   private async fetch<T = any>(
@@ -181,12 +181,15 @@ export class KieAI {
    */
   async createNanoBananaTask(payload: CreateNanoBananaTaskOptions) {
     const result = await this.fetch<CreateTaskResult>(
-      "/api/v1/playground/createTask", // 基于MCP验证的实际API端点
+      "/api/v1/jobs/createTask", // 基于官方文档的正确API端点
       {
         model: "google/nano-banana",
         callBackUrl: payload.callBackUrl,
         input: {
           prompt: payload.prompt,
+          output_format: "png",
+          image_size: "auto", 
+          enable_translation: true
         }
       },
       {
@@ -200,25 +203,20 @@ export class KieAI {
   /**
    * 创建 Nano Banana 图像编辑任务
    * 使用 google/nano-banana-edit 模型，支持 Image-to-Image
+   * 注意：参数验证已移动到业务层进行
    */
   async createNanoBananaEditTask(payload: CreateNanoBananaEditTaskOptions) {
-    // 验证参数
-    if (!payload.image_urls || payload.image_urls.length === 0) {
-      throw new Error("At least one image URL is required for nano-banana-edit");
-    }
-    
-    if (payload.image_urls.length > 5) {
-      throw new Error("Maximum 5 images allowed for nano-banana-edit");
-    }
-
     const result = await this.fetch<CreateTaskResult>(
-      "/api/v1/playground/createTask", // 基于MCP验证的实际API端点
+      "/api/v1/jobs/createTask", // 基于官方文档的正确API端点
       {
         model: "google/nano-banana-edit",
         callBackUrl: payload.callBackUrl,
         input: {
           prompt: payload.prompt,
-          image_urls: payload.image_urls, // 使用经过MCP验证的参数名
+          image_urls: payload.image_urls,
+          output_format: "png",
+          image_size: "auto",
+          enable_translation: true
         }
       },
       {
@@ -250,7 +248,7 @@ export class KieAI {
    */
   async queryNanoBananaTask(taskId: string) {
     const result = await this.fetch<NanoBananaTaskDetail>(
-      "/api/v1/playground/recordInfo", // 基于MCP验证的实际API端点
+      "/api/v1/jobs/recordInfo", // 基于官方文档的正确API端点
       { taskId },
       { method: "get", useCache: true } // 启用缓存以减少频繁查询
     );

@@ -96,7 +96,10 @@
       "vars": {
         "INITLIZE_CREDITS": 3,
         "DOMAIN": "https://nanobanana.slideology0816.workers.dev",
-        "CDN_URL": "https://nanobanana.slideology0816.workers.dev",
+        // 可选：直接使用R2 CDN以获得更好性能
+        // "CDN_URL": "https://pub-cb92e8dab89d452aadee075624e92b5a.r2.dev",
+        // 当前：通过Workers统一管理（推荐）
+        "CDN_URL": "https://pub-cb92e8dab89d452aadee075624e92b5a.r2.dev",
         "GOOGLE_ANALYTICS_ID": "",
         "GOOGLE_ADS_ID": ""
       },

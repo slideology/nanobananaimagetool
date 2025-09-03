@@ -36,6 +36,17 @@ export default async function handleRequest(
   }
 
   responseHeaders.set("Content-Type", "text/html");
+  
+  // 修复Google OAuth COOP错误 - 本地开发环境放寽策略
+  const isLocalDev = request.url.includes('localhost') || request.url.includes('127.0.0.1');
+  if (isLocalDev) {
+    // 本地开发环境使用放寽COOP策略
+    responseHeaders.set("Cross-Origin-Opener-Policy", "unsafe-none");
+    responseHeaders.set("Cross-Origin-Embedder-Policy", "unsafe-none");
+  } else {
+    // 生产环境使用安全策略
+    responseHeaders.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+  }
   return new Response(body, {
     headers: responseHeaders,
     status: responseStatusCode,

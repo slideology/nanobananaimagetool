@@ -17,6 +17,7 @@ import {
   type CreateKontextOptions,
   type Create4oTaskOptions,
 } from "~/.server/aisdk";
+import { Logger } from "~/.server/utils/logger";
 
 import { createAiHairstyleChangerPrompt } from "~/.server/prompt/ai-hairstyle";
 import { createAiHairstyleChangerPrompt as createHairstyleChangerKontext } from "~/.server/prompt/ai-hairstyle-kontext";
@@ -191,7 +192,7 @@ export const createAiHairstyle = async (
   return { tasks, consumptionCredits: consumptionResult };
 };
 
-export const startTask = async (params: AiTask["task_no"] | AiTask) => {
+export const startTask = async (env: Env, params: AiTask["task_no"] | AiTask) => {
   let task: AiTask;
   if (typeof params === "string") {
     const result = await getAiTaskByTaskNo(params);
@@ -208,7 +209,7 @@ export const startTask = async (params: AiTask["task_no"] | AiTask) => {
     throw Error("Not Allow to Start");
   }
 
-  const kie = new KieAI();
+  const kie = new KieAI({ accessKey: env.KIEAI_APIKEY });
   let newTask: AiTask;
   if (task.provider === "kie_4o") {
     const result = await kie.create4oTask(
@@ -252,7 +253,7 @@ export const updateTaskStatus = async (env: Env, taskNo: AiTask["task_no"] | AiT
   if (!task) throw Error("Unvalid Task No");
   if (task.status === "pending") {
     try {
-      const result = await startTask(task);
+      const result = await startTask(env, task);
       return {
         task: result,
         progress: 0,
@@ -270,7 +271,7 @@ export const updateTaskStatus = async (env: Env, taskNo: AiTask["task_no"] | AiT
 
   if (!task.task_id) throw Error("Unvalid Task ID");
 
-  const kie = new KieAI();
+  const kie = new KieAI({ accessKey: env.KIEAI_APIKEY });
 
   if (task.provider === "kie_4o") {
     const result = await kie.query4oTaskDetail({ taskId: task.task_id });
@@ -480,15 +481,38 @@ export const createAiImage = async (
   value: CreateAiImageDTO,
   user: User
 ) => {
+  // 创建日志上下文
+  const logger = Logger.createContext();
+  
+  logger.info("开始处理AI图像生成请求", "createAiImage", {
+    userId: user.id,
+    userEmail: user.email,
+    requestParams: {
+      mode: value.mode,
+      type: value.type,
+      hasImage: !!value.image,
+      promptLength: value.prompt?.length,
+      width: value.width,
+      height: value.height
+    },
+    environment: import.meta.env.PROD ? 'production' : 'development',
+    envConfig: {
+      hasKieApiKey: !!env.KIEAI_APIKEY,
+      kieApiKeyPreview: env.KIEAI_APIKEY ? `${env.KIEAI_APIKEY.substring(0, 8)}...` : "未设置",
+      domain: env.DOMAIN,
+      cdnUrl: env.CDN_URL
+    }
+  });
   const { mode, image, prompt, negative_prompt, style, type, width, height, steps, cfg_scale } = value;
 
-  // 图片生成固定消耗1个积分
-  const taskCredits = 1;
+  // 图片生成固定消耗2个积分
+  const taskCredits = 2;
 
-  // 进行 Credits 扣除
-  const consumptionResult = await consumptionsCredits(user, {
-    credits: taskCredits,
-  });
+  // 🔥 重要优化：提前验证积分但不扣除，避免API失败后积分已被消耗
+  const { balance } = await import("./credits").then(m => m.getUserCredits(user));
+  if (balance < taskCredits) {
+    throw new Error("Credits Insufficient");
+  }
 
   let fileUrl: string | undefined;
   
@@ -505,9 +529,86 @@ export const createAiImage = async (
   const callbakUrl = new URL("/webhooks/kie-image", env.DOMAIN).toString();
 
   let insertPayload: InsertAiTask;
+  let kieResponse: any; // 存储API调用结果
 
   if (type === "nano-banana" || type === "nano-banana-edit") {
-    // Nano Banana 模型处理
+    // Nano Banana 模型处理 - 在业务层进行参数验证
+    if (type === "nano-banana-edit") {
+      // Image-to-Image 模式验证
+      if (!fileUrl) {
+        throw new Error("Image is required for nano-banana-edit model");
+      }
+      // 验证图片数量限制（虽然当前只支持1张，但为未来扩展做准备）
+      const imageUrls = [fileUrl];
+      if (imageUrls.length > 5) {
+        throw new Error("Maximum 5 images allowed for nano-banana-edit");
+      }
+    }
+
+    // 构建完整的提示词
+    let fullPrompt = prompt;
+    if (style) {
+      fullPrompt = `${prompt}, ${style} style`;
+    }
+    if (negative_prompt) {
+      fullPrompt += `. Negative: ${negative_prompt}`;
+    }
+
+    console.log("🚀 开始调用 Kie AI API...");
+    console.log("📋 API配置:", {
+      baseURL: "https://api.kie.ai",
+      endpoint: "/api/v1/jobs/createTask",
+      model: type === "nano-banana" ? "google/nano-banana" : "google/nano-banana-edit",
+      hasApiKey: !!env.KIEAI_APIKEY,
+      apiKeyPreview: env.KIEAI_APIKEY ? `${env.KIEAI_APIKEY.substring(0, 8)}...` : "未设置"
+    });
+    
+    const kieAI = new KieAI({ accessKey: env.KIEAI_APIKEY });
+
+    try {
+      if (type === "nano-banana") {
+        // Text-to-Image 模式
+        console.log("💭 调用 Text-to-Image API...");
+        kieResponse = await kieAI.createNanoBananaTask({
+          prompt: fullPrompt,
+          callBackUrl: import.meta.env.PROD ? callbakUrl : undefined,
+        });
+      } else {
+        // Image-to-Image 模式（参数已在上面验证）
+        console.log("🖼️ 调用 Image-to-Image API...", { imageUrl: fileUrl });
+        if (!fileUrl) {
+          throw new Error("Image is required for nano-banana-edit model");
+        }
+        kieResponse = await kieAI.createNanoBananaEditTask({
+          prompt: fullPrompt,
+          image_urls: [fileUrl],
+          callBackUrl: import.meta.env.PROD ? callbakUrl : undefined,
+        });
+      }
+      
+      console.log("✅ API调用成功:", { taskId: kieResponse.taskId });
+      
+    } catch (error) {
+      console.error("❌ Kie AI API调用失败:");
+      console.error("错误详情:", {
+        message: error instanceof Error ? error.message : String(error),
+        type: typeof error,
+        errorObject: error
+      });
+      
+      // 重新抛出错误，让上层处理
+      throw new Error(`AI服务调用失败: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    // 🔥 只有在API调用成功后才扣除积分
+    console.log("💰 API调用成功，开始扣除积分...");
+    const consumptionResult = await consumptionsCredits(user, {
+      credits: taskCredits,
+      source_type: "ai_image",
+      source_id: kieResponse.taskId,
+      reason: `${type} 图像生成`,
+    });
+
     const inputParams = {
       mode,
       image: fileUrl,
@@ -523,36 +624,6 @@ export const createAiImage = async (
       style: style || "default",
       prompt_preview: prompt.substring(0, 100),
     };
-
-    // 构建完整的提示词
-    let fullPrompt = prompt;
-    if (style) {
-      fullPrompt = `${prompt}, ${style} style`;
-    }
-    if (negative_prompt) {
-      fullPrompt += `. Negative: ${negative_prompt}`;
-    }
-
-    const kieAI = new KieAI({ accessKey: env.KIEAI_APIKEY });
-    let kieResponse;
-
-    if (type === "nano-banana") {
-      // Text-to-Image 模式
-      kieResponse = await kieAI.createNanoBananaTask({
-        prompt: fullPrompt,
-        callBackUrl: import.meta.env.PROD ? callbakUrl : undefined,
-      });
-    } else {
-      // Image-to-Image 模式
-      if (!fileUrl) {
-        throw new Error("Image is required for nano-banana-edit model");
-      }
-      kieResponse = await kieAI.createNanoBananaEditTask({
-        prompt: fullPrompt,
-        image_urls: [fileUrl],
-        callBackUrl: import.meta.env.PROD ? callbakUrl : undefined,
-      });
-    }
 
     insertPayload = {
       user_id: user.id,
@@ -570,98 +641,11 @@ export const createAiImage = async (
         callBackUrl: import.meta.env.PROD ? callbakUrl : undefined,
       },
     };
-  } else if (type === "gpt-4o") {
-    const inputParams = {
-      mode,
-      image: fileUrl,
-      prompt,
-      negative_prompt,
-      style,
-      width,
-      height,
-    };
-
-    const ext = {
-      mode,
-      style: style || "default",
-      prompt_preview: prompt.substring(0, 100),
-    };
-
-    const filesUrl = fileUrl ? [fileUrl] : [];
-
-    // 构建完整的提示词
-    let fullPrompt = prompt;
-    if (style) {
-      fullPrompt = `${prompt}, ${style} style`;
-    }
-    if (negative_prompt) {
-      fullPrompt += `. Negative: ${negative_prompt}`;
-    }
-
-    const params: Create4oTaskOptions = {
-      filesUrl: filesUrl,
-      prompt: fullPrompt,
-      size: aspect,
-      nVariants: "1",
-      callBackUrl: import.meta.env.PROD ? callbakUrl : undefined,
-    };
-
-    insertPayload = {
-      user_id: user.id,
-      status: "pending",
-      estimated_start_at: new Date(),
-      input_params: inputParams,
-      ext,
-      aspect: aspect,
-      provider: "kie_4o",
-      request_param: params,
-    };
-  } else if (type === "kontext") {
-    const inputParams = {
-      mode,
-      image: fileUrl,
-      prompt,
-      negative_prompt,
-      style,
-      width,
-      height,
-    };
-
-    const ext = {
-      mode,
-      style: style || "default",
-      prompt_preview: prompt.substring(0, 100),
-    };
-
-    // 构建完整的提示词
-    let fullPrompt = prompt;
-    if (style) {
-      fullPrompt = `${prompt}, ${style} style`;
-    }
-
-    const params: CreateKontextOptions = {
-      inputImage: fileUrl,
-      prompt: fullPrompt,
-      aspectRatio: aspect,
-      model: "flux-kontext-pro",
-      outputFormat: "png",
-      callBackUrl: import.meta.env.PROD ? callbakUrl : undefined,
-    };
-
-    insertPayload = {
-      user_id: user.id,
-      status: "pending",
-      estimated_start_at: new Date(),
-      input_params: inputParams,
-      ext,
-      aspect: aspect,
-      provider: "kie_kontext",
-      request_param: params,
-    };
-  } else {
-    throw new Error("Invalid AI provider type");
+    
+    const tasks = await createAiTask([insertPayload]);
+    return { tasks, consumptionCredits: consumptionResult };
   }
-
-  const tasks = await createAiTask([insertPayload]);
-  return { tasks, consumptionCredits: consumptionResult };
+  
+  // 如果不是nano-banana模型，抛出错误
+  throw new Error(`Unsupported AI model type: ${type}`);
 };

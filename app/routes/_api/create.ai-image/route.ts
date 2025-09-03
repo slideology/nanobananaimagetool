@@ -23,9 +23,18 @@ export const action = async ({ request, context }: Route.ActionArgs) => {
     const result = await createAiImage(context.cloudflare.env, json, user);
     return data(result);
   } catch (e) {
-    console.error("Create ai image error");
-    console.error(e);
-    throw new Response("Server Error", { status: 500 });
+    console.error("Create ai image error:");
+    console.error("Error details:", {
+      message: e instanceof Error ? e.message : String(e),
+      stack: e instanceof Error ? e.stack : undefined,
+      type: typeof e,
+      json: json,
+      user: { id: user.id, email: user.email }
+    });
+    
+    // 返回更详细的错误信息
+    const errorMessage = e instanceof Error ? e.message : "Unknown error";
+    throw new Response(`Server Error: ${errorMessage}`, { status: 500 });
   }
 };
 
