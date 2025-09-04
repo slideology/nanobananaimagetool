@@ -113,7 +113,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
       },
       taskKey: "task_no",
       verifySuccess: (task) => ["failed", "succeeded"].includes(task.status),
-      intervalMs: 8000,
+      intervalMs: 3000, // 🔧 减少轮询间隔到3秒，提供更好的用户体验
       immediate: true,
     });
 
@@ -292,6 +292,41 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
            
            const uploadResult = await uploadRes.json() as { imageUrl: string; fileName: string; fileSize: number; fileType: string };
            imageUrl = uploadResult.imageUrl;
+           
+           // 🔧 时序优化：验证图片URL是否可访问（增强重试机制）
+           console.log("📋 验证图片URL可访问性:", imageUrl);
+           let imageAccessible = false;
+           const maxRetries = 3;
+           const retryDelays = [1000, 2000, 3000]; // 1秒, 2秒, 3秒
+           
+           for (let attempt = 0; attempt < maxRetries; attempt++) {
+             try {
+               const checkRes = await fetch(imageUrl, { 
+                 method: 'HEAD',
+                 cache: 'no-cache' // 确保不使用缓存
+               });
+               
+               if (checkRes.ok) {
+                 console.log(`✅ 图片URL验证成功 (尝试 ${attempt + 1})`);
+                 imageAccessible = true;
+                 break;
+               } else {
+                 console.warn(`⚠️ 图片URL返回 ${checkRes.status} (尝试 ${attempt + 1}/${maxRetries})`);
+               }
+             } catch (error) {
+               console.warn(`⚠️ 图片URL检查失败 (尝试 ${attempt + 1}/${maxRetries}):`, error);
+             }
+             
+             // 如果不是最后一次尝试，等待后重试
+             if (attempt < maxRetries - 1) {
+               console.log(`⏳ 等待 ${retryDelays[attempt]}ms 后重试...`);
+               await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]));
+             }
+           }
+           
+           if (!imageAccessible) {
+             console.warn("⚠️ 图片URL在多次重试后仍不可访问，但继续处理（可能是CDN延迟）");
+           }
         }
         
         // 发送JSON格式的请求
@@ -333,8 +368,17 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         });
 
         setCredits(consumptionCredits.remainingBalance);
-        setTasks(tasks.map((item: AiImageResult["tasks"][number]) => ({ ...item, progress: 0 })));
+        
+        // 🔧 修复：为不同状态的任务设置正确的progress
+        setTasks(tasks.map((item: AiImageResult["tasks"][number]) => ({ 
+          ...item, 
+          progress: item.status === "running" ? 10 : // running状态显示10%进度
+                   item.status === "succeeded" ? 100 : 
+                   item.status === "failed" ? 100 : 0
+        })));
         setDone(true);
+        
+        console.log("📋 任务创建成功:", tasks.map(t => `${t.task_no} (${t.status})`).join(", "));
         
         // 成功后清理错误状态
         clearError();
@@ -548,68 +592,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           )}
         </button>
 
-        {/* Result Display for inline mode */}
-        {inline && done && tasks.length > 0 && (
-          <div className="mt-8 p-6 bg-white border border-gray-200 rounded-xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">🎨 Generated Results</h3>
-              <span className="text-xs text-gray-500">{tasks.length} image(s)</span>
-            </div>
-            <div className="space-y-4">
-              {tasks.map((task) => (
-                <div key={task.task_no} className="bg-gray-50 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                      <span className="font-medium text-sm">Task {task.task_no}</span>
-                    </div>
-                    <span className={clsx(
-                      "px-2 py-1 rounded-full text-xs font-medium",
-                      task.status === "succeeded" && "bg-green-100 text-green-700",
-                      task.status === "failed" && "bg-red-100 text-red-700",
-                      task.status === "running" && "bg-yellow-100 text-yellow-700",
-                    )}>
-                      {task.status === "succeeded" && "✓ Complete"}
-                      {task.status === "failed" && "⚠ Failed"}
-                      {task.status === "running" && "⌛ Running"}
-                    </span>
-                  </div>
-                  
-                  {task.status === "running" && (
-                    <div className="mb-3">
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-600">Progress</span>
-                        <span className="font-medium text-blue-600">{task.progress}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${task.progress}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  )}
-
-                  {task.result_url && (
-                    <div className="bg-white rounded-lg p-2 border">
-                      <Image
-                        src={task.result_url}
-                        alt="Generated"
-                        className="w-full rounded-lg shadow-sm"
-                      />
-                      <div className="flex items-center justify-between mt-2 px-2">
-                        <span className="text-xs text-gray-500">Generated in 0.8s</span>
-                        <button className="text-xs text-blue-600 hover:text-blue-700 transition-colors">
-                          Download
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* 🔧 移除Generate Now按钮下方的结果显示，只在右侧面板显示 */}
       </>
     );
 
@@ -659,6 +642,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
               <div className="lg:w-1/2 bg-gray-50 p-6">
                 <h3 className="text-lg font-semibold mb-4">Output Gallery</h3>
                 
+                {/* 初始状态：等待用户操作 */}
                 {!done && !submitting && (
                   <div className="h-96 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
                     <div className="text-center">
@@ -669,47 +653,68 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                   </div>
                 )}
 
+                {/* 提交中状态：正在调用API */}
                 {submitting && (
                   <div className="h-96 border border-gray-300 rounded-lg flex items-center justify-center">
                     <div className="text-center">
                       <div className="loading loading-spinner loading-lg mb-4"></div>
-                      <p className="text-gray-500">Generating your image...</p>
+                      <p className="text-gray-500">Submitting to AI service...</p>
                     </div>
                   </div>
                 )}
 
+                {/* 任务创建后状态：显示任务进度和结果 */}
                 {done && tasks.length > 0 && (
-                  <div className="space-y-4">
+                  <div className="space-y-4 max-h-[80vh] overflow-y-auto">
                     {tasks.map((task) => (
-                      <div key={task.task_no} className="border rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-medium">Task {task.task_no}</span>
+                      <div key={task.task_no} className="bg-white border rounded-lg p-4 shadow-sm">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="font-medium text-gray-800">Task {task.task_no}</span>
                           <span className={clsx(
-                            "badge",
-                            task.status === "succeeded" && "badge-success",
-                            task.status === "failed" && "badge-error",
-                            task.status === "running" && "badge-warning",
+                            "px-2 py-1 rounded-full text-xs font-medium",
+                            task.status === "succeeded" && "bg-green-100 text-green-700",
+                            task.status === "failed" && "bg-red-100 text-red-700",
+                            task.status === "running" && "bg-blue-100 text-blue-700",
                           )}>
-                            {task.status}
+                            {task.status === "succeeded" && "✓ Complete"}
+                            {task.status === "failed" && "✗ Failed"}
+                            {task.status === "running" && "⟳ Generating"}
                           </span>
                         </div>
                         
                         {task.status === "running" && (
-                          <div className="mb-2">
-                            <div className="flex justify-between text-sm">
-                              <span>Progress</span>
-                              <span>{task.progress}%</span>
+                          <div className="mb-4">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="loading loading-spinner loading-sm"></div>
+                              <span className="text-sm text-gray-600">AI正在生成图片，请稍候...</span>
                             </div>
-                            <progress className="progress progress-primary w-full" value={task.progress} max="100"></progress>
+                            <div className="flex justify-between text-sm mb-1">
+                              <span className="text-gray-600">Progress</span>
+                              <span className="font-medium text-blue-600">{task.progress}%</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div 
+                                className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${task.progress}%` }}
+                              ></div>
+                            </div>
                           </div>
                         )}
 
                         {task.result_url && (
-                          <Image
-                            src={task.result_url}
-                            alt="Generated"
-                            className="w-full rounded"
-                          />
+                          <div className="border rounded-lg overflow-hidden">
+                            <Image
+                              src={task.result_url}
+                              alt="Generated"
+                              className="w-full"
+                            />
+                          </div>
+                        )}
+                        
+                        {task.status === "failed" && task.fail_reason && (
+                          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                            <strong>Error:</strong> {task.fail_reason}
+                          </div>
                         )}
                       </div>
                     ))}

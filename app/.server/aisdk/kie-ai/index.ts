@@ -71,44 +71,102 @@ export class KieAI {
       }
     }
 
-    const url = new URL(path, this.API_URL);
-    const options: RequestInit = {
-      ...rest,
-      method,
-      headers: {
-        "content-type": "application/json",
-        ...headers,
-        Authorization: `Bearer ${this.config.accessKey}`,
-      },
-    };
+    // 🔧 重试机制配置 - 生产环境更保守
+    const maxRetries = 2; // 减少重试次数
+    const retryDelays = [2000, 5000]; // 2秒, 5秒 - 增加重试间隔
+    
+    let lastError: any;
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const url = new URL(path, this.API_URL);
+        const options: RequestInit = {
+          ...rest,
+          method,
+          headers: {
+            "content-type": "application/json",
+            ...headers,
+            Authorization: `Bearer ${this.config.accessKey}`,
+          },
+        };
 
-    if (data) {
-      if (method.toLowerCase() === "get") {
-        Object.entries(data).forEach(([key, value]) => {
-          url.searchParams.set(key, value);
-        });
-      } else {
-        options.body = JSON.stringify(data);
+        if (data) {
+          if (method.toLowerCase() === "get") {
+            Object.entries(data).forEach(([key, value]) => {
+              url.searchParams.set(key, value);
+            });
+          } else {
+            options.body = JSON.stringify(data);
+          }
+        }
+
+        console.log(`🔄 Kie AI API调用尝试 ${attempt + 1}/${maxRetries + 1}:`, url.toString());
+        
+        const response = await fetch(url, options);
+        const json = await response.json<ApiResult<T>>();
+
+        if (!response.ok || json.code !== 200) {
+          const apiError = {
+            code: json.code ?? response.status,
+            message: json.msg ?? response.statusText,
+            data: json ? json.data : json,
+          };
+          
+          // 判断是否应该重试 - 更严格的重试条件
+          const shouldRetry = attempt < maxRetries && (
+            response.status >= 500 || // 服务器错误
+            response.status === 429 || // 请求过于频繁
+            response.status === 408 || // 请求超时
+            response.status === 502 || // 网关错误
+            response.status === 503 || // 服务不可用
+            // 🔧 移除对"No image content found"的自动重试，这通常是图片URL问题，重试无意义
+            (json.code === 10040 && !json.msg?.includes("No image content found"))
+          );
+          
+          if (shouldRetry) {
+            console.warn(`⚠️ API调用失败，${retryDelays[attempt]}ms后重试:`, apiError.message);
+            lastError = apiError;
+            await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]));
+            continue; // 继续重试
+          } else {
+            throw apiError; // 不重试，直接抛出错误
+          }
+        }
+
+        // 🎉 成功响应处理
+        console.log(`✅ Kie AI API调用成功 (尝试 ${attempt + 1})`);
+        
+        // 缓存结果
+        if (cacheKey) {
+          cache.set(cacheKey, json, CACHE_CONFIG.KIE_API);
+        }
+
+        return json;
+        
+      } catch (error) {
+        lastError = error;
+        
+        // 网络错误或其他异常的重试逻辑
+        const shouldRetry = attempt < maxRetries && (
+          error instanceof TypeError || // 网络错误
+          (error as any)?.name === 'AbortError' || // 超时错误
+          (error as any)?.cause?.code === 'ECONNRESET' // 连接重置
+        );
+        
+        if (shouldRetry) {
+          console.warn(`⚠️ 网络错误，${retryDelays[attempt]}ms后重试:`, error instanceof Error ? error.message : String(error));
+          await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]));
+          continue;
+        } else {
+          console.error(`❌ API调用最终失败:`, error);
+          throw error;
+        }
       }
     }
-
-    const response = await fetch(url, options);
-    const json = await response.json<ApiResult<T>>();
-
-    if (!response.ok || json.code !== 200) {
-      throw {
-        code: json.code ?? response.status,
-        message: json.msg ?? response.statusText,
-        data: json ? json.data : json,
-      };
-    }
-
-    // 缓存成功的响应
-    if (cacheKey && json.code === 200) {
-      cache.set(cacheKey, json, CACHE_CONFIG.API_RESPONSE_TTL);
-    }
-
-    return json;
+    
+    // 所有重试都失败了
+    console.error(`❌ 经过 ${maxRetries + 1} 次尝试后API调用仍然失败:`, lastError);
+    throw lastError;
   }
 
   async create4oTask(payload: Create4oTaskOptions) {

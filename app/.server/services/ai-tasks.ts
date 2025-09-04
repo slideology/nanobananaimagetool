@@ -407,6 +407,25 @@ export const createAiImage = async (
         if (!fileUrl) {
           throw new RequiredParameterMissingError("image", "Image is required for nano-banana-edit model");
         }
+        
+        // 🔧 时序优化：验证图片URL在Kie AI调用前是否可访问
+        console.log("📋 后端验证图片URL可访问性:", fileUrl);
+        try {
+          const imageCheckResponse = await fetch(fileUrl, { 
+            method: 'HEAD',
+            // 添加超时设置，避免长时间等待
+            signal: AbortSignal.timeout(5000)
+          });
+          
+          if (!imageCheckResponse.ok) {
+            console.warn(`⚠️ 图片URL返回状态码 ${imageCheckResponse.status}，但继续尝试调用Kie AI`);
+          } else {
+            console.log("✅ 图片URL验证成功，继续调用Kie AI");
+          }
+        } catch (error) {
+          console.warn("⚠️ 图片URL验证失败，但继续尝试调用Kie AI:", error instanceof Error ? error.message : String(error));
+        }
+        
         kieResponse = await kieAI.createNanoBananaEditTask({
           prompt: fullPrompt,
           image_urls: [fileUrl],
@@ -466,7 +485,7 @@ export const createAiImage = async (
 
     insertPayload = {
       user_id: user.id,
-      status: "pending",
+      status: "running", // 🔧 修复：任务已提交给Kie AI，应该是running状态
       estimated_start_at: new Date(),
       input_params: inputParams,
       ext,

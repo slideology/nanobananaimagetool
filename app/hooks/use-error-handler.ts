@@ -480,13 +480,16 @@ export function useFileValidation() {
 
   const validateFile = useCallback((file: File): boolean => {
     try {
+      // 根据Kie AI官方文档：支持JPEG、PNG、WEBP，最大10MB
       const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
       const maxSize = 10 * 1024 * 1024; // 10MB
+      const minSize = 1024; // 1KB最小大小
 
+      // 检查文件类型
       if (!allowedTypes.includes(file.type)) {
         handleError({
           title: "文件格式不支持",
-          message: "请上传JPEG、PNG或WEBP格式的图片",
+          message: "请上传JPEG、PNG或WEBP格式的图片（根据Kie AI要求）",
           action: "更换文件",
           severity: "warning",
           code: "INVALID_FILE_FORMAT"
@@ -494,6 +497,7 @@ export function useFileValidation() {
         return false;
       }
 
+      // 检查文件大小上限
       if (file.size > maxSize) {
         handleError({
           title: "文件过大",
@@ -503,6 +507,33 @@ export function useFileValidation() {
           code: "FILE_TOO_LARGE"
         });
         return false;
+      }
+
+      // 检查文件大小下限
+      if (file.size < minSize) {
+        handleError({
+          title: "文件过小",
+          message: "图片文件太小，可能已损坏或不是有效的图片文件",
+          action: "重新选择文件",
+          severity: "warning", 
+          code: "FILE_TOO_SMALL"
+        });
+        return false;
+      }
+
+      // 验证文件名扩展名与MIME类型的一致性
+      const fileName = file.name.toLowerCase();
+      const extension = fileName.split('.').pop();
+      const mimeToExtension: Record<string, string[]> = {
+        "image/jpeg": ["jpg", "jpeg"],
+        "image/png": ["png"],
+        "image/webp": ["webp"]
+      };
+
+      const expectedExtensions = mimeToExtension[file.type] || [];
+      if (extension && !expectedExtensions.includes(extension)) {
+        console.warn(`File extension mismatch: ${extension} vs ${file.type}`);
+        // 不阻止上传，只记录警告，因为MIME类型更准确
       }
 
       return true;

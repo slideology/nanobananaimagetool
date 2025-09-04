@@ -41,11 +41,17 @@ export const action = async ({ request, context }: Route.ActionArgs) => {
       );
     }
 
-    // 3. 文件验证
+    // 3. 文件验证（严格按照Kie AI官方要求）
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    const maxSize = 10 * 1024 * 1024; // 10MB (Kie AI官方限制)
+    const minSize = 1024; // 1KB最小大小
+    
+    // 检查文件类型
     if (!allowedTypes.includes(image.type)) {
       throw new Response(
-        JSON.stringify({ error: `Unsupported file type: ${image.type}` }),
+        JSON.stringify({ 
+          error: `Unsupported file type: ${image.type}. Supported formats: JPEG, PNG, WEBP (as per Kie AI requirements)` 
+        }),
         {
           status: 400,
           headers: { "Content-Type": "application/json" }
@@ -53,10 +59,25 @@ export const action = async ({ request, context }: Route.ActionArgs) => {
       );
     }
 
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    // 检查文件大小上限
     if (image.size > maxSize) {
       throw new Response(
-        JSON.stringify({ error: `File too large. Maximum size is ${maxSize / 1024 / 1024}MB` }),
+        JSON.stringify({ 
+          error: `File too large: ${Math.round(image.size / 1024 / 1024)}MB. Maximum size is ${maxSize / 1024 / 1024}MB (Kie AI limit)` 
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" }
+        }
+      );
+    }
+
+    // 检查文件大小下限
+    if (image.size < minSize) {
+      throw new Response(
+        JSON.stringify({ 
+          error: `File too small: ${image.size} bytes. Minimum size is ${minSize} bytes` 
+        }),
         {
           status: 400,
           headers: { "Content-Type": "application/json" }

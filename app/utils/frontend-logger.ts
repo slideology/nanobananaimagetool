@@ -226,6 +226,29 @@ export class FrontendLogger {
   }
 
   /**
+   * 记录轮询超时
+   */
+  static logPollingTimeout(data: {
+    taskId: string;
+    pollCount: number;
+    elapsedTime: number;
+  }) {
+    if (!this.requestId) return;
+
+    this.logStep('status_polling', 'timeout', {
+      requestId: this.requestId,
+      timestamp: new Date().toISOString(),
+      step: 'status_polling',
+      action: 'timeout',
+      data: {
+        taskId: data.taskId,
+        pollCount: data.pollCount,
+        elapsedTime: data.elapsedTime
+      }
+    });
+  }
+
+  /**
    * 获取当前请求ID
    */
   static getCurrentRequestId(): string | null {

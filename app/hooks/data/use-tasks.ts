@@ -33,6 +33,11 @@ export function useTasks<T>({
 
   useEffect(() => {
     if (tasks.length === 0) return;
+    if (allCompleted) return; // 🔧 如果已完成，不要启动轮询
+
+    // 🔧 添加最大轮询限制
+    const MAX_POLL_COUNT = 150; // 5分钟 (2秒 x 150)
+    const MAX_POLL_TIME = 10 * 60 * 1000; // 10分钟
 
     // 记录轮询开始
     if (startTime === null) {
@@ -49,10 +54,32 @@ export function useTasks<T>({
       });
     }
 
+    let currentPollCount = 0;
+    
     const updateAllTasks = async () => {
-      const currentPollCount = pollCount + 1;
+      currentPollCount++;
       setPollCount(currentPollCount);
       const elapsedTime = startTime ? Date.now() - startTime : 0;
+
+      // 🔧 检查是否超过最大轮询限制
+      if (currentPollCount > MAX_POLL_COUNT || elapsedTime > MAX_POLL_TIME) {
+        console.warn("⚠️ 轮询超时，停止轮询", { 
+          pollCount: currentPollCount, 
+          elapsedTime,
+          tasks: tasks.map(t => String(t[taskKey]))
+        });
+        
+        tasks.forEach((task) => {
+          FrontendLogger.logPollingTimeout({
+            taskId: String(task[taskKey]),
+            pollCount: currentPollCount,
+            elapsedTime
+          });
+        });
+        
+        clearInterval(interval);
+        return;
+      }
 
       const updatedTasks = await Promise.all(
         tasks.map(async (task, idx) => {
@@ -76,12 +103,14 @@ export function useTasks<T>({
               return copy;
             });
             return updated;
-          } catch {
+          } catch (error) {
+            console.warn(`轮询任务更新失败:`, String(task[taskKey]), error);
             return task;
           }
         })
       );
 
+      // 🔧 检查是否所有任务都完成
       if (updatedTasks.every(verifySuccess)) {
         // 记录轮询完成
         updatedTasks.forEach((task) => {
@@ -107,8 +136,10 @@ export function useTasks<T>({
       updateAllTasks();
     }, intervalMs);
 
-    return () => clearInterval(interval);
-  }, [taskKeyString, pollCount, startTime]);
+    return () => {
+      clearInterval(interval);
+    };
+  }, [taskKeyString, startTime]); // 🔧 移除pollCount依赖
 
   return [tasks, setTasks, { allDone: allCompleted }] as const;
 }
