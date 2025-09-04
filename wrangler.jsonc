@@ -85,10 +85,7 @@
       "r2_buckets": [
         {
           "binding": "R2",
-          "bucket_name": "nanobanan-images-prod",
-          "preview_routes": [
-            "http://localhost:3004/*"
-          ]
+          "bucket_name": "nanobanan-images-prod"
         }
       ]
     },

@@ -17,6 +17,7 @@ import { Image } from "~/components/common";
 
 import type { AiImageResult } from "~/routes/_api/create.ai-image/route";
 import type { TaskResult } from "~/routes/_api/task.$task_no/route";
+import { FrontendLogger } from "~/utils/frontend-logger";
 
 export interface ImageStyle {
   name: string;
@@ -90,10 +91,6 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
 
     // 提示词
     const [prompt, setPrompt] = useState("");
-    const [negativePrompt, setNegativePrompt] = useState("");
-
-    // 样式选择
-    const [selectedStyle, setSelectedStyle] = useState<string>("");
       
     // AI模型选择
     const [selectedModel, setSelectedModel] = useState<string>("nano-banana");
@@ -135,26 +132,13 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
       }
     ];
 
-    // AI模型配置
+    // AI模型配置 - 简化版，只保留Nano Banana模型
     const aiModels = {
       "text-to-image": [
         {
           id: "nano-banana",
           name: "Nano Banana",
-          description: "🍌 经济实惠 | 快速生成",
-          credits: 1,
-          recommended: true
-        },
-        {
-          id: "gpt-4o",
-          name: "GPT-4o",
-          description: "🚀 高质量 | 专业级",
-          credits: 2
-        },
-        {
-          id: "kontext",
-          name: "Flux Kontext",
-          description: "🎨 艺术风格 | 创意表达",
+          description: "🍌 快速生成 | 经济实惠",
           credits: 1
         }
       ],
@@ -163,20 +147,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           id: "nano-banana-edit",
           name: "Nano Banana Edit",
           description: "🍌 快速编辑 | 经济实惠",
-          credits: 1,
-          recommended: true
-        },
-        {
-          id: "gpt-4o",
-          name: "GPT-4o",
-          description: "🚀 专业编辑 | 高质量",
-          credits: 3
-        },
-        {
-          id: "kontext",
-          name: "Flux Kontext",
-          description: "🎨 风格转换 | 艺术效果",
-          credits: 2
+          credits: 1
         }
       ]
     };
@@ -209,8 +180,6 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
       setVisible(false);
       setFile(undefined);
       setPrompt("");
-      setNegativePrompt("");
-      setSelectedStyle("");
       setSubmitting(false);
       setDone(false);
       setTasks([]);
@@ -232,13 +201,37 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
     }, [mode, validateFile, clearError]);
 
     const handleSubmit = async () => {
+      // 开始前端数据收集日志监控
+      const requestId = FrontendLogger.startImageGeneration({
+        mode,
+        prompt,
+        hasFile: !!file,
+        model: selectedModel,
+        userId: user?.email
+      });
+
+      const startTime = performance.now();
+      let validationErrors: string[] = [];
+
       // 验证提示词
       if (!validatePrompt(prompt)) {
+        validationErrors.push('Invalid prompt');
+        FrontendLogger.logDataCollectionError({
+          type: 'validation_error',
+          message: 'Prompt validation failed',
+          code: 'INVALID_PROMPT'
+        });
         return;
       }
       
       // 验证模式和文件
       if (mode === "image-to-image" && !file) {
+        validationErrors.push('Missing reference image');
+        FrontendLogger.logDataCollectionError({
+          type: 'validation_error',
+          message: '图片转图片模式需要上传一张参考图片',
+          code: 'MISSING_REQUIRED_PARAM'
+        });
         handleError({
           title: "缺少参考图片",
           message: "图片转图片模式需要上传一张参考图片",
@@ -250,6 +243,11 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
       }
       
       if (!user && loginRef.current) {
+        FrontendLogger.logDataCollectionError({
+          type: 'authentication_error',
+          message: 'User not authenticated',
+          code: 'UNAUTHORIZED'
+        });
         loginRef.current.login();
         return;
       }
@@ -257,29 +255,68 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
       setSubmitting(true);
       clearError();
 
+      // 记录前端数据收集完成
+      const endTime = performance.now();
+      FrontendLogger.completeDataCollection({
+        processingTime: endTime - startTime,
+        validationErrors
+      });
+
+      // 开始API请求日志监控
+      FrontendLogger.logApiRequestStart({
+        url: '/api/create/ai-image',
+        method: 'POST'
+      });
+
       try {
-        const formData = new FormData();
-
+        let imageUrl: string | undefined;
+        
+        // 如果是image-to-image模式，先上传图片获取URL
         if (file && mode === "image-to-image") {
-          formData.set("image", file);
+          const uploadFormData = new FormData();
+          uploadFormData.set("image", file);
+          
+          const uploadRes = await fetch("/api/upload/image", {
+            method: "POST",
+            body: uploadFormData,
+          });
+          
+          if (!uploadRes.ok) {
+             const uploadError = await uploadRes.json().catch(() => ({ error: "Upload failed" })) as { error?: string };
+             throw {
+               status: uploadRes.status,
+               message: uploadError.error || "图片上传失败",
+               details: uploadError
+             };
+           }
+           
+           const uploadResult = await uploadRes.json() as { imageUrl: string; fileName: string; fileSize: number; fileType: string };
+           imageUrl = uploadResult.imageUrl;
         }
-        formData.set("mode", mode);
-        formData.set("prompt", prompt);
-        formData.set("negative_prompt", negativePrompt);
-        formData.set("style", selectedStyle);
-        formData.set("type", selectedModel);
-
+        
+        // 发送JSON格式的请求
+        const requestData = {
+          mode,
+          prompt,
+          type: selectedModel,
+          ...(imageUrl && { image: imageUrl })
+        };
+        
         const res = await fetch("/api/create/ai-image", {
           method: "POST",
-          body: formData,
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(requestData),
         });
 
         if (!res.ok) {
-          // 使用统一的HTTP错误处理
+          // 解析后端返回的标准化错误响应
           const errorData = await res.json().catch(() => ({ message: "Unknown error" })) as any;
           throw {
             status: res.status,
-            message: errorData.message || errorData.error || `HTTP ${res.status}`,
+            data: errorData,
+            message: errorData.error?.message || errorData.message || errorData.error || `HTTP ${res.status}`,
             details: errorData
           };
         }
@@ -287,14 +324,30 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         const result = await res.json<AiImageResult>();
         const { tasks, consumptionCredits } = result;
 
+        // 记录API请求成功
+        const apiEndTime = performance.now();
+        FrontendLogger.logApiRequestComplete({
+          status: res.status,
+          responseTime: apiEndTime - endTime,
+          success: true
+        });
+
         setCredits(consumptionCredits.remainingBalance);
-        setTasks(tasks.map((item) => ({ ...item, progress: 0 })));
+        setTasks(tasks.map((item: AiImageResult["tasks"][number]) => ({ ...item, progress: 0 })));
         setDone(true);
         
         // 成功后清理错误状态
         clearError();
         
       } catch (error: any) {
+        // 记录API请求失败
+        const apiEndTime = performance.now();
+        FrontendLogger.logApiRequestComplete({
+          status: error.status || 0,
+          responseTime: apiEndTime - endTime,
+          success: false
+        });
+
         console.error("ImageGenerator Submit Error:", {
           error: error,
           message: error.message,
@@ -438,11 +491,6 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                           )}
                         </div>
                         <span className="font-medium text-gray-900">{model.name}</span>
-                        {model.recommended && (
-                          <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
-                            推荐
-                          </span>
-                        )}
                       </div>
                       <div className="flex items-center space-x-1 text-sm text-gray-500">
                         <span>{model.credits}</span>
@@ -474,23 +522,6 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
               {prompt.length}/1000
             </div>
           </div>
-        </div>
-
-        {/* Style Selection */}
-        <div className="mb-6">
-          <label className="text-sm font-medium text-gray-700 mb-3 block">Style (Optional)</label>
-          <select
-            value={selectedStyle}
-            onChange={(e) => setSelectedStyle(e.target.value)}
-            className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm bg-white"
-          >
-            <option value="">No specific style</option>
-            {styles.map((style) => (
-              <option key={style.value} value={style.value}>
-                {style.name} - {style.description}
-              </option>
-            ))}
-          </select>
         </div>
 
         {/* Generate Button */}

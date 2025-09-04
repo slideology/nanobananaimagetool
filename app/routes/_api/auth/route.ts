@@ -6,6 +6,8 @@ import { data } from "react-router";
 import { googleOAuthLogin } from "~/.server/services/auth";
 import { getSessionHandler } from "~/.server/libs/session";
 import { getUserCredits } from "~/.server/services/credits";
+import { ErrorHandler } from "~/.server/utils/error-handler";
+import { BaseError, EnvironmentVariableMissingError, UserNotAuthenticatedError } from "~/.server/types/errors";
 
 const googleSchema = z.object({
   type: z.enum(["google"]),
@@ -26,77 +28,123 @@ const passwordSchema = z.object({
 const authSchema = z.discriminatedUnion("type", [googleSchema, passwordSchema]);
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
-  const [session, { commitSession }] = await getSessionHandler(request);
-  const user = session.get("user");
+  try {
+    const [session, { commitSession }] = await getSessionHandler(request);
+    const user = session.get("user");
 
-  let user_info: UserInfo | null = null;
-  let credits = 0;
-  if (user) {
-    user_info = {
+    let user_info: UserInfo | null = null;
+    let credits = 0;
+    if (user) {
+      user_info = {
+        name: user.nickname,
+        email: user.email,
+        avatar: user.avatar_url,
+        created_at: user.created_at.valueOf(),
+      };
+
+      const { balance } = await getUserCredits(user);
+      credits = balance;
+    }
+
+    return Response.json(
+      { profile: user_info, credits },
+      {
+        headers: {
+          "Set-Cookie": await commitSession(session),
+        },
+      }
+    );
+  } catch (error) {
+    console.error("Auth loader error:", error);
+    
+    if (error instanceof BaseError) {
+      return ErrorHandler.createErrorResponse(error);
+    }
+    
+    const systemError = new EnvironmentVariableMissingError(
+      "USER_SESSION",
+      { originalError: error instanceof Error ? error.message : "Unknown error" }
+    );
+    return ErrorHandler.createErrorResponse(systemError);
+  }
+};
+
+export const action = async ({ request, context }: Route.ActionArgs) => {
+  try {
+    const method = request.method.toLowerCase();
+    
+    // 处理退出登录请求
+    if (method === "delete") {
+      const [session, { commitSession, destroySession }] = await getSessionHandler(request);
+      
+      // 清除session中的用户信息
+      session.unset("user");
+      
+      return Response.json(
+        { success: true, message: "Logged out successfully" },
+        {
+          headers: {
+            "Set-Cookie": await destroySession(session),
+          },
+        }
+      );
+    }
+    
+    if (method !== "post") {
+      throw new Response("Method Not Allowed", { status: 405 });
+    }
+
+    const raw = await request.json();
+    const json = authSchema.parse(raw);
+
+    if (json.type !== "google") throw Error("Unvalid login type");
+
+    const [session, { commitSession }] = await getSessionHandler(request);
+
+    const userInfo = await handleGoogleOAuth(
+      json.data,
+      context.cloudflare.env.GOOGLE_CLIENT_ID
+    );
+
+    const user = await googleOAuthLogin({
+      profile: userInfo,
+      request,
+      session: session.id,
+    });
+    session.set("user", user);
+
+    const { balance } = await getUserCredits(user);
+
+    const user_info: UserInfo = {
       name: user.nickname,
       email: user.email,
       avatar: user.avatar_url,
       created_at: user.created_at.valueOf(),
     };
 
-    const { balance } = await getUserCredits(user);
-    credits = balance;
-  }
-
-  return Response.json(
-    { profile: user_info, credits },
-    {
-      headers: {
-        "Set-Cookie": await commitSession(session),
+    return Response.json(
+      {
+        profile: user_info,
+        credits: balance,
       },
+      {
+        headers: {
+          "Set-Cookie": await commitSession(session),
+        },
+      }
+    );
+  } catch (error) {
+    console.error("Auth action error:", error);
+    
+    if (error instanceof BaseError) {
+      return ErrorHandler.createErrorResponse(error);
     }
-  );
-};
-
-export const action = async ({ request, context }: Route.ActionArgs) => {
-  if (request.method.toLowerCase() !== "post") {
-    throw new Response("Not Found", { status: 404 });
+    
+    const authError = new UserNotAuthenticatedError(
+      { originalError: error instanceof Error ? error.message : "Unknown error" }
+    );
+    return ErrorHandler.createErrorResponse(authError);
   }
-
-  const raw = await request.json();
-  const json = authSchema.parse(raw);
-
-  if (json.type !== "google") throw Error("Unvalid login type");
-
-  const [session, { commitSession }] = await getSessionHandler(request);
-
-  const userInfo = await handleGoogleOAuth(
-    json.data,
-    context.cloudflare.env.GOOGLE_CLIENT_ID
-  );
-
-  const user = await googleOAuthLogin({
-    profile: userInfo,
-    request,
-    session: session.id,
-  });
-  session.set("user", user);
-
-  const { balance } = await getUserCredits(user);
-
-  const user_info: UserInfo = {
-    name: user.nickname,
-    email: user.email,
-    avatar: user.avatar_url,
-    created_at: user.created_at.valueOf(),
-  };
-
-  return Response.json(
-    {
-      profile: user_info,
-      credits: balance,
-    },
-    {
-      headers: {
-        "Set-Cookie": await commitSession(session),
-      },
-    }
-  );
 };
 
 interface GoogleTokenInfo extends GoogleUserInfo {

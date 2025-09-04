@@ -181,14 +181,14 @@ export class KieAI {
    */
   async createNanoBananaTask(payload: CreateNanoBananaTaskOptions) {
     const result = await this.fetch<CreateTaskResult>(
-      "/api/v1/jobs/createTask", // 基于官方文档的正确API端点
+      "/api/v1/jobs/createTask",
       {
         model: "google/nano-banana",
         callBackUrl: payload.callBackUrl,
         input: {
           prompt: payload.prompt,
           output_format: "png",
-          image_size: "auto", 
+          image_size: "auto",
           enable_translation: true
         }
       },
@@ -207,7 +207,7 @@ export class KieAI {
    */
   async createNanoBananaEditTask(payload: CreateNanoBananaEditTaskOptions) {
     const result = await this.fetch<CreateTaskResult>(
-      "/api/v1/jobs/createTask", // 基于官方文档的正确API端点
+      "/api/v1/jobs/createTask",
       {
         model: "google/nano-banana-edit",
         callBackUrl: payload.callBackUrl,
@@ -248,7 +248,7 @@ export class KieAI {
    */
   async queryNanoBananaTask(taskId: string) {
     const result = await this.fetch<NanoBananaTaskDetail>(
-      "/api/v1/jobs/recordInfo", // 基于官方文档的正确API端点
+      "/api/v1/jobs/recordInfo",
       { taskId },
       { method: "get", useCache: true } // 启用缓存以减少频繁查询
     );

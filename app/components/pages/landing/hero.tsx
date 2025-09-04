@@ -9,6 +9,7 @@ import { Dropzone, type DropzoneProps } from "~/components/ui";
 import { Image } from "~/components/common";
 
 import { useState, useEffect } from "react";
+import { useErrorHandler } from "~/hooks/use-error-handler";
 
 export interface HeroSectionProps {
   title: string;
@@ -45,16 +46,44 @@ export default function HeroSection({
     setReady(true);
   }, []);
 
+  // 错误处理钩子
+  const { handleError } = useErrorHandler({
+    showToast: true,
+    onError: (errorInfo) => {
+      console.error('Hero Section Error:', {
+        component: 'HeroSection',
+        title: errorInfo.title,
+        message: errorInfo.message,
+        code: errorInfo.code,
+        severity: errorInfo.severity,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   const [downloading, setDownloading] = useState(false);
   const handleExampleClick = async (url: string) => {
     if (downloading) return;
     setDownloading(true);
-    const res = await fetch(url).finally(() => setDownloading(false));
-    const blob = await res.blob();
-    const fileName = url.split("/").pop() ?? "";
-    const file = new File([blob], fileName, { type: res.type });
+    
+    try {
+      const res = await fetch(url);
+      
+      if (!res.ok) {
+        throw new Error(`下载示例图片失败: HTTP ${res.status}`);
+      }
+      
+      const blob = await res.blob();
+      const fileName = url.split("/").pop() ?? "";
+      const file = new File([blob], fileName, { type: res.type });
 
-    onUpload?.(file);
+      onUpload?.(file);
+    } catch (error) {
+      console.error('下载示例图片失败:', error);
+      handleError(error);
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (

@@ -3,6 +3,9 @@ import { data } from "react-router";
 
 import { updateTaskStatusByTaskId } from "~/.server/services/ai-tasks";
 import { Logger } from "~/.server/utils/logger";
+import { CallbackProcessingLogger } from "~/.server/utils/step-loggers";
+import { ErrorHandler } from "~/.server/utils/error-handler";
+import { BaseError, RequiredParameterMissingError, ParameterTypeError } from "~/.server/types/errors";
 import type { GPT4oTaskCallbackJSON } from "~/.server/aisdk";
 
 // Nano Banana 回调数据结构
@@ -23,32 +26,31 @@ interface NanoBananaCallbackJSON {
 type UnifiedCallbackJSON = GPT4oTaskCallbackJSON | NanoBananaCallbackJSON;
 
 export const action = async ({ request, context }: Route.ActionArgs) => {
-  const logger = Logger.createContext();
+  const requestId = Logger.generateRequestId();
   
   try {
     // 记录原始回调数据
     const rawBody = await request.text();
-    logger.info("收到Kie AI回调请求", "webhook-kie-image", {
+    Logger.info("收到Kie AI回调请求", "webhook-kie-image", {
       contentType: request.headers.get('content-type'),
       userAgent: request.headers.get('user-agent'),
       bodyLength: rawBody.length
-    });
+    }, requestId);
     
     let json: UnifiedCallbackJSON;
     try {
       json = JSON.parse(rawBody);
     } catch (parseError) {
-      logger.error("回调数据解析失败", "webhook-kie-image", parseError, {
-        rawBody: rawBody.substring(0, 500) // 只记录前500字符
-      });
-      return new Response("Invalid JSON", { status: 400 });
+      Logger.error("回调数据解析失败", "webhook-kie-image", parseError, requestId);
+      const paramError = new ParameterTypeError("request_body", "valid JSON", typeof rawBody);
+      return ErrorHandler.createErrorResponse(paramError);
     }
     
-    logger.info("回调数据解析成功", "webhook-kie-image", {
+    Logger.info("回调数据解析成功", "webhook-kie-image", {
       dataStructure: Object.keys(json),
       hasTaskId: !!(json as any).taskId || !!(json as any).data?.taskId,
       callbackType: (json as any).data ? 'GPT4o格式' : 'Nano Banana格式'
-    });
+    }, requestId);
     
     // 提取taskId - 支持两种格式
     let taskId: string | undefined;
@@ -56,39 +58,65 @@ export const action = async ({ request, context }: Route.ActionArgs) => {
     if ('data' in json && json.data?.taskId) {
       // GPT4o格式: { data: { taskId: "xxx" } }
       taskId = json.data.taskId;
-      logger.debug("检测到GPT4o格式回调", "webhook-kie-image", { taskId });
+      Logger.debug("检测到GPT4o格式回调", "webhook-kie-image", { taskId }, requestId);
     } else if ('taskId' in json) {
       // Nano Banana格式: { taskId: "xxx", state: "xxx" }
       taskId = (json as NanoBananaCallbackJSON).taskId;
-      logger.debug("检测到Nano Banana格式回调", "webhook-kie-image", { 
+      Logger.debug("检测到Nano Banana格式回调", "webhook-kie-image", { 
         taskId,
         state: (json as NanoBananaCallbackJSON).state
-      });
+      }, requestId);
     }
     
     if (!taskId) {
-      logger.warn("回调中未找到taskId", "webhook-kie-image", {
+      Logger.warn("回调中未找到taskId", "webhook-kie-image", {
         jsonKeys: Object.keys(json),
         jsonData: json
-      });
-      return data({ success: false, error: "No taskId found" });
+      }, requestId);
+      const paramError = new RequiredParameterMissingError("taskId");
+      return ErrorHandler.createErrorResponse(paramError);
     }
     
+    // 记录回调接收开始
+    CallbackProcessingLogger.logCallbackReceived(requestId, {
+      taskId,
+      status: 'data' in json ? 'gpt4o-callback' : (json as NanoBananaCallbackJSON).state,
+      source: 'kie-ai'
+    });
+    
     // 更新任务状态
-    logger.info("开始更新任务状态", "webhook-kie-image", { taskId });
+    Logger.info("开始更新任务状态", "webhook-kie-image", { taskId }, requestId);
     
     await updateTaskStatusByTaskId(context.cloudflare.env, taskId);
     
-    logger.info("任务状态更新成功", "webhook-kie-image", { taskId });
+    // 记录回调处理完成
+    CallbackProcessingLogger.logCallbackComplete(requestId, {
+      taskId,
+      finalStatus: 'completed',
+      processingTime: Date.now() - parseInt(requestId.split('_')[1])
+    });
+    
+    Logger.info("任务状态更新成功", "webhook-kie-image", { taskId }, requestId);
     
     return data({ success: true, taskId });
     
   } catch (error) {
-    logger.error("webhook处理失败", "webhook-kie-image", error, {
-      url: request.url,
-      method: request.method,
-      headers: Object.fromEntries(request.headers.entries())
-    });
+    // 记录回调处理错误
+    CallbackProcessingLogger.logCallbackError(requestId, error instanceof Error ? error : new Error(String(error)));
+    
+    Logger.error("webhook处理失败", "webhook-kie-image", error, requestId);
+    
+    if (error instanceof BaseError) {
+      // 对于webhook，即使是错误也返回200状态避免重复回调
+      const errorResponse = ErrorHandler.createErrorResponse(error);
+      return new Response(
+        errorResponse.body,
+        {
+          status: 200, // 重要：返回200避免重复回调
+          headers: errorResponse.headers
+        }
+      );
+    }
     
     // 返回200状态避免Kie AI重复发送回调
     return new Response(

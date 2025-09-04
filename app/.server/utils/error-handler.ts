@@ -1,10 +1,38 @@
 /**
- * Nano Banana AI 错误处理工具类
- * 
- * 提供统一的错误处理、分类和用户友好的提示信息
- * 支持多种错误类型的识别和处理
+ * 错误处理工具函数
+ * 提供统一的错误处理和响应格式化功能
+ * 兼容新的标准化错误类型系统
  */
 
+import { BaseError, isStandardError, type ErrorDetails } from '../types/errors';
+
+/**
+ * 错误响应接口
+ */
+export interface ErrorResponse {
+  success: false;
+  error: ErrorDetails;
+  requestId?: string;
+}
+
+/**
+ * 成功响应接口
+ */
+export interface SuccessResponse<T = any> {
+  success: true;
+  data: T;
+  requestId?: string;
+}
+
+/**
+ * API 响应类型
+ */
+export type ApiResponse<T = any> = SuccessResponse<T> | ErrorResponse;
+
+/**
+ * 兼容性：保留旧的错误类（已废弃，建议使用新的标准化错误类型）
+ * @deprecated 请使用 app/.server/types/errors.ts 中的标准化错误类型
+ */
 export class NanoBananaError extends Error {
   constructor(
     public code: string,
@@ -182,11 +210,62 @@ export const HTTP_STATUS_TO_ERROR_CODE = {
 } as const;
 
 /**
- * 错误处理主类
+ * 错误处理器类 - 支持新的标准化错误类型
  */
 export class ErrorHandler {
   /**
-   * 处理HTTP响应错误
+   * 处理错误并返回标准化的错误响应
+   * @param error - 错误对象
+   * @param requestId - 请求ID（用于日志追踪）
+   * @param context - 额外的上下文信息
+   * @returns 标准化的错误响应
+   */
+  static handleError(
+    error: unknown,
+    requestId?: string,
+    context?: Record<string, any>
+  ): ErrorResponse {
+    let standardError: BaseError;
+
+    // 如果是标准化错误，直接使用
+    if (isStandardError(error)) {
+      standardError = error;
+    } else {
+      // 将非标准错误转换为通用错误
+      standardError = this.convertToStandardError(error);
+    }
+
+    // 记录错误日志
+    this.logError(standardError, requestId, context);
+
+    // 返回标准化错误响应
+    return {
+      success: false,
+      error: standardError.toResponse(),
+      requestId
+    };
+  }
+
+  /**
+   * 创建成功响应
+   * @param data - 响应数据
+   * @param requestId - 请求ID
+   * @returns 成功响应
+   */
+  static createSuccessResponse<T>(
+    data: T,
+    requestId?: string
+  ): SuccessResponse<T> {
+    return {
+      success: true,
+      data,
+      requestId
+    };
+  }
+
+  /**
+   * 处理HTTP响应错误（兼容旧版本）
+   * @deprecated 建议使用 handleError 方法
    */
   static async handleHttpError(response: Response): Promise<never> {
     let errorData: any = {};
@@ -207,6 +286,92 @@ export class ErrorHandler {
     const message = errorData.message || errorData.error || `HTTP ${status}`;
 
     throw new NanoBananaError(errorCode, status, message, errorData);
+  }
+
+  /**
+   * 将非标准错误转换为标准错误
+   * @param error - 原始错误
+   * @returns 标准化错误
+   */
+  private static convertToStandardError(error: unknown): BaseError {
+    if (error instanceof Error) {
+      // 根据错误消息判断错误类型
+      const message = error.message.toLowerCase();
+      
+      if (message.includes('credits insufficient') || message.includes('积分不足')) {
+        return new (require('../types/errors').CreditInsufficientError)(0, 2, {
+          originalError: error.message
+        });
+      }
+      
+      if (message.includes('unauthorized') || message.includes('未登录')) {
+        return new (require('../types/errors').UserNotAuthenticatedError)({
+          originalError: error.message
+        });
+      }
+      
+      if (message.includes('timeout') || message.includes('超时')) {
+        return new (require('../types/errors').KieNetworkTimeoutError)(30000, {
+          originalError: error.message
+        });
+      }
+      
+      if (message.includes('database') || message.includes('数据库')) {
+        return new (require('../types/errors').DatabaseConnectionError)({
+          originalError: error.message
+        });
+      }
+      
+      if (message.includes('file') || message.includes('upload') || message.includes('文件')) {
+        return new (require('../types/errors').R2UploadError)('unknown', {
+          originalError: error.message
+        });
+      }
+      
+      if (message.includes('api') || message.includes('kie')) {
+        return new (require('../types/errors').KieInternalError)(error.message, {
+          originalError: error.message
+        });
+      }
+    }
+    
+    // 默认返回通用内部错误
+    return new (require('../types/errors').KieInternalError)(
+      error instanceof Error ? error.message : String(error),
+      { originalError: error }
+    );
+  }
+
+  /**
+   * 记录错误日志
+   * @param error - 标准化错误
+   * @param requestId - 请求ID
+   * @param context - 上下文信息
+   */
+  private static logError(
+    error: BaseError,
+    requestId?: string,
+    context?: Record<string, any>
+  ): void {
+    const logData = {
+      errorCode: error.code,
+      errorMessage: error.message,
+      httpStatus: error.httpStatus,
+      timestamp: error.timestamp,
+      requestId,
+      context,
+      stack: error.stack,
+      details: error.details
+    };
+
+    // 根据错误严重程度选择日志级别
+    if (error.httpStatus >= 500) {
+      console.error(`[${error.code}] ${error.message}`, logData);
+    } else if (error.httpStatus >= 400) {
+      console.warn(`[${error.code}] ${error.message}`, logData);
+    } else {
+      console.info(`[${error.code}] ${error.message}`, logData);
+    }
   }
 
   /**
@@ -317,6 +482,96 @@ export class ErrorHandler {
     console.error("Error occurred:", error);
     return this.getErrorInfo(error);
   }
+
+  /**
+   * 创建 Response 对象用于 API 返回
+   * @param error - 错误对象
+   * @param requestId - 请求ID
+   * @param context - 上下文信息
+   * @returns Response 对象
+   */
+  static createErrorResponse(
+    error: unknown,
+    requestId?: string,
+    context?: Record<string, any>
+  ): Response {
+    const errorResponse = this.handleError(error, requestId, context);
+    const standardError = isStandardError(error) ? error : this.convertToStandardError(error);
+    
+    return new Response(
+      JSON.stringify(errorResponse),
+      {
+        status: standardError.httpStatus,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+  }
+
+  /**
+   * 包装异步函数，自动处理错误
+   * @param fn - 要包装的异步函数
+   * @param requestId - 请求ID
+   * @param context - 上下文信息
+   * @returns 包装后的函数
+   */
+  static wrapAsync<T extends any[], R>(
+    fn: (...args: T) => Promise<R>,
+    requestId?: string,
+    context?: Record<string, any>
+  ) {
+    return async (...args: T): Promise<R> => {
+      try {
+        return await fn(...args);
+      } catch (error) {
+        // 如果是标准化错误，直接抛出
+        if (isStandardError(error)) {
+          throw error;
+        }
+        
+        // 转换为标准化错误后抛出
+        const standardError = this.convertToStandardError(error);
+        this.logError(standardError, requestId, context);
+        throw standardError;
+      }
+    };
+  }
+
+  /**
+   * 验证必需参数
+   * @param params - 参数对象
+   * @param requiredFields - 必需字段列表
+   * @throws RequiredParameterMissingError
+   */
+  static validateRequiredParameters(
+    params: Record<string, any>,
+    requiredFields: string[]
+  ): void {
+    for (const field of requiredFields) {
+      if (params[field] === undefined || params[field] === null || params[field] === '') {
+        throw new (require('../types/errors').RequiredParameterMissingError)(field);
+      }
+    }
+  }
+
+  /**
+   * 验证用户积分
+   * @param currentBalance - 当前积分余额
+   * @param requiredCredits - 需要的积分
+   * @throws CreditInsufficientError
+   */
+  static validateUserCredits(
+    currentBalance: number,
+    requiredCredits: number
+  ): void {
+    if (currentBalance < requiredCredits) {
+      throw new (require('../types/errors').CreditInsufficientError)(
+        currentBalance,
+        requiredCredits
+      );
+    }
+  }
 }
 
 /**
@@ -373,3 +628,23 @@ export class RetryHandler {
     throw lastError;
   }
 }
+
+/**
+ * 快捷函数：创建错误响应
+ */
+export const createErrorResponse = ErrorHandler.createErrorResponse;
+
+/**
+ * 快捷函数：创建成功响应
+ */
+export const createSuccessResponse = ErrorHandler.createSuccessResponse;
+
+/**
+ * 快捷函数：处理错误
+ */
+export const handleError = ErrorHandler.handleError;
+
+/**
+ * 快捷函数：包装异步函数
+ */
+export const wrapAsync = ErrorHandler.wrapAsync;

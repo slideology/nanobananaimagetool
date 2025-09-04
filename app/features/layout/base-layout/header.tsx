@@ -5,7 +5,7 @@ import { useUser } from "~/store";
 import { useWindowScroll } from "~/hooks/dom";
 import { GoogleOAuth } from "~/features/oauth";
 
-import { Menu, X } from "lucide-react";
+import { Menu, X, LogOut } from "lucide-react";
 import { Logo, Link } from "~/components/common";
 import { Image } from "~/components/common";
 
@@ -19,11 +19,44 @@ export interface HeaderProps {
 export const Header = ({ navLinks }: HeaderProps) => {
   const user = useUser((state) => state.user);
   const credits = useUser((state) => state.credits);
+  const clearUser = useUser((state) => state.clearUser);
 
   const [openDrawer, setOpenDrawer] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const { y } = useWindowScroll();
   const isScroll = y >= 30;
+
+  /**
+   * 处理用户退出登录
+   * 调用后端API清除session，然后清除前端用户状态
+   */
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    
+    setIsLoggingOut(true);
+    try {
+      const response = await fetch('/api/auth', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (response.ok) {
+        // 清除前端用户状态
+        clearUser();
+        // 可以选择刷新页面或重定向到首页
+        window.location.reload();
+      } else {
+        console.error('退出登录失败:', response.statusText);
+      }
+    } catch (error) {
+      console.error('退出登录时发生错误:', error);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   return (
     <Fragment>
@@ -51,22 +84,36 @@ export const Header = ({ navLinks }: HeaderProps) => {
             {user !== void 0 && (
               <>
                 {user ? (
-                  <div className="flex items-center gap-2 max-w-32">
-                    <div className="avatar">
-                      <div className="w-8 rounded-full bg-base-300">
-                        {user.avatar && (
-                          <Image loading="eager" src={user.avatar} />
-                        )}
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 max-w-32">
+                      <div className="avatar">
+                        <div className="w-8 rounded-full bg-base-300">
+                          {user.avatar && (
+                            <Image loading="eager" src={user.avatar} />
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-xs leading-none flex-1 min-w-0 whitespace-nowrap">
+                        <div className="font-bold mb-0.5 overflow-hidden overflow-ellipsis">
+                          {user.name}
+                        </div>
+                        <div className="opacity-70 overflow-hidden overflow-ellipsis">
+                          Credits: {credits}
+                        </div>
                       </div>
                     </div>
-                    <div className="text-xs leading-none flex-1 min-w-0 whitespace-nowrap">
-                      <div className="font-bold mb-0.5 overflow-hidden overflow-ellipsis">
-                        {user.name}
-                      </div>
-                      <div className="opacity-70 overflow-hidden overflow-ellipsis">
-                        Credits: {credits}
-                      </div>
-                    </div>
+                    <button
+                      onClick={handleLogout}
+                      disabled={isLoggingOut}
+                      className="btn btn-ghost btn-sm p-1 min-h-0 h-8 w-8 hover:bg-red-100 hover:text-red-600 disabled:opacity-50"
+                      title="退出登录"
+                    >
+                      {isLoggingOut ? (
+                        <span className="loading loading-spinner loading-xs" />
+                      ) : (
+                        <LogOut size={16} />
+                      )}
+                    </button>
                   </div>
                 ) : (
                   <GoogleOAuth useOneTap />
@@ -122,6 +169,21 @@ export const Header = ({ navLinks }: HeaderProps) => {
                         </Link>
                       </li>
                     ))}
+                    {user && (
+                      <li>
+                        <button
+                          onClick={() => {
+                            setOpenDrawer(false);
+                            handleLogout();
+                          }}
+                          disabled={isLoggingOut}
+                          className="rounded-box text-red-600 hover:bg-red-100 disabled:opacity-50"
+                        >
+                          <LogOut size={20} />
+                          {isLoggingOut ? '退出中...' : '退出登录'}
+                        </button>
+                      </li>
+                    )}
                   </ul>
                 </div>
               </div>

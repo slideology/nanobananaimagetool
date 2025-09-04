@@ -23,7 +23,7 @@ export const Footer = ({ navLinks }: FooterProps) => {
               <Logo />
             </Link>
             <p>
-              Fresh hair ideas and AI hairstyle try-on for you to find styles
+              AI-powered image generation for creative visual content
               that suit you best!
             </p>
             <Socials className="mt-2" iconSize={24} />

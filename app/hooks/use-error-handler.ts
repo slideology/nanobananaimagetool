@@ -115,9 +115,14 @@ function parseError(error: any, context?: string): ErrorInfo {
     return error;
   }
 
-  // 如果是HTTP响应错误
-  if (error.status) {
-    return parseHttpError(error);
+  // 如果是Response对象或包含response的错误
+  if (error.response || error.status) {
+    return parseHttpError(error.response || error);
+  }
+
+  // 如果错误对象直接包含标准化错误信息
+  if (error.error && error.error.code) {
+    return parseBackendError(error.error, 500);
   }
 
   // 如果是网络错误
@@ -148,6 +153,13 @@ function parseError(error: any, context?: string): ErrorInfo {
 function parseHttpError(error: any): ErrorInfo {
   const status = error.status || 500;
   
+  // 尝试解析后端返回的标准化错误响应
+  if (error.data && error.data.error) {
+    const backendError = error.data.error;
+    return parseBackendError(backendError, status);
+  }
+  
+  // 如果没有标准化错误响应，使用传统的状态码映射
   switch (status) {
     case 400:
       return {
@@ -221,6 +233,187 @@ function parseHttpError(error: any): ErrorInfo {
         action: "重试",
         severity: "error",
         code: "HTTP_ERROR"
+      };
+  }
+}
+
+/**
+ * 解析后端标准化错误响应
+ */
+function parseBackendError(backendError: any, httpStatus: number): ErrorInfo {
+  const errorCode = backendError.code || "UNKNOWN_ERROR";
+  const errorMessage = backendError.message || "发生了未知错误";
+  
+  // 根据错误代码返回用户友好的错误信息
+  switch (errorCode) {
+    // 认证相关错误
+    case "AUTH_001":
+      return {
+        title: "会话已过期",
+        message: "您的登录会话已过期，请重新登录",
+        action: "重新登录",
+        severity: "warning",
+        code: errorCode
+      };
+    
+    case "AUTH_002":
+      return {
+        title: "身份验证失败",
+        message: "请先登录后再试",
+        action: "重新登录",
+        severity: "warning",
+        code: errorCode
+      };
+    
+    case "AUTH_003":
+      return {
+        title: "权限不足",
+        message: "您没有权限执行此操作",
+        action: "联系管理员",
+        severity: "warning",
+        code: errorCode
+      };
+    
+    // 参数相关错误
+    case "PARAM_001":
+      return {
+        title: "缺少必要参数",
+        message: errorMessage,
+        action: "检查输入",
+        severity: "warning",
+        code: errorCode
+      };
+    
+    case "PARAM_002":
+      return {
+        title: "参数类型错误",
+        message: errorMessage,
+        action: "检查输入格式",
+        severity: "warning",
+        code: errorCode
+      };
+    
+    case "PARAM_003":
+      return {
+        title: "参数值无效",
+        message: errorMessage,
+        action: "检查输入值",
+        severity: "warning",
+        code: errorCode
+      };
+    
+    // 业务逻辑错误
+    case "BIZ_001":
+      return {
+        title: "积分不足",
+        message: "您的积分余额不足，请充值后再试",
+        action: "立即充值",
+        severity: "info",
+        code: errorCode
+      };
+    
+    case "BIZ_002":
+      return {
+        title: "任务处理失败",
+        message: errorMessage,
+        action: "重试",
+        severity: "error",
+        code: errorCode
+      };
+    
+    case "BIZ_003":
+      return {
+        title: "文件处理失败",
+        message: errorMessage,
+        action: "检查文件",
+        severity: "warning",
+        code: errorCode
+      };
+    
+    // 系统错误
+    case "SYS_001":
+      return {
+        title: "系统配置错误",
+        message: "系统配置异常，请联系技术支持",
+        action: "联系客服",
+        severity: "error",
+        code: errorCode
+      };
+    
+    case "SYS_002":
+      return {
+        title: "数据库错误",
+        message: "数据库操作失败，请稍后重试",
+        action: "稍后重试",
+        severity: "error",
+        code: errorCode
+      };
+    
+    case "SYS_003":
+      return {
+        title: "外部服务错误",
+        message: "外部服务暂时不可用，请稍后重试",
+        action: "稍后重试",
+        severity: "error",
+        code: errorCode
+      };
+    
+    // 网络相关错误
+    case "NET_001":
+      return {
+        title: "请求超时",
+        message: "请求处理超时，请稍后重试",
+        action: "重试",
+        severity: "warning",
+        code: errorCode
+      };
+    
+    case "NET_002":
+      return {
+        title: "请求频率过高",
+        message: "请求过于频繁，请稍后再试",
+        action: "稍后重试",
+        severity: "warning",
+        code: errorCode
+      };
+    
+    // 文件相关错误
+    case "FILE_001":
+      return {
+        title: "文件不存在",
+        message: "请求的文件不存在",
+        action: "检查文件",
+        severity: "warning",
+        code: errorCode
+      };
+    
+    case "FILE_002":
+      return {
+        title: "文件格式不支持",
+        message: errorMessage,
+        action: "更换文件格式",
+        severity: "warning",
+        code: errorCode
+      };
+    
+    case "FILE_003":
+      return {
+        title: "文件过大",
+        message: "上传的文件超过大小限制",
+        action: "压缩文件",
+        severity: "warning",
+        code: errorCode
+      };
+    
+    // 默认处理
+    default:
+      return {
+        title: "操作失败",
+        message: errorMessage,
+        action: "重试",
+        severity: httpStatus >= 500 ? "error" : "warning",
+        code: errorCode,
+        details: backendError.details
       };
   }
 }

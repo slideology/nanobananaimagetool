@@ -10,6 +10,7 @@ import {
 
 import { useEffect } from "react";
 import { useUser } from "~/store";
+import { useErrorHandler } from "~/hooks/use-error-handler";
 
 import { Document } from "~/features/document";
 
@@ -49,20 +50,45 @@ export default function App({}: Route.ComponentProps) {
   const setUser = useUser((state) => state.setUser);
   const setCredits = useUser((state) => state.setCredits);
 
+  // 错误处理钩子
+  const { handleError } = useErrorHandler({
+    showToast: false, // 初始化时不显示错误提示
+    onError: (errorInfo) => {
+      console.error('App Initialization Error:', {
+        component: 'App',
+        title: errorInfo.title,
+        message: errorInfo.message,
+        code: errorInfo.code,
+        severity: errorInfo.severity,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   useEffect(() => {
-    fetch("/api/auth").then(async (res) => {
-      if (res.ok) {
-        const data = await res.json<{
-          profile: UserInfo | null;
-          credits: number;
-        }>();
-        setUser(data.profile);
-        setCredits(data.credits);
-      } else {
+    const initializeAuth = async () => {
+      try {
+        const res = await fetch("/api/auth");
+        
+        if (res.ok) {
+          const data = await res.json<{
+            profile: UserInfo | null;
+            credits: number;
+          }>();
+          setUser(data.profile);
+          setCredits(data.credits);
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('初始化用户状态失败:', error);
+        handleError(error);
         setUser(null);
       }
-    });
-  }, []);
+    };
+    
+    initializeAuth();
+  }, [handleError, setUser, setCredits]);
 
   return <Outlet />;
 }

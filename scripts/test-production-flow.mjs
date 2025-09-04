@@ -107,7 +107,7 @@ async function testProductionFlow() {
     console.log("\n🎨 步骤3: 模拟业务层调用...");
     const requestData = {
       mode: "image-to-image",
-      prompt: "make it more colorful and vibrant",
+      prompt: "create a highly detailed 1/7 scale commercialized figure of the character from the illustration, rendered in a realistic style. The character is posed dynamically. The figure is placed on the broad desk of a modern gaming/streaming setup, next to a large microphone and mechanical keyboard. It uses a circular transparent acrylic base without any text. On the main ultrawide monitor, a live ZBrush session is visible, showing the 3D model of the very same figure. The BANDAI-style toy packaging box is positioned on the desk like a piece of branded merch, perfectly framed in the stream's webcam view.",
       type: "nano-banana-edit",
       fileUrl: actualImageUrl,
       width: 1024,
@@ -152,67 +152,67 @@ async function testProductionFlow() {
 }
 
 // 对比测试：检查生产环境可能的差异
-async function compareEnvironments() {
-  console.log("\n🔄 对比测试: 生产vs开发环境差异...");
-  
-  // 测试可能的生产环境差异
-  const testScenarios = [
-    {
-      name: "开发环境（无回调URL）",
-      callBackUrl: undefined
-    },
-    {
-      name: "生产环境（有回调URL）", 
-      callBackUrl: "https://nanobanana.slideology0816.workers.dev/api/webhooks/kie-image"
-    }
-  ];
-  
-  for (const scenario of testScenarios) {
-    console.log(`\n测试场景: ${scenario.name}`);
-    
-    try {
-      const payload = {
-        model: "google/nano-banana-edit",
-        input: {
-          prompt: "test prompt",
-          image_urls: [actualImageUrl],
-          output_format: "png",
-          image_size: "auto",
-          enable_translation: true
-        }
-      };
-      
-      if (scenario.callBackUrl) {
-        payload.callBackUrl = scenario.callBackUrl;
-      }
-      
-      const response = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${KIEAI_APIKEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-      });
-      
-      const result = await response.json();
-      
-      if (response.ok && result.code === 200) {
-        console.log(`✅ ${scenario.name} 成功:`, result.data);
-      } else {
-        console.log(`❌ ${scenario.name} 失败:`, result);
-      }
-      
-    } catch (error) {
-      console.error(`💥 ${scenario.name} 异常:`, error.message);
-    }
-  }
-}
+// async function compareEnvironments() {
+//   console.log("\n🔄 对比测试: 生产vs开发环境差异...");
+//   
+//   // 测试可能的生产环境差异
+//   const testScenarios = [
+//     {
+//       name: "开发环境（无回调URL）",
+//       callBackUrl: undefined
+//     },
+//     {
+//       name: "生产环境（有回调URL）", 
+//       callBackUrl: "https://nanobanana.slideology0816.workers.dev/api/webhooks/kie-image"
+//     }
+//   ];
+//   
+//   for (const scenario of testScenarios) {
+//     console.log(`\n测试场景: ${scenario.name}`);
+//     
+//     try {
+//       const payload = {
+//         model: "google/nano-banana-edit",
+//         input: {
+//           prompt: "test prompt",
+//           image_urls: [actualImageUrl],
+//           output_format: "png",
+//           image_size: "auto",
+//           enable_translation: true
+//         }
+//       };
+//       
+//       if (scenario.callBackUrl) {
+//         payload.callBackUrl = scenario.callBackUrl;
+//       }
+//       
+//       const response = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
+//         method: "POST",
+//         headers: {
+//           "Authorization": `Bearer ${KIEAI_APIKEY}`,
+//           "Content-Type": "application/json"
+//         },
+//         body: JSON.stringify(payload)
+//       });
+//       
+//       const result = await response.json();
+//       
+//       if (response.ok && result.code === 200) {
+//         console.log(`✅ ${scenario.name} 成功:`, result.data);
+//       } else {
+//         console.log(`❌ ${scenario.name} 失败:`, result);
+//       }
+//       
+//     } catch (error) {
+//       console.error(`💥 ${scenario.name} 异常:`, error.message);
+//     }
+//   }
+// }
 
 // 执行测试
 async function runCompleteTest() {
   const success = await testProductionFlow();
-  await compareEnvironments();
+  // await compareEnvironments(); // 暂时注释掉对比测试
   
   if (success) {
     console.log("\n🎉 结论: 业务流程完全正常！");

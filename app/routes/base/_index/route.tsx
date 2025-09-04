@@ -2,6 +2,7 @@ import type { Route } from "./+types/route";
 
 import { useRef, Fragment, useMemo, useState, useCallback } from "react";
 import { useUser } from "~/store";
+import { useErrorHandler } from "~/hooks/use-error-handler";
 
 import {
   BookImage,
@@ -46,6 +47,21 @@ export default function Home({
   const [requestPayment, setRequestPayment] = useState(false);
   const user = useUser((state) => state.user);
 
+  // 错误处理钩子
+  const { handleError } = useErrorHandler({
+    showToast: true,
+    onError: (errorInfo) => {
+      console.error('Home Page Error:', {
+        component: 'Home',
+        title: errorInfo.title,
+        message: errorInfo.message,
+        code: errorInfo.code,
+        severity: errorInfo.severity,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   const openRef = useRef(() => {});
   const generatorRef = useRef<ImageGeneratorRef>(null);
 
@@ -58,22 +74,37 @@ export default function Home({
     if (!window) return;
     setRequestPayment(true);
 
-    const res = await fetch("/api/create-order", {
-      method: "POST",
-      body: JSON.stringify(product),
-    }).finally(() => setRequestPayment(false));
+    try {
+      const res = await fetch("/api/create-order", {
+        method: "POST",
+        body: JSON.stringify(product),
+      });
 
-    if (res.ok) {
+      if (!res.ok) {
+        // 解析后端返回的标准化错误响应
+        const errorData = await res.json().catch(() => ({ message: "Unknown error" })) as any;
+        throw {
+          status: res.status,
+          data: errorData,
+          message: errorData.error?.message || errorData.message || errorData.error || `HTTP ${res.status}`,
+          details: errorData
+        };
+      }
+
       const data = await res.json<{ checkout_url: string }>();
       location.href = data.checkout_url;
-
-      return;
+    } catch (error) {
+      console.error('创建订单失败:', error);
+      handleError(error);
+      
+      // 如果是401错误，触发登录
+      if ((error as any)?.status === 401) {
+        document.querySelector<HTMLButtonElement>("#google-oauth-btn")?.click();
+      }
+    } finally {
+      setRequestPayment(false);
     }
-
-    if (res.status === 401) {
-      document.querySelector<HTMLButtonElement>("#google-oauth-btn")?.click();
-    }
-  }, [user]);
+  }, [user, handleError, product]);
 
   const pageData = useMemo<LandingProps>(() => {
     return {
