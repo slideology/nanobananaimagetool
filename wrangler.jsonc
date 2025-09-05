@@ -27,13 +27,6 @@
     "GOOGLE_ADS_ID": "",
     // 紧急修复：应用需要这些变量存在，使用占位符值
     // 生产环境通过 'wrangler secret put' 覆盖这些值
-    "SESSION_SECRET": "placeholder-will-be-overridden-by-secret",
-    "GOOGLE_CLIENT_ID": "placeholder-will-be-overridden-by-secret",
-    "GOOGLE_CLIENT_SECRET": "placeholder-will-be-overridden-by-secret",
-    "KIEAI_APIKEY": "placeholder-will-be-overridden-by-secret",
-    "CREEM_KEY": "placeholder-will-be-overridden-by-secret",
-    "CREEM_WEBHOOK_SECRET": "placeholder-will-be-overridden-by-secret",
-    "CREEM_TEST_KEY": "placeholder-will-be-overridden-by-secret"
   },
   "observability": {
     "enabled": true
