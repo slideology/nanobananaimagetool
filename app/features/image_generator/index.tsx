@@ -801,13 +801,22 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
       </>
     );
 
-    // Inline 模式直接返回控件内容
+    // Inline 模式返回左右分栏布局
     if (inline) {
       return (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="space-y-6">
-            <ControlsContent />
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="flex flex-col lg:flex-row">
+            {/* Left Panel - Controls */}
+            <div className="lg:w-1/2 p-6 space-y-6">
+              <ControlsContent />
+            </div>
+            
+            {/* Right Panel - Output Gallery */}
+            <div className="lg:w-1/2 bg-gray-50 p-6 border-l border-gray-200">
+              <OutputGallery />
+            </div>
           </div>
+          
           {/* Hidden OAuth for programmatic login */}
           <div className="hidden">
             <GoogleOAuth ref={loginRef} />
