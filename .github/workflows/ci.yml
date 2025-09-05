@@ -1,0 +1,80 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    # 1. 检出代码
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # 2. 安装 pnpm (必须在 setup-node 之前)
+    - name: Install pnpm
+      uses: pnpm/action-setup@v3
+      with:
+        version: 8
+
+    # 3. 设置 Node.js 环境 (现在 pnpm 已经可用)
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'pnpm'  # 现在可以安全使用 pnpm 缓存
+
+    # 4. 安装依赖
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    # 5. 运行测试
+    - name: Run tests
+      run: pnpm run test:run
+
+    # 6. 构建应用
+    - name: Build application
+      run: pnpm run build
+
+  deploy:
+    needs: test-and-build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    
+    steps:
+    # 1. 检出代码
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # 2. 安装 pnpm
+    - name: Install pnpm
+      uses: pnpm/action-setup@v3
+      with:
+        version: 8
+
+    # 3. 设置 Node.js
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'pnpm'
+
+    # 4. 安装依赖
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    # 5. 构建应用
+    - name: Build application
+      run: pnpm run build
+
+    # 6. 部署到 Cloudflare
+    - name: Deploy to Cloudflare Workers
+      uses: cloudflare/wrangler-action@v3
+      with:
+        apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        command: deploy --env ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}

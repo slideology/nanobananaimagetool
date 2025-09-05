@@ -1,0 +1,54 @@
+name: 测试 pnpm 设置
+
+on:
+  workflow_dispatch:  # 手动触发用于测试
+
+jobs:
+  test-pnpm-setup:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install pnpm
+      uses: pnpm/action-setup@v3
+      with:
+        version: 8
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'pnpm'
+
+    - name: Verify pnpm installation
+      run: |
+        echo "✅ pnpm version:"
+        pnpm --version
+        echo "✅ Node.js version:"
+        node --version
+        echo "✅ npm version:"
+        npm --version
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Verify project structure
+      run: |
+        echo "✅ 项目文件结构:"
+        ls -la
+        echo "✅ node_modules 创建成功:"
+        ls -la node_modules | head -10
+
+    - name: Run tests
+      run: pnpm run test:run
+
+    - name: Build project
+      run: pnpm run build
+
+    - name: Verify build output
+      run: |
+        echo "✅ 构建输出:"
+        ls -la build/
+        echo "✅ 构建成功 🎉"

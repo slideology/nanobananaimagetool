@@ -1,62 +1,98 @@
-name: Deploy to Cloudflare Workers
+name: 部署到 Cloudflare Workers
 
-# 触发条件：当代码推送到 main 分支时自动部署
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
   pull_request:
     branches: [ main ]
+
+env:
+  NODE_VERSION: '20'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    name: Deploy to Cloudflare Workers
-    
+    name: 部署应用
+
     steps:
-      # 第一步：检出代码
-      - name: Checkout code
+      # 检出代码
+      - name: 检出代码
         uses: actions/checkout@v4
-        
-      # 第二步：设置 Node.js 环境
-      - name: Setup Node.js
+
+      # 设置 Node.js 环境
+      - name: 设置 Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
-          
-      # 第三步：安装 pnpm
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'  # 暂时使用npm缓存，稍后会切换到pnpm
+
+      # 安装 pnpm
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v3
         with:
           version: 8
-          
-      # 第四步：安装依赖
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-        
-      # 第五步：构建项目
-      - name: Build project
-        run: pnpm run build
-        
-      # 第六步：运行数据库迁移
-      - name: Run database migrations
-        run: npx wrangler d1 migrations apply nanobanana
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          
-      # 第七步：部署到 Cloudflare Workers
-      - name: Deploy to Cloudflare Workers
-        run: npx wrangler deploy --env production
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          
-      # 第八步：设置环境变量和密钥（可选，如果需要更新）
-      - name: Update secrets (if needed)
+          run_install: false
+
+      # 重新设置 Node.js 环境以使用 pnpm 缓存
+      - name: 重新设置 Node.js (使用 pnpm 缓存)
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      # 获取 pnpm store 目录
+      - name: 获取 pnpm store 目录
+        shell: bash
         run: |
-          echo "Deployment completed successfully!"
-          echo "Make sure all secrets are properly configured in Cloudflare Workers"
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      # 缓存 pnpm dependencies
+      - name: 设置 pnpm 缓存
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      # 安装依赖
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      # 类型检查
+      - name: TypeScript 类型检查
+        run: pnpm run typecheck
+
+      # 运行测试
+      - name: 运行测试
+        run: pnpm run test:run
+
+      # 构建应用
+      - name: 构建应用
+        run: pnpm run build
+
+      # 部署到 Cloudflare Workers (仅在 main 和 develop 分支)
+      - name: 部署到 Cloudflare Workers
+        if: github.event_name == 'push'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --env ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+
+      # 数据库迁移 (仅在部署时)
+      - name: 数据库迁移
+        if: github.event_name == 'push'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: d1 migrations apply ${{ github.ref == 'refs/heads/main' && 'nanobanana' || 'nanobanana-dev' }} --env ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+
+      # 部署结果通知
+      - name: 部署成功通知
+        if: success() && github.event_name == 'push'
+        run: |
+          echo "🎉 部署成功完成!"
+          echo "🌍 环境: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}"
+          echo "📦 提交: ${{ github.sha }}"
