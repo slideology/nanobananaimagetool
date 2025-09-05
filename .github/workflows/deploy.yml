@@ -21,32 +21,38 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          cache: 'npm'
+          node-version: '20'
+          cache: 'pnpm'
           
-      # 第三步：安装依赖
+      # 第三步：安装 pnpm
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+          
+      # 第四步：安装依赖
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
         
-      # 第四步：构建项目
+      # 第五步：构建项目
       - name: Build project
-        run: npm run build
+        run: pnpm run build
         
-      # 第五步：运行数据库迁移
+      # 第六步：运行数据库迁移
       - name: Run database migrations
         run: npx wrangler d1 migrations apply nanobanana
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           
-      # 第六步：部署到 Cloudflare Workers
+      # 第七步：部署到 Cloudflare Workers
       - name: Deploy to Cloudflare Workers
         run: npx wrangler deploy --env production
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           
-      # 第七步：设置环境变量和密钥（可选，如果需要更新）
+      # 第八步：设置环境变量和密钥（可选，如果需要更新）
       - name: Update secrets (if needed)
         run: |
           echo "Deployment completed successfully!"
