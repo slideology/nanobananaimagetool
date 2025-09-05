@@ -1,54 +1,53 @@
-name: CI/CD Pipeline
+name: 快速部署 (无测试)
 
 on:
   push:
     branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
 
 jobs:
   deploy:
-    # 移除测试步骤，直接部署以加快速度
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    if: github.event_name == 'push'
     
     steps:
     # 1. 检出代码
-    - name: Checkout code
+    - name: 检出代码
       uses: actions/checkout@v4
 
     # 2. 安装 pnpm
-    - name: Install pnpm
+    - name: 安装 pnpm
       uses: pnpm/action-setup@v3
       with:
         version: 9
 
     # 3. 设置 Node.js
-    - name: Setup Node.js
+    - name: 设置 Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
         cache: 'pnpm'
 
     # 4. 安装依赖
-    - name: Install dependencies
+    - name: 安装依赖
       run: |
-        # 尝试使用frozen-lockfile，如果失败则使用常规安装
         pnpm install --frozen-lockfile || pnpm install
 
-    # 5. TypeScript 类型检查 (可选 - 如果不需要可以注释掉)
-    # - name: TypeScript type check
-    #   run: pnpm run typecheck
-    #   continue-on-error: true
-
-    # 6. 构建应用
-    - name: Build application
+    # 5. 构建应用
+    - name: 构建应用
       run: pnpm run build
 
-    # 7. 部署到 Cloudflare
-    - name: Deploy to Cloudflare Workers
+    # 6. 部署到 Cloudflare Workers
+    - name: 部署到 Cloudflare Workers
       uses: cloudflare/wrangler-action@v3
       with:
         apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         command: deploy --env ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+
+    # 7. 部署成功通知
+    - name: 部署成功
+      if: success()
+      run: |
+        echo "🎉 部署成功完成!"
+        echo "🌍 环境: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}"
+        echo "📦 提交: ${{ github.sha }}"
