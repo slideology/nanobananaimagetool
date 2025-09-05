@@ -24,9 +24,16 @@
     "DOMAIN": "https://nanobanana.slideology0816.workers.dev",
     "CDN_URL": "https://pub-cb92e8dab89d452aadee075624e92b5a.r2.dev",
     "GOOGLE_ANALYTICS_ID": "",
-    "GOOGLE_ADS_ID": ""
-    // Sensitive variables like API keys should be set using 'wrangler secret put'
-    // GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, KIEAI_APIKEY, CREEM_KEY, etc.
+    "GOOGLE_ADS_ID": "",
+    // 紧急修复：应用需要这些变量存在，使用占位符值
+    // 生产环境通过 'wrangler secret put' 覆盖这些值
+    "SESSION_SECRET": "placeholder-will-be-overridden-by-secret",
+    "GOOGLE_CLIENT_ID": "placeholder-will-be-overridden-by-secret",
+    "GOOGLE_CLIENT_SECRET": "placeholder-will-be-overridden-by-secret",
+    "KIEAI_APIKEY": "placeholder-will-be-overridden-by-secret",
+    "CREEM_KEY": "placeholder-will-be-overridden-by-secret",
+    "CREEM_WEBHOOK_SECRET": "placeholder-will-be-overridden-by-secret",
+    "CREEM_TEST_KEY": "placeholder-will-be-overridden-by-secret"
   },
   "observability": {
     "enabled": true
@@ -57,7 +64,85 @@
       "binding": "R2",
       "bucket_name": "nanobanan-images-prod"
     }
-  ]
-  // 移除env配置，统一使用单一nanobanana Worker
-  // 所有密钥通过 'wrangler secret put' 设置
+  ],
+  "env": {
+    "development": {
+      "vars": {
+        "INITLIZE_CREDITS": 3,
+        "DOMAIN": "http://localhost:3004",
+        "CDN_URL": "https://pub-cb92e8dab89d452aadee075624e92b5a.r2.dev",
+        "GOOGLE_ANALYTICS_ID": "",
+        "GOOGLE_ADS_ID": "",
+        // 开发环境：使用占位符，实际值通过 'wrangler secret put --env development' 设置
+        "SESSION_SECRET": "dev-placeholder-will-be-overridden-by-secret",
+        "GOOGLE_CLIENT_ID": "dev-placeholder-will-be-overridden-by-secret",
+        "GOOGLE_CLIENT_SECRET": "dev-placeholder-will-be-overridden-by-secret",
+        "KIEAI_APIKEY": "dev-placeholder-will-be-overridden-by-secret",
+        "CREEM_KEY": "dev-placeholder-will-be-overridden-by-secret",
+        "CREEM_WEBHOOK_SECRET": "dev-placeholder-will-be-overridden-by-secret",
+        "CREEM_TEST_KEY": "dev-placeholder-will-be-overridden-by-secret"
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "nanobanana",
+          "database_id": "58998e54-6c65-43b5-9ffe-8d659e4514d7",
+          "migrations_dir": "./app/.server/drizzle/migrations"
+        }
+      ],
+      "kv_namespaces": [
+        {
+          "binding": "KV",
+          "id": "7b71e875e136417abbfc28f512c487d6",
+          "preview_id": "081f1e6d571843fc9b2fb9459469c21e"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "R2",
+          "bucket_name": "nanobanan-images-prod"
+        }
+      ]
+    },
+    "production": {
+      "vars": {
+        "INITLIZE_CREDITS": 3,
+        "DOMAIN": "https://nanobanana.slideology0816.workers.dev",
+        // 可选：直接使用R2 CDN以获得更好性能
+        // "CDN_URL": "https://pub-cb92e8dab89d452aadee075624e92b5a.r2.dev",
+        // 当前：通过Workers统一管理（推荐）
+        "CDN_URL": "https://pub-cb92e8dab89d452aadee075624e92b5a.r2.dev",
+        "GOOGLE_ANALYTICS_ID": "",
+        "GOOGLE_ADS_ID": "",
+        // 生产环境：使用占位符，实际值通过 'wrangler secret put --env production' 设置
+        "SESSION_SECRET": "prod-placeholder-will-be-overridden-by-secret",
+        "GOOGLE_CLIENT_ID": "prod-placeholder-will-be-overridden-by-secret",
+        "GOOGLE_CLIENT_SECRET": "prod-placeholder-will-be-overridden-by-secret",
+        "KIEAI_APIKEY": "prod-placeholder-will-be-overridden-by-secret",
+        "CREEM_KEY": "prod-placeholder-will-be-overridden-by-secret",
+        "CREEM_WEBHOOK_SECRET": "prod-placeholder-will-be-overridden-by-secret",
+        "CREEM_TEST_KEY": "prod-placeholder-will-be-overridden-by-secret"
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "nanobanana",
+          "database_id": "58998e54-6c65-43b5-9ffe-8d659e4514d7",
+          "migrations_dir": "./app/.server/drizzle/migrations"
+        }
+      ],
+      "kv_namespaces": [
+        {
+          "binding": "KV",
+          "id": "7b71e875e136417abbfc28f512c487d6"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "R2",
+          "bucket_name": "nanobanan-images-prod"
+        }
+      ]
+    }
+  }
 }

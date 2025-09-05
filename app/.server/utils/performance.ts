@@ -25,7 +25,9 @@ export const CACHE_CONFIG = {
   // API响应缓存时间 (5分钟)
   API_RESPONSE_TTL: 5 * 60 * 1000,
   // 图片预览缓存时间 (1小时)
-  IMAGE_PREVIEW_TTL: 60 * 60 * 1000
+  IMAGE_PREVIEW_TTL: 60 * 60 * 1000,
+  // KIE AI API缓存时间 (5分钟)
+  KIE_API: 5 * 60 * 1000
 } as const;
 
 /**
