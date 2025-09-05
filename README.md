@@ -1,6 +1,6 @@
-# Nano Banana AI 图像生成工具
+# Nano Banana | AI-Powered Photo Editor
 
-一个基于 React Router v7 和 Cloudflare Workers 的现代化 AI 图像生成应用，支持文字生图和图片转图功能。
+使用简单文字编辑任何照片的先进AI工具。Nano Banana提供一致的结果，优于Flux Kontext。基于React Router v7和Cloudflare Workers构建的现代化AI照片编辑应用。
 
 ## 🚀 项目特点
 

@@ -122,13 +122,13 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         id: "image-to-image",
         name: "Image to Image",
         icon: <ImageIcon size={20} />,
-        description: "Transform your image with AI-powered editing"
+        description: "Transform your photos with AI-powered editing"
       },
       {
         id: "text-to-image", 
         name: "Text to Image",
         icon: <Type size={20} />,
-        description: "Create images from text descriptions"
+        description: "Create photos from text descriptions"
       }
     ];
 
@@ -369,14 +369,20 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
 
         setCredits(consumptionCredits.remainingBalance);
         
-        // 🔧 修复：为不同状态的任务设置正确的progress
-        setTasks(tasks.map((item: AiImageResult["tasks"][number]) => ({ 
+        // 🔧 修复状态设置时序：先设置任务，再设置done状态
+        const tasksWithProgress = tasks.map((item: AiImageResult["tasks"][number]) => ({ 
           ...item, 
-          progress: item.status === "running" ? 10 : // running状态显示10%进度
+          progress: item.status === "running" ? 0 : // running状态从0%开始，由轮询更新
                    item.status === "succeeded" ? 100 : 
                    item.status === "failed" ? 100 : 0
-        })));
-        setDone(true);
+        }));
+        
+        setTasks(tasksWithProgress);
+        
+        // 🔧 延迟设置done状态，确保UI有时间显示提交完成到任务开始的过渡
+        setTimeout(() => {
+          setDone(true);
+        }, 500); // 500ms延迟，让用户看到"提交成功"的状态
         
         console.log("📋 任务创建成功:", tasks.map(t => `${t.task_no} (${t.status})`).join(", "));
         
@@ -421,7 +427,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         {/* Prompt Engine Header */}
         <div className="mb-6">
           <h2 className="text-xl font-bold mb-2">🚀 Prompt Engine</h2>
-          <p className="text-gray-600 text-sm">Transform your image with AI-powered editing</p>
+          <p className="text-gray-600 text-sm">Transform your photos with AI-powered editing using simple words</p>
           <div className="w-full h-px bg-gray-200 mt-4"></div>
         </div>
 
@@ -596,13 +602,163 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
       </>
     );
 
-    // Inline 模式直接返回控件内容
+    // Inline 模式返回完整的左右布局
     if (inline) {
       return (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="space-y-6">
-            <ControlsContent />
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Left Panel - Controls */}
+          <div className="lg:w-1/2">
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <div className="space-y-6">
+                <ControlsContent />
+              </div>
+            </div>
           </div>
+
+          {/* Right Panel - Output Gallery */}
+          <div className="lg:w-1/2">
+            <div className="bg-gray-50 rounded-xl p-6">
+              <div className="mb-6">
+                <h3 className="text-xl font-semibold mb-2">🎨 Output Gallery</h3>
+                <p className="text-gray-600 text-sm">Your ultra-fast AI creations appear here instantly</p>
+                <div className="w-full h-px bg-gray-200 mt-4"></div>
+              </div>
+
+              {/* 初始状态：等待用户操作 */}
+              {!done && !submitting && (
+                <div className="h-96 bg-white rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-blue-100 to-purple-100 rounded-xl flex items-center justify-center">
+                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <h4 className="font-medium text-gray-900 mb-2">Ready for instant generation</h4>
+                    <p className="text-sm text-gray-500">Enter your prompt and unleash the power</p>
+                  </div>
+                </div>
+              )}
+
+              {/* 提交中状态：正在调用API */}
+              {submitting && (
+                <div className="h-96 bg-white rounded-xl border border-gray-300 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="loading loading-spinner loading-lg mb-4"></div>
+                    <p className="text-gray-500">Submitting to AI service...</p>
+                  </div>
+                </div>
+              )}
+
+              {/* 任务创建成功过渡状态 */}
+              {!submitting && tasks.length > 0 && !done && (
+                <div className="h-96 bg-white rounded-xl border border-green-300 bg-green-50 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
+                      <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <p className="text-green-700 font-medium mb-2">任务创建成功！</p>
+                    <p className="text-green-600 text-sm">正在初始化AI生成流程...</p>
+                  </div>
+                </div>
+              )}
+
+              {/* 任务创建后状态：显示任务进度和结果 */}
+              {done && tasks.length > 0 && (
+                <div className="space-y-4 max-h-[80vh] overflow-y-auto">
+                  {tasks.map((task) => (
+                    <div key={task.task_no} className="bg-white border rounded-lg p-4 shadow-sm">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="font-medium text-gray-800">图片生成任务</span>
+                        <span className={clsx(
+                          "px-2 py-1 rounded-full text-xs font-medium",
+                          task.status === "succeeded" && "bg-green-100 text-green-700",
+                          task.status === "failed" && "bg-red-100 text-red-700",
+                          task.status === "running" && "bg-blue-100 text-blue-700",
+                        )}>
+                          {task.status === "succeeded" && "✓ Complete"}
+                          {task.status === "failed" && "✗ Failed"}
+                          {task.status === "running" && "⟳ Generating"}
+                        </span>
+                      </div>
+                      
+                      {task.status === "running" && (
+                        <div className="mb-4">
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="loading loading-spinner loading-sm"></div>
+                            <span className="text-sm text-gray-600">
+                              {task.progress === 0 ? "正在启动AI生成流程..." : "AI正在生成图片，请稍候..."}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span className="text-gray-600">Progress</span>
+                            <span className="font-medium text-blue-600">
+                              {task.progress === 0 ? "初始化中" : `${task.progress}%`}
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className={`h-2 rounded-full transition-all duration-500 ${
+                                task.progress === 0 
+                                  ? "bg-gradient-to-r from-blue-300 to-blue-400 animate-pulse" 
+                                  : "bg-gradient-to-r from-blue-500 to-purple-500"
+                              }`}
+                              style={{ width: `${Math.max(task.progress, 5)}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      )}
+
+                      {task.result_url && (
+                        <div className="border rounded-lg overflow-hidden">
+                          <Image
+                            src={task.result_url}
+                            alt="Generated"
+                            className="w-full"
+                          />
+                        </div>
+                      )}
+                      
+                      {task.status === "failed" && task.fail_reason && (
+                        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                          <strong>Error:</strong> {task.fail_reason}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 功能特性展示 */}
+              {!done && !submitting && (
+                <div className="mt-6">
+                  <h4 className="font-medium mb-3 text-gray-700">✨ Core Features</h4>
+                  <div className="space-y-3">
+                    <div className="flex items-start space-x-3">
+                      <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center mt-0.5">
+                        <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                      </div>
+                      <div>
+                        <h5 className="font-medium text-sm">Natural Language Editing</h5>
+                        <p className="text-xs text-gray-600">Edit images using simple text prompts</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <div className="w-5 h-5 bg-purple-100 rounded-full flex items-center justify-center mt-0.5">
+                        <div className="w-2 h-2 bg-purple-600 rounded-full"></div>
+                      </div>
+                      <div>
+                        <h5 className="font-medium text-sm">Character Consistency</h5>
+                        <p className="text-xs text-gray-600">Maintain character appearance across generations</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Hidden OAuth for programmatic login */}
           <div className="hidden">
             <GoogleOAuth ref={loginRef} />
@@ -663,13 +819,28 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                   </div>
                 )}
 
+                {/* 🔧 新增：任务创建成功过渡状态 */}
+                {!submitting && tasks.length > 0 && !done && (
+                  <div className="h-96 border border-green-300 rounded-lg flex items-center justify-center bg-green-50">
+                    <div className="text-center">
+                      <div className="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
+                        <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <p className="text-green-700 font-medium mb-2">任务创建成功！</p>
+                      <p className="text-green-600 text-sm">正在初始化AI生成流程...</p>
+                    </div>
+                  </div>
+                )}
+
                 {/* 任务创建后状态：显示任务进度和结果 */}
                 {done && tasks.length > 0 && (
                   <div className="space-y-4 max-h-[80vh] overflow-y-auto">
                     {tasks.map((task) => (
                       <div key={task.task_no} className="bg-white border rounded-lg p-4 shadow-sm">
                         <div className="flex items-center justify-between mb-3">
-                          <span className="font-medium text-gray-800">Task {task.task_no}</span>
+                          <span className="font-medium text-gray-800">图片生成任务</span>
                           <span className={clsx(
                             "px-2 py-1 rounded-full text-xs font-medium",
                             task.status === "succeeded" && "bg-green-100 text-green-700",
@@ -686,16 +857,24 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                           <div className="mb-4">
                             <div className="flex items-center gap-2 mb-3">
                               <div className="loading loading-spinner loading-sm"></div>
-                              <span className="text-sm text-gray-600">AI正在生成图片，请稍候...</span>
+                              <span className="text-sm text-gray-600">
+                                {task.progress === 0 ? "正在启动AI生成流程..." : "AI正在生成图片，请稍候..."}
+                              </span>
                             </div>
                             <div className="flex justify-between text-sm mb-1">
                               <span className="text-gray-600">Progress</span>
-                              <span className="font-medium text-blue-600">{task.progress}%</span>
+                              <span className="font-medium text-blue-600">
+                                {task.progress === 0 ? "初始化中" : `${task.progress}%`}
+                              </span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-2">
                               <div 
-                                className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
-                                style={{ width: `${task.progress}%` }}
+                                className={`h-2 rounded-full transition-all duration-500 ${
+                                  task.progress === 0 
+                                    ? "bg-gradient-to-r from-blue-300 to-blue-400 animate-pulse" 
+                                    : "bg-gradient-to-r from-blue-500 to-purple-500"
+                                }`}
+                                style={{ width: `${Math.max(task.progress, 5)}%` }}
                               ></div>
                             </div>
                           </div>

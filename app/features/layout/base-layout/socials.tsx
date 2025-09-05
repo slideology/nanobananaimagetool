@@ -43,7 +43,7 @@ export const Socials = ({
       <Link
         to="https://www.pinterest.com/"
         target="_blank"
-        title="Hairroom Pinterest"
+        title="Nano Banana Pinterest"
       >
         <Pinterest
           strokeWidth={strokeWidth}

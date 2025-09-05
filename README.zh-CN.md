@@ -108,7 +108,7 @@ app/
 │   └── ui/                     # UI 组件（拖拽上传等）
 ├── features/                   # 业务功能模块
 │   ├── document/               # 文档功能
-│   ├── hairstyle_changer/      # 发型更换核心功能
+│   ├── photo_editor/           # 照片编辑核心功能
 │   ├── layout/                 # 布局组件
 │   └── oauth/                  # OAuth 认证功能
 ├── hooks/                      # React Hooks
@@ -118,7 +118,7 @@ app/
 │   ├── _api/                   # API 接口路由
 │   │   ├── auth/               # 认证相关 API
 │   │   ├── create-order/       # 订单创建 API
-│   │   ├── create.ai-hairstyle/ # AI 发型生成 API
+│   │   ├── create.photo-edit/   # AI 照片编辑 API
 │   │   └── task.$task_no/      # 任务状态查询 API
 │   ├── _callback/              # 支付回调路由
 │   ├── _legal/                 # 法律文档页面
@@ -157,7 +157,7 @@ app/
 - `POST /api/webhooks/payment` - 支付成功回调
 
 #### AI 服务
-- `POST /api/create/ai-hairstyle` - 创建发型生成任务
+- `POST /api/create/photo-edit` - 创建照片编辑任务
 - `GET /api/task/{task_no}` - 查询任务进度和结果
 - `POST /api/webhooks/kie-image` - AI 服务回调
 
@@ -411,8 +411,8 @@ A: 欢迎提交 PR！请遵循以下步骤：
 
 ### 📜 代码规范
 - **TypeScript 优先**: 所有新代码必须使用 TypeScript
-- **组件命名**: 使用 PascalCase，如 `HairstyleChanger`
-- **文件命名**: 使用 kebab-case，如 `hairstyle-select.tsx`
+- **组件命名**: 使用 PascalCase，如 `PhotoEditor`
+- **文件命名**: 使用 kebab-case，如 `photo-edit-select.tsx`
 - **函数命名**: 使用 camelCase，如 `handleSubmit`
 - **常量命名**: 使用 SCREAMING_SNAKE_CASE，如 `CREDITS_PRODUCT`
 
@@ -595,31 +595,31 @@ CMD ["pnpm", "run", "preview"]
 ## 📞 联系方式
 
 ### 官方渠道
-- 🌐 **官方网站**: [https://hairroom.app](https://hairroom.app)
-- 📧 **邮箱联系**: support@hairroom.app
-- 🐛 **Bug 反馈**: [GitHub Issues](https://github.com/neyric/ai-hairstyle/issues)
-- 💬 **功能建议**: [GitHub Discussions](https://github.com/neyric/ai-hairstyle/discussions)
+- 🌐 **官方网站**: [https://nanobanana.app](https://nanobanana.app)
+- 📧 **邮箱联系**: support@nanobanana.app
+- 🐛 **Bug 反馈**: [GitHub Issues](https://github.com/neyric/nano-banana/issues)
+- 💬 **功能建议**: [GitHub Discussions](https://github.com/neyric/nano-banana/discussions)
 
 ### 社交媒体
-- 🐦 **Twitter**: [@hairroom_app](https://twitter.com/hairroom_app)
-- 📋 **产品更新**: [Product Hunt](https://www.producthunt.com/products/hairroom)
-- 📺 **使用教程**: [YouTube 频道](https://youtube.com/@hairroom)
+- 🐦 **Twitter**: [@nanobanana_app](https://twitter.com/nanobanana_app)
+- 📋 **产品更新**: [Product Hunt](https://www.producthunt.com/products/nano-banana)
+- 📺 **使用教程**: [YouTube 频道](https://youtube.com/@nanobanana)
 
 ### 商务合作
-- 🤝 **合作咨询**: partnership@hairroom.app
-- 💰 **投资合作**: investment@hairroom.app
-- 👥 **媒体采访**: media@hairroom.app
+- 🤝 **合作咨询**: partnership@nanobanana.app
+- 💰 **投资合作**: investment@nanobanana.app
+- 👥 **媒体采访**: media@nanobanana.app
 
 ---
 
 <div align="center">
 
-### 🌟 感谢使用 Hairroom！
+### 🌟 感谢使用 Nano Banana！
 
 如果这个项目对您有帮助，请给我们一个 ⭐ Star！  
 您的支持是我们持续改进的动力。
 
-[🚀 马上体验](https://hairroom.app) | [💫 提交反馈](https://github.com/neyric/ai-hairstyle/issues) | [💬 加入讨论](https://github.com/neyric/ai-hairstyle/discussions)
+[🚀 马上体验](https://nanobanana.app) | [💫 提交反馈](https://github.com/neyric/nano-banana/issues) | [💬 加入讨论](https://github.com/neyric/nano-banana/discussions)
 
 </div>
 

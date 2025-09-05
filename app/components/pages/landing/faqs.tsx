@@ -13,7 +13,7 @@ export interface FAQSectionProps {
 export default function FAQSection({ title, subtitle, faqs }: FAQSectionProps) {
   return (
     <div className="bg-base-200 relative">
-      <div id="faqs" className="absolute -top-20" />
+      <div id="faqs" className="absolute -top-24" />
       <div className="container text-center my-6 md:my-12 lg:my-18">
         <h2 className="text-2xl md:text-3xl mb-2 font-bold">{title}</h2>
         <p className="text-base max-w-3xl mx-auto">{subtitle}</p>

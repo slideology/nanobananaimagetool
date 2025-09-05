@@ -1,6 +1,4 @@
 import { Fragment, useRef } from "react";
-
-import HeroSection, { type HeroSectionProps } from "./hero";
 import HowItWorksSection, { type HowItWorksSectionProps } from "./how-it-works";
 import FeaturesGrid, { type FeaturesGridProps } from "./features";
 import PricingCards, { type PricingCardsProps } from "./pricing";
@@ -14,7 +12,6 @@ import TestimonialsSection, {
 import FAQSection, { type FAQSectionProps } from "./faqs";
 
 export interface LandingProps {
-  hero: Omit<HeroSectionProps, "openRef">;
   howItWorks: HowItWorksSectionProps;
   features: FeaturesGridProps;
   pricing: PricingCardsProps;
@@ -22,14 +19,10 @@ export interface LandingProps {
   cta: CTASectionProps;
   testimonials: TestimonialsSectionProps;
   faqs: FAQSectionProps;
-  openRef?: HeroSectionProps["openRef"];
-  onFileUpload?: (file: File) => void;
   onCTAClick?: () => void;
-  hideHero?: boolean;
 }
 
 export default function Landing({
-  hero,
   howItWorks,
   features,
   pricing,
@@ -37,14 +30,10 @@ export default function Landing({
   cta,
   testimonials,
   faqs,
-  openRef,
-  onFileUpload,
   onCTAClick,
-  hideHero = false,
 }: LandingProps) {
   return (
     <Fragment>
-      {!hideHero && <HeroSection {...hero} onUpload={onFileUpload} openRef={openRef} />}
       <HowItWorksSection {...howItWorks} />
       <FeaturesGrid {...features} />
       <PricingCards {...pricing} />

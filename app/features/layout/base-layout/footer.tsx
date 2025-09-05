@@ -23,8 +23,8 @@ export const Footer = ({ navLinks }: FooterProps) => {
               <Logo />
             </Link>
             <p>
-              AI-powered image generation for creative visual content
-              that suit you best!
+              Edit any photo with simple words using our advanced AI.
+              Nano Banana delivers consistent results for effortless image transformation.
             </p>
             <Socials className="mt-2" iconSize={24} />
           </aside>
@@ -51,9 +51,9 @@ export const Footer = ({ navLinks }: FooterProps) => {
         <div className="container text-sm p-4">
           <p className="text-center leading-none text-neutral-400">
             © {new Date().getFullYear()}{" "}
-            <Link className="text-neutral-50" to="https://hairroom.app" target="_blank">
-              Hairroom
-            </Link>{" "}
+            <span className="text-neutral-50">
+              Nano Banana
+            </span>{" "}
             All Rights Reserved.
           </p>
         </div>

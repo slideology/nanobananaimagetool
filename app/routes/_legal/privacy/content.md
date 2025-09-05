@@ -4,9 +4,9 @@ Last updated: June 12, 2025
 
 ## 1. Introduction
 
-At **HairRoom.app**, we are deeply committed to protecting your personal information and privacy. This Privacy Policy explains how we collect, use, and protect your data when you interact with our services.
+At **Nano Banana**, we are deeply committed to protecting your personal information and privacy. This Privacy Policy explains how we collect, use, and protect your data when you interact with our services.
 
-HairRoom.app offers an AI-powered virtual hairstyle experience, allowing users to upload photos and preview various hairstyles digitally. This policy applies to all users of our website ([https://HairRoom.app](https://HairRoom.app)) and services.
+Nano Banana offers an AI-powered photo editing experience, allowing users to upload photos and edit them using natural language commands. This policy applies to all users of our website and services.
 
 ## 2. Information We Collect
 
@@ -14,7 +14,7 @@ HairRoom.app offers an AI-powered virtual hairstyle experience, allowing users t
 
 - **Personally Identifiable Information (PII)**: We collect information such as your email address when you register or contact us.
 
-- **Photographic Data**: You may upload images to use our AI hairstyle generation tools. These images are used solely for providing our virtual styling service.
+- **Photographic Data**: You may upload images to use our AI photo editing tools. These images are used solely for providing our photo editing service.
 
 - **Payment Information**: We do **not** store or process payment data directly. All transactions are handled securely by **Stripe**, our third-party payment processor.
 
@@ -34,7 +34,7 @@ HairRoom.app offers an AI-powered virtual hairstyle experience, allowing users t
 
 We use the information we collect for the following purposes:
 
-- **To provide and operate our services**: Including generating hairstyle previews and processing service usage.
+- **To provide and operate our services**: Including generating photo edits and processing service usage.
 
 - **To communicate with you**: For support, updates, and relevant notifications.
 
@@ -103,7 +103,7 @@ You have the right to:
 
 To exercise any of your rights, contact us via:
 
-**Email**: [support@hairroom.app](mailto:support@hairroom.app)
+**Email**: [support@nanobanana.app](mailto:support@nanobanana.app)
 
 We may require verification of your identity before fulfilling your request.
 
@@ -115,7 +115,7 @@ We aim to respond to all legitimate requests within **30 days**. Complex or mult
 
 ### 6.1 Policy Revisions
 
-HairRoom.app may update this Privacy Policy periodically. All changes take effect upon posting unless otherwise indicated.
+Nano Banana may update this Privacy Policy periodically. All changes take effect upon posting unless otherwise indicated.
 
 ### 6.2 Notification of Changes
 
@@ -128,10 +128,10 @@ If substantial changes are made:
 
 If you have questions, concerns, or feedback about this policy or your data:
 
-- **Email**: [support@hairroom.app](mailto:support@hairroom.app)
+- **Email**: [support@nanobanana.app](mailto:support@nanobanana.app)
 
 We are committed to resolving any issues promptly and respectfully.
 
 ---
 
-**HairRoom.app** – Your [AI Hairstyle](https://hairroom.app) Studio 💇‍♀️💇‍♂️
+**Nano Banana** – Your AI Photo Editor 📸✨

@@ -8,11 +8,11 @@ import { createCanonical } from "~/utils/meta";
 
 export const meta: Route.MetaFunction = ({ matches }) => {
   return [
-    { title: "Terms of Use - HairRoom" },
+    { title: "Terms of Use - Nano Banana" },
     {
       name: "description",
       content:
-        "Review the Terms of Use for HairRoom, outlining the rules, rights, and responsibilities when using our AI-powered hairstyle platform.",
+        "Review the Terms of Use for Nano Banana, outlining the rules, rights, and responsibilities when using our AI-powered photo editing platform.",
     },
     createCanonical("/legal/terms", matches[0].data.DOMAIN),
   ];

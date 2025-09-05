@@ -46,7 +46,7 @@ export default function CTASection({
           {userCount && (
             <p className="text-base">
               <span className="text-primary">{userCount}</span> have already
-              tried AI hairstyle try on
+              tried Nano Banana photo editing
             </p>
           )}
 

@@ -4,7 +4,7 @@ Last updated: June 12, 2025
 
 ## 1. Introduction
 
-**HairRoom.app** is operated by HairRoom. On the HairRoom website, we use cookies. This policy outlines how and why we use cookies. For more information about how this fits into our broader policies, please refer to our [Privacy Policy](/legal/privacy).
+**Nano Banana** is operated by Nano Banana. On the Nano Banana website, we use cookies. This policy outlines how and why we use cookies. For more information about how this fits into our broader policies, please refer to our [Privacy Policy](/legal/privacy).
 
 ## 2. What are cookies?
 
@@ -14,7 +14,7 @@ Cookies can be set by the website you’re visiting (first-party cookies) or by 
 
 ## 3. What types of cookies do we use?
 
-We use the following types of cookies on HairRoom.app:
+We use the following types of cookies on Nano Banana:
 
 ### Necessary cookies
 
@@ -73,7 +73,7 @@ These cookies are managed by third-party providers who help us enhance marketing
 
 ## 5. Changing your cookie preferences
 
-When you first visit HairRoom.app, a cookie consent banner will appear. You can accept all cookies, reject non-essential cookies, or customize your preferences.
+When you first visit Nano Banana, a cookie consent banner will appear. You can accept all cookies, reject non-essential cookies, or customize your preferences.
 
 You can also update your preferences later by clicking the **Cookie Settings** link in the footer of the website or by clearing your cookies and refreshing the page.
 
@@ -91,10 +91,10 @@ We may update this Cookie Policy from time to time. Significant changes that aff
 
 If you have any questions or concerns regarding this Cookie Policy, please contact us:
 
-- **Email:** [support@hairroom.app](mailto:support@hairroom.app)
+- **Email:** [support@nanobanana.app](mailto:support@nanobanana.app)
 
 We are committed to resolving any issues promptly and respectfully.
 
 ---
 
-**HairRoom.app** – Your [AI Hairstyle](https://hairroom.app) Studio 💇‍♀️💇‍♂️
+**Nano Banana** – Your AI Photo Editor 📸✨

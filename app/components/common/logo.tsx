@@ -35,10 +35,10 @@ export const Logo = ({
         <Image
           className="w-full h-full object-cover"
           src="/assets/logo.webp"
-          alt="HairRoom, Try-on AI Hairstyle"
+          alt="Nano Banana AI Photo Editor"
         />
       </div>
-      <div className={clsx("font-title", sizeStyles[size].text)}>HairRoom</div>
+      <div className={clsx("font-title", sizeStyles[size].text)}>Nano Banana</div>
     </div>
   );
 };

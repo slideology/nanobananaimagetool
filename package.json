@@ -1,5 +1,6 @@
 {
-  "name": "nanobananaimageqoder",
+  "name": "nano-banana-ai-photo-editor",
+  "description": "Edit any photo with simple words using our advanced AI. Nano Banana delivers consistent results, superior to Flux Kontext.",
   "private": true,
   "type": "module",
   "scripts": {

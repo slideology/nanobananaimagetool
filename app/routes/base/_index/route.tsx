@@ -27,11 +27,11 @@ export function meta({ matches }: Route.MetaArgs) {
   const canonical = createCanonical("/", matches[0].data.DOMAIN);
 
   return [
-    { title: "Nano Banana AI Image Generator: Create Amazing Art with AI" },
+    { title: "Nano Banana | AI-Powered Photo Editor - Edit with Text Prompts" },
     {
       name: "description",
       content:
-        "Transform your images with AI-powered editing. Upload a photo and create stunning artwork with our advanced image generation tools. Try image-to-image and text-to-image modes.",
+        "Edit any photo with simple words using our advanced AI. Nano Banana delivers consistent results, superior to Flux Kontext. Transform your images effortlessly with the power of natural language.",
     },
     canonical,
   ];
@@ -108,129 +108,101 @@ export default function Home({
 
   const pageData = useMemo<LandingProps>(() => {
     return {
-      hero: {
-        title: "Create Amazing Art \nwith AI-Powered Generation",
-        description:
-          "Transform your images or bring your ideas to life with AI. Upload a photo for image-to-image transformation or describe your vision for text-to-image creation. Unleash your creativity in minutes!",
-        buttonText: "Start Creating Now",
-        dropHintText: "or drop a file here",
-        exampleHintText: "Or try with example",
-        secondaryDescription:
-          "Creating stunning artwork just got easier. Whether you want to transform existing images or generate completely new art from text descriptions, our AI-powered tools help you bring your creative vision to life.",
-        testimonialText:
-          "Thousands who've already created amazing art with Nano Banana AI. Start your creative journey today.",
-        diffImages: [
-          "https://cdn.nanobananai.com/assets/images/diff-before.webp",
-          "https://cdn.nanobananai.com/assets/images/diff-after.webp",
-        ],
-        exampleImages: [
-          "https://cdn.nanobananai.com/assets/images/example-art-1.webp",
-          "https://cdn.nanobananai.com/assets/images/example-art-2.webp",
-          "https://cdn.nanobananai.com/assets/images/example-art-3.webp",
-          "https://cdn.nanobananai.com/assets/images/example-art-4.webp",
-        ],
-        testimonialAvatars: [
-          "https://cdn.nanobananai.com/assets/images/testimonial-1.webp",
-          "https://cdn.nanobananai.com/assets/images/testimonial-2.webp",
-          "https://cdn.nanobananai.com/assets/images/testimonial-3.webp",
-          "https://cdn.nanobananai.com/assets/images/testimonial-4.webp",
-          "https://cdn.nanobananai.com/assets/images/testimonial-5.webp",
-        ],
-      },
+
       howItWorks: {
         title: "How It Works",
         subtitle:
-          "Create stunning AI-generated artwork in minutes with just a photo or text description",
+          "Edit any photo in minutes with simple text commands - no complex tools required",
         cover: "https://cdn.nanobananai.com/assets/images/how-it-works.webp",
         steps: [
           {
-            title: "Choose your mode",
+            title: "Upload your photo",
             description:
-              "Select between Image-to-Image transformation or Text-to-Image generation based on your creative needs.",
+              "Simply drag and drop or select any photo you want to edit. Nano Banana supports all common image formats.",
           },
           {
-            title: "Upload or describe",
+            title: "Describe your changes",
             description:
-              "Upload a photo for transformation or write a detailed prompt describing your vision for original artwork creation.",
+              "Tell us what you want to change in plain English. For example: 'make the sky more dramatic' or 'change hair color to blonde'.",
           },
           {
-            title: "Select your style",
+            title: "AI processes instantly",
             description:
-              "Choose from various artistic styles like photorealistic, digital art, oil painting, or abstract to match your aesthetic preference.",
+              "Our advanced AI understands your request and applies the changes with precision, delivering consistent results every time.",
           },
           {
-            title: "Generate amazing art",
+            title: "Download your result",
             description:
-              "Watch as our AI transforms your input into stunning artwork. Download, share, or use your creations however you like!",
+              "Get your edited photo in high quality. Share it instantly or make additional edits with more text commands!",
           },
         ],
       },
 
       features: {
-        title: "Why Choose Nano Banana AI Image Generator",
+        title: "Why Choose Nano Banana AI Photo Editor",
         subtitle:
-          "Experience the most advanced AI image generation with instant access, multiple modes, and professional-quality results.",
+          "Experience the most intuitive photo editing with natural language commands, instant results, and professional-quality output.",
         features: [
           {
             icon: <BookImage size={32} />,
-            title: "Multiple Generation Modes",
+            title: "Natural Language Editing",
             description:
-              "Choose between Image-to-Image transformation and Text-to-Image generation. Upload photos for style transfer or create entirely new artwork from descriptions.",
+              "Edit photos using simple text commands. No need to learn complex tools - just describe what you want and our AI does the rest.",
           },
           {
             icon: <Globe size={32} />,
             title: "Instant Access, Anywhere",
             description:
-              "Use our AI image generator right in your browser—no app required. It's fully mobile-friendly, so you can create art anytime, anywhere.",
+              "Use Nano Banana right in your browser—no app required. It's fully mobile-friendly, so you can edit photos anytime, anywhere.",
           },
           {
             icon: <GalleryHorizontalEnd size={32} />,
-            title: "50,000+ Images Generated",
+            title: "50,000+ Photos Edited",
             description:
-              "Our AI has already powered over 50,000 image generations, helping thousands of artists and creators bring their visions to life.",
+              "Nano Banana has successfully edited over 50,000 photos, helping thousands of users transform their images effortlessly.",
           },
           {
             icon: <Bot size={32} />,
-            title: "Advanced AI Technology",
+            title: "Superior AI Technology",
             description:
-              "Powered by cutting-edge AI models that deliver stunning, high-resolution results with incredible detail and artistic quality.",
+              "Powered by advanced AI models that deliver consistent, high-quality results - superior to Flux Kontext and other alternatives.",
           },
           {
             icon: <ShieldUser size={32} />,
             title: "Privacy Protected",
             description:
-              "Your images and prompts are processed securely and never stored or shared. Your creative privacy is our top priority.",
+              "Your photos and editing requests are processed securely and never stored or shared. Your privacy is our top priority.",
           },
           {
             icon: <BadgeDollarSign size={32} />,
             title: "Money-Back Guarantee",
             description:
-              "If you're not satisfied with your AI-generated artwork, we offer a full refund—no questions asked.",
+              "If you're not satisfied with your photo editing results, we offer a full refund—no questions asked.",
           },
         ],
       },
 
       pricing: {
-        title: "Start Creating AI Art Today",
+        title: "Start Editing Photos Today",
         subtitle:
-          "Generate stunning artwork with AI using images or text prompts. Start with free trial credits or buy more, no subscription required",
+          "Edit any photo with simple text commands. Start with free trial credits or buy more, no subscription required",
         plans: [
           {
-            title: "Try AI Art Generation for Free",
+            title: "Try Photo Editing for Free",
             badge: "Free Trial",
             badgeColor: "primary",
             description:
-              "Upload your photo or describe your vision and instantly see AI-generated artwork. New users get 3 free credits, no credit card needed.",
-            buttonText: "Start Creating – Try It Free",
-            footerText: "Includes 3 free credits for new users",
+              "Upload your photo and describe your edits in plain English. New users get 3 free credits, no credit card needed.",
+            buttonText: "Start Editing – Try It Free",
+            footerText: "Includes 1 free credits for new users",
             onButtonClick: handleUpload,
           },
           {
-            title: "Unlock More AI Art Generations",
+            title: "Unlock More Photo Edits",
             badge: "Buy Credits",
             badgeColor: "secondary",
             description:
-              "Want to explore more creative possibilities? Purchase credits to generate unlimited AI artwork from your photos and ideas.",
+              "Want to edit more photos? Purchase credits to unlock unlimited photo editing capabilities with our advanced AI technology.",
             buttonText: `Buy Credits – $${product.price} for ${product.credits} Credits`,
             footerText: "More contact support@nanobananai.com",
             loading: requestPayment,
@@ -242,88 +214,88 @@ export default function Home({
       alternatingContent: {
         contentBlocks: [
           {
-            title: "Transform Photos into Art Instantly",
+            title: "Edit Photos with Natural Language",
             description:
-              "Turn any ordinary photo into extraordinary artwork with our Image-to-Image AI technology. Upload a selfie, landscape, or any image and watch as AI transforms it into stunning digital art, paintings, or abstract masterpieces.",
-            cover: "https://cdn.nanobananai.com/assets/images/content-1.webp",
+              "Transform any photo using simple text commands. Just describe what you want to change - 'make the sky more dramatic', 'change hair color', or 'remove background' - and watch Nano Banana work its magic instantly.",
+            cover: "/assets/nano-banana-new-image-model-examples-v0-0uypne6v8uif1.webp",
           },
           {
-            title: "Create Original Art from Text",
+            title: "Consistent, Superior Results",
             description:
-              "Bring your imagination to life with Text-to-Image generation. Simply describe your vision in words and our AI will create unique, high-quality artwork that matches your description perfectly.",
-            cover: "https://cdn.nanobananai.com/assets/images/content-2.webp",
+              "Unlike other AI photo editors, Nano Banana delivers consistent, high-quality results every time. Our advanced technology outperforms Flux Kontext and other alternatives with reliable, professional-grade edits.",
+            cover: "/assets/nano-banana-new-image-model-examples-v0-c8b9mo2b7uif1.webp",
           },
           {
-            title: "Professional Quality Results",
+            title: "No Complex Tools Required",
             description:
-              "Get gallery-worthy artwork every time. Our advanced AI ensures professional-level quality with stunning details, vibrant colors, and artistic coherence that rivals human artists.",
-            cover: "https://cdn.nanobananai.com/assets/images/content-3.webp",
+              "Forget complicated photo editing software. Nano Banana makes professional photo editing accessible to everyone - no learning curve, no technical skills needed, just simple text commands.",
+            cover: "/assets/nano-banana-new-image-model-examples-v0-df0pa95b8uif1.webp",
           },
           {
-            title: "Multiple Artistic Styles",
+            title: "Lightning Fast Processing",
             description:
-              "Explore endless creative possibilities with our diverse style collection. From photorealistic renders to abstract art, oil paintings to digital illustrations—find the perfect style for your vision.",
-            cover: "https://cdn.nanobananai.com/assets/images/content-4.webp",
+              "Get your edited photos in seconds, not minutes. Our optimized AI processes your requests instantly, so you can iterate quickly and achieve the perfect result without waiting.",
+            cover: "/assets/nano-banana-new-image-model-examples-v0-f6benr39auif1.webp",
           },
           {
-            title: "Perfect for Every Creator",
+            title: "Perfect for Everyone",
             description:
-              "Whether you're a professional artist, designer, content creator, or hobbyist, our AI image generator adapts to your needs. Create social media content, artwork, concept designs, and more.",
-            cover: "https://cdn.nanobananai.com/assets/images/content-5.webp",
+              "Whether you're a social media influencer, photographer, marketer, or just someone who loves great photos, Nano Banana adapts to your needs. Edit portraits, landscapes, products, and more.",
+            cover: "/assets/nano-banana-new-image-model-examples-v0-gioq3ao79uif1.webp",
           },
           {
-            title: "Commercial Use Rights",
+            title: "Full Commercial Rights",
             description:
-              "Use your AI-generated artwork for commercial projects, presentations, marketing materials, and more. All generated images come with full usage rights for your creative and business needs.",
-            cover: "https://cdn.nanobananai.com/assets/images/content-6.webp",
+              "Use your edited photos for any purpose - commercial projects, social media, marketing materials, and more. All edited images come with full usage rights for your personal and business needs.",
+            cover: "/assets/nano-banana-new-image-model-examples-v0-o7dv8xyx9uif1.webp",
           },
         ],
       },
       cta: {
-        title: "Start Creating Amazing Art",
-        subtitle: "with AI-Powered Image Generation",
+        title: "Start Editing Photos Today",
+        subtitle: "with Natural Language Commands",
         userCount: "25,000+",
-        buttonText: "Create Now",
+        buttonText: "Edit Photos Now",
         testimonialAvatars: [
-          "https://cdn.nanobananai.com/assets/images/testimonial-1.webp",
-          "https://cdn.nanobananai.com/assets/images/testimonial-2.webp",
-          "https://cdn.nanobananai.com/assets/images/testimonial-3.webp",
-          "https://cdn.nanobananai.com/assets/images/testimonial-4.webp",
-          "https://cdn.nanobananai.com/assets/images/testimonial-5.webp",
+          "/assets/72*72-1.png",
+          "/assets/72*72-2.png",
+          "/assets/72*72-3.png",
+          "/assets/72*72-4.png",
+          "/assets/72*72-1.png",
         ],
       },
       testimonials: {
-        title: "What Our Users Are Creating",
+        title: "What Our Users Are Saying",
         subtitle:
-          "See what artists and creators are saying about Nano Banana AI and the amazing artwork they've generated!",
+          "See what photographers and creators are saying about Nano Banana and the amazing photo edits they've achieved!",
         testimonials: [
           {
             name: "Sarah Chen",
             content:
               "This AI image generator is incredible! I uploaded a simple sketch and it transformed it into a stunning digital painting. The quality is professional-level and the results exceeded my expectations.",
             avatar:
-              "https://cdn.nanobananai.com/assets/images/testimonial-woman-1.webp",
+              "/assets/640*640-1.png",
           },
           {
             name: "Marcus Rodriguez",
             content:
               "As a graphic designer, I use this tool daily for concept art and client presentations. The text-to-image feature is mind-blowing - I just describe what I need and get perfect results every time.",
             avatar:
-              "https://cdn.nanobananai.com/assets/images/testimonial-man-1.webp",
+              "/assets/640*640-2.png",
           },
           {
             name: "Emily Watson",
             content:
               "I've never been artistic, but with Nano Banana AI, I'm creating beautiful artwork for my social media and blog. The interface is so easy to use and the results are always amazing!",
             avatar:
-              "https://cdn.nanobananai.com/assets/images/testimonial-woman-2.webp",
+              "/assets/640*640-3.png",
           },
           {
             name: "David Kim",
             content:
               "This is the future of digital art! I've generated over 100 images for my game development project. The consistency and quality are unmatched. Highly recommend for any creative professional.",
             avatar:
-              "https://cdn.nanobananai.com/assets/images/testimonial-man-2.webp",
+              "/assets/640*640-4.png",
           },
         ],
       },
@@ -426,73 +398,17 @@ export default function Home({
         <div className="container mx-auto px-4">
           <div className="max-w-7xl mx-auto">
             <div className="bg-white rounded-2xl shadow-2xl p-8">
-              <div className="flex flex-col lg:flex-row gap-8">
-                {/* Left Panel - Controls */}
-                <div className="lg:w-1/2 space-y-6">
-                  <div>
-                    <h3 className="text-2xl font-bold mb-6">AI Image Generator</h3>
-                  </div>
-                  
-                  <ImageGenerator
-                    styles={imageStyles}
-                    promptCategories={promptCategories}
-                    inline={true}
-                  />
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-2xl font-bold mb-6">AI Image Generator</h3>
                 </div>
-
-                {/* Right Panel - Output Gallery */}
-                <div className="lg:w-1/2 bg-gray-50 rounded-xl p-6">
-                  <div className="mb-6">
-                    <h3 className="text-xl font-semibold mb-2">🎨 Output Gallery</h3>
-                    <p className="text-gray-600 text-sm">Your ultra-fast AI creations appear here instantly</p>
-                    <div className="w-full h-px bg-gray-200 mt-4"></div>
-                  </div>
-
-                  <div className="h-96 bg-white rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-blue-100 to-purple-100 rounded-xl flex items-center justify-center">
-                        <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                      <h4 className="font-medium text-gray-900 mb-2">Ready for instant generation</h4>
-                      <p className="text-sm text-gray-500">Enter your prompt and unleash the power</p>
-                    </div>
-                  </div>
-
-                  <div className="mt-6">
-                    <h4 className="font-medium mb-3 text-gray-700">✨ Core Features</h4>
-                    <div className="space-y-3">
-                      <div className="flex items-start space-x-3">
-                        <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center mt-0.5">
-                          <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                        </div>
-                        <div>
-                          <h5 className="font-medium text-sm">Natural Language Editing</h5>
-                          <p className="text-xs text-gray-600">Edit images using simple text prompts</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start space-x-3">
-                        <div className="w-5 h-5 bg-purple-100 rounded-full flex items-center justify-center mt-0.5">
-                          <div className="w-2 h-2 bg-purple-600 rounded-full"></div>
-                        </div>
-                        <div>
-                          <h5 className="font-medium text-sm">Character Consistency</h5>
-                          <p className="text-xs text-gray-600">Maintain perfect character details across edits</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start space-x-3">
-                        <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center mt-0.5">
-                          <div className="w-2 h-2 bg-green-600 rounded-full"></div>
-                        </div>
-                        <div>
-                          <h5 className="font-medium text-sm">One-Shot Editing</h5>
-                          <p className="text-xs text-gray-600">Perfect results in a single attempt</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                
+                <ImageGenerator
+                   ref={generatorRef}
+                   styles={imageStyles}
+                   promptCategories={promptCategories}
+                   inline={true}
+                 />
               </div>
             </div>
           </div>
@@ -502,10 +418,7 @@ export default function Home({
       {/* Additional Sections */}
       <Landing
         {...pageData}
-        openRef={openRef}
         onCTAClick={handleUpload}
-        onFileUpload={(photo) => generatorRef.current?.open(photo)}
-        hideHero={true}
       />
     </Fragment>
   );

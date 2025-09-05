@@ -11,6 +11,8 @@ interface DocumentProps {
   DOMAIN?: string;
   GOOGLE_ADS_ID?: string;
   GOOGLE_ANALYTICS_ID?: string;
+  MICROSOFT_CLARITY_ID?: string;
+  THIRD_PARTY_ADS_ID?: string;
   lang?: string;
   theme?: string;
 }
@@ -21,6 +23,8 @@ export function Document({
   DOMAIN,
   GOOGLE_ADS_ID,
   GOOGLE_ANALYTICS_ID,
+  MICROSOFT_CLARITY_ID,
+  THIRD_PARTY_ADS_ID,
 }: React.PropsWithChildren<DocumentProps>) {
   const rootRef = useRef<HTMLHtmlElement>(null);
   const error = useRouteError();
@@ -37,6 +41,8 @@ export function Document({
     let gaScript: HTMLScriptElement;
     let gaInitScript: HTMLScriptElement;
     let pScript: HTMLScriptElement;
+    let clarityScript: HTMLScriptElement;
+    let thirdPartyAdsScript: HTMLScriptElement;
 
     // Adsense
     if (GOOGLE_ADS_ID && !error) {
@@ -73,6 +79,31 @@ export function Document({
       document.head.appendChild(gaInitScript);
     }
 
+    // Microsoft Clarity
+    if (MICROSOFT_CLARITY_ID) {
+      clarityScript = document.createElement("script");
+      clarityScript.type = "text/javascript";
+      clarityScript.textContent = `
+        (function(c,l,a,r,i,t,y){
+            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+        })(window, document, "clarity", "script", "${MICROSOFT_CLARITY_ID}");
+      `;
+
+      document.head.appendChild(clarityScript);
+    }
+
+    // 第三方广告网络
+    if (THIRD_PARTY_ADS_ID) {
+      thirdPartyAdsScript = document.createElement("script");
+      thirdPartyAdsScript.src = `//pl27453148.profitableratecpm.com/${THIRD_PARTY_ADS_ID}/invoke.js`;
+      thirdPartyAdsScript.async = true;
+      thirdPartyAdsScript.setAttribute("data-cfasync", "false");
+
+      document.head.appendChild(thirdPartyAdsScript);
+    }
+
     // Plausible
     if (DOMAIN) {
       pScript = document.createElement("script");
@@ -87,9 +118,11 @@ export function Document({
       if (adsScript) adsScript.remove();
       if (gaScript) gaScript.remove();
       if (gaInitScript) gaInitScript.remove();
+      if (clarityScript) clarityScript.remove();
+      if (thirdPartyAdsScript) thirdPartyAdsScript.remove();
       if (pScript) pScript.remove();
     };
-  }, [GOOGLE_ADS_ID, GOOGLE_ANALYTICS_ID, DOMAIN, error]);
+  }, [GOOGLE_ADS_ID, GOOGLE_ANALYTICS_ID, MICROSOFT_CLARITY_ID, THIRD_PARTY_ADS_ID, DOMAIN, error]);
 
   return (
     <html ref={rootRef} lang={lang} data-theme={theme}>

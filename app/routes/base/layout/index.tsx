@@ -6,7 +6,7 @@ import { BaseLayout, type BaseLayoutProps } from "~/features/layout";
 export const loader = ({}: Route.LoaderArgs) => {
   const header: BaseLayoutProps["header"] = {
     navLinks: [
-      { label: "AI Image Generator", to: "/" },
+      { label: "AI Photo Editor", to: "/" },
       { label: "How it Works", to: "/#how-it-works" },
       { label: "Pricing", to: "/#pricing" },
       { label: "FAQs", to: "/#faqs" },
@@ -17,7 +17,7 @@ export const loader = ({}: Route.LoaderArgs) => {
     navLinks: [
       {
         label: "Tools",
-        list: [{ to: "/", label: "AI Image Generator" }],
+        list: [{ to: "/", label: "AI Photo Editor" }],
       },
       {
         label: "Support",

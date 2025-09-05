@@ -22,7 +22,7 @@ export default function PricingCards({
 }: PricingCardsProps) {
   return (
     <div className="container md:text-center my-12 md:my-18 lg:my-24 relative">
-      <div id="pricing" className="absolute -top-20" />
+      <div id="pricing" className="absolute -top-24" />
       <h2 className="text-2xl md:text-3xl mb-2 font-bold">{title}</h2>
       <p className="text-base max-w-3xl mx-auto">{subtitle}</p>
 
