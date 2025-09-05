@@ -30,8 +30,6 @@ export const GoogleOAuthBtn = forwardRef<
     onError: (error) => {
       console.warn('Google OAuth error:', error);
     },
-    // 避免COOP问题的配置
-    ux_mode: 'popup',
   });
 
   useImperativeHandle(ref, () => ({

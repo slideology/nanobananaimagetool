@@ -24,3 +24,16 @@ export interface ImageGeneratorRef {
   close: () => void;
 }
 
+export interface ImageTask {
+  task_no: string;
+  status: 'pending' | 'running' | 'succeeded' | 'failed';
+  prompt?: string;
+  images?: string[];
+  created_at?: Date | string;
+  updated_at?: Date | string;
+  error?: string;
+  progress?: number;
+  result_url?: string | null;
+  fail_reason?: string | null;
+}
+

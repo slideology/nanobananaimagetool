@@ -354,7 +354,7 @@ export function logApiCall(endpoint: string, method: string) {
             requestId,
             duration,
             error,
-            statusCode: error?.status || 500
+            statusCode: (error as any)?.status || 500
           }
         );
         

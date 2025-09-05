@@ -11,6 +11,8 @@ import { useUser } from "~/store";
 import { useTasks } from "~/hooks/data";
 import { useErrorHandler, useFileValidation, usePromptValidation } from "~/hooks/use-error-handler";
 
+import type { ImageTask } from "./types";
+
 import { GoogleOAuth, type GoogleOAuthBtnRef } from "~/features/oauth";
 import { X, ImageIcon, Type, Wand2 } from "lucide-react";
 import { Image } from "~/components/common";
@@ -456,7 +458,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
       </div>
     );
 
-    const GeneratingState = ({ tasks }: { tasks: typeof tasks }) => (
+    const GeneratingState = ({ tasks }: { tasks: ImageTask[] }) => (
       <div className="space-y-4 max-h-[80vh] overflow-y-auto">
         {tasks.map((task) => (
           <div key={task.task_no} className="bg-white border-2 border-blue-200 rounded-xl p-6 shadow-sm">
@@ -498,7 +500,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
       </div>
     );
 
-    const CompletedState = ({ tasks }: { tasks: typeof tasks }) => (
+    const CompletedState = ({ tasks }: { tasks: ImageTask[] }) => (
       <div className="space-y-4 max-h-[80vh] overflow-y-auto">
         {tasks.map((task) => (
           <div key={task.task_no} className="bg-white border-2 border-green-200 rounded-xl p-4 shadow-sm">
@@ -529,7 +531,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
       </div>
     );
 
-    const FailedState = ({ tasks }: { tasks: typeof tasks }) => (
+    const FailedState = ({ tasks }: { tasks: ImageTask[] }) => (
       <div className="space-y-4 max-h-[80vh] overflow-y-auto">
         {tasks.map((task) => (
           <div key={task.task_no} className="bg-white border-2 border-red-200 rounded-xl p-4 shadow-sm">
