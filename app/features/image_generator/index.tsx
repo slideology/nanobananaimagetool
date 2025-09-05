@@ -95,9 +95,9 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
     // AI模型选择
     const [selectedModel, setSelectedModel] = useState<string>("nano-banana");
 
-    // 生成状态
-    const [submitting, setSubmitting] = useState(false);
-    const [done, setDone] = useState(false);
+    // 🔧 优化：简化状态管理 - 使用单一的 generationState
+    type GenerationState = 'idle' | 'submitting' | 'generating' | 'completed' | 'failed';
+    const [generationState, setGenerationState] = useState<GenerationState>('idle');
 
     const [tasks, setTasks] = useTasks<
       AiImageResult["tasks"][number] & { progress: number }
@@ -107,7 +107,16 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         if (res.ok) {
           const result = await res.json<TaskResult>();
           const { task: updatedTask, progress } = result;
-          return { ...updatedTask, progress };
+          
+          // 🔧 优化：检查任务是否完成，更新 generationState
+          const updatedTaskWithProgress = { ...updatedTask, progress };
+          if (updatedTask.status === "succeeded") {
+            setGenerationState('completed');
+          } else if (updatedTask.status === "failed") {
+            setGenerationState('failed');
+          }
+          
+          return updatedTaskWithProgress;
         }
         return task;
       },
@@ -180,8 +189,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
       setVisible(false);
       setFile(undefined);
       setPrompt("");
-      setSubmitting(false);
-      setDone(false);
+      setGenerationState('idle');
       setTasks([]);
     };
 
@@ -252,7 +260,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         return;
       }
 
-      setSubmitting(true);
+      setGenerationState('submitting');
       clearError();
 
       // 记录前端数据收集完成
@@ -376,7 +384,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                    item.status === "succeeded" ? 100 : 
                    item.status === "failed" ? 100 : 0
         })));
-        setDone(true);
+        setGenerationState('generating');
         
         console.log("📋 任务创建成功:", tasks.map(t => `${t.task_no} (${t.status})`).join(", "));
         
@@ -403,17 +411,212 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         });
                 
         handleError(error, "Image generation");
+        setGenerationState('failed');
         
         // 特殊错误处理
         if (error.status === 401 && loginRef.current) {
           loginRef.current.login();
         }
-      } finally {
-        setSubmitting(false);
       }
     };
 
     const canGenerate = prompt.trim() && (mode === "text-to-image" || file);
+    const isGenerating = generationState === 'submitting' || generationState === 'generating';
+
+    // 🎨 右侧面板状态组件
+    const IdleState = () => (
+      <div className="h-96 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center">
+            <ImageIcon size={32} className="text-blue-500" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">Ready for instant generation</h3>
+          <p className="text-sm text-gray-500 mb-4">Enter your prompt and unleash the power</p>
+          <div className="flex items-center justify-center space-x-2 text-xs text-gray-400">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+            <span>AI models ready</span>
+          </div>
+        </div>
+      </div>
+    );
+
+    const SubmittingState = () => (
+      <div className="h-96 border border-blue-200 bg-blue-50/30 rounded-lg flex items-center justify-center">
+        <div className="text-center">
+          <div className="relative w-16 h-16 mx-auto mb-4">
+            <div className="absolute inset-0 border-4 border-blue-200 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-blue-500 rounded-full border-t-transparent animate-spin"></div>
+          </div>
+          <h3 className="text-lg font-semibold text-blue-700 mb-2">Submitting to AI service</h3>
+          <p className="text-sm text-blue-600">Validating your request and preparing generation...</p>
+          <div className="mt-4 w-64 h-1 bg-blue-200 rounded-full mx-auto overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-pulse"></div>
+          </div>
+        </div>
+      </div>
+    );
+
+    const GeneratingState = ({ tasks }: { tasks: typeof tasks }) => (
+      <div className="space-y-4 max-h-[80vh] overflow-y-auto">
+        {tasks.map((task) => (
+          <div key={task.task_no} className="bg-white border-2 border-blue-200 rounded-xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+                <span className="font-semibold text-gray-800">Task {task.task_no}</span>
+              </div>
+              <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium flex items-center space-x-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                <span>Generating</span>
+              </span>
+            </div>
+            
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-600">AI Processing</span>
+                <span className="text-sm font-bold text-blue-600">{task.progress}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                <div 
+                  className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 h-full rounded-full transition-all duration-500 ease-out relative"
+                  style={{ width: `${task.progress}%` }}
+                >
+                  <div className="absolute inset-0 bg-white/20 rounded-full animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="flex items-center space-x-2 text-sm text-gray-600">
+                <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                <span>Creating your masterpiece...</span>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">Estimated time: 30-60 seconds</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+
+    const CompletedState = ({ tasks }: { tasks: typeof tasks }) => (
+      <div className="space-y-4 max-h-[80vh] overflow-y-auto">
+        {tasks.map((task) => (
+          <div key={task.task_no} className="bg-white border-2 border-green-200 rounded-xl p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-3">
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span className="font-semibold text-gray-800">Task {task.task_no}</span>
+              </div>
+              <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium flex items-center space-x-2">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                <span>Complete</span>
+              </span>
+            </div>
+            
+            {task.result_url && (
+              <div className="border-2 border-gray-200 rounded-lg overflow-hidden bg-gray-50 p-2">
+                <Image
+                  src={task.result_url}
+                  alt="Generated Result"
+                  className="w-full rounded-md shadow-sm hover:shadow-md transition-shadow duration-200"
+                />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+
+    const FailedState = ({ tasks }: { tasks: typeof tasks }) => (
+      <div className="space-y-4 max-h-[80vh] overflow-y-auto">
+        {tasks.map((task) => (
+          <div key={task.task_no} className="bg-white border-2 border-red-200 rounded-xl p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-3">
+                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                <span className="font-semibold text-gray-800">Task {task.task_no}</span>
+              </div>
+              <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium flex items-center space-x-2">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+                <span>Failed</span>
+              </span>
+            </div>
+            
+            {task.fail_reason && (
+              <div className="mt-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-start space-x-2">
+                  <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  <div>
+                    <h4 className="text-sm font-medium text-red-800">Generation Failed</h4>
+                    <p className="text-sm text-red-700 mt-1">{task.fail_reason}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+
+    // 🎨 右侧面板主组件
+    const OutputGallery = () => {
+      const renderContent = () => {
+        switch (generationState) {
+          case 'idle':
+            return <IdleState />;
+          case 'submitting':
+            return <SubmittingState />;
+          case 'generating':
+            return <GeneratingState tasks={tasks} />;
+          case 'completed':
+            return <CompletedState tasks={tasks} />;
+          case 'failed':
+            return <FailedState tasks={tasks} />;
+          default:
+            return <IdleState />;
+        }
+      };
+
+      return (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <h3 className="text-lg font-semibold text-gray-800">🎨 Output Gallery</h3>
+              <div className={clsx(
+                "px-2 py-1 rounded-full text-xs font-medium",
+                generationState === 'idle' && "bg-gray-100 text-gray-600",
+                generationState === 'submitting' && "bg-blue-100 text-blue-600",
+                generationState === 'generating' && "bg-blue-100 text-blue-600", 
+                generationState === 'completed' && "bg-green-100 text-green-600",
+                generationState === 'failed' && "bg-red-100 text-red-600"
+              )}>
+                {generationState === 'idle' && 'Ready'}
+                {generationState === 'submitting' && 'Submitting'}
+                {generationState === 'generating' && 'Processing'}
+                {generationState === 'completed' && 'Complete'}
+                {generationState === 'failed' && 'Failed'}
+              </div>
+            </div>
+            {generationState === 'completed' && (
+              <button 
+                onClick={() => setGenerationState('idle')}
+                className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
+              >
+                New Generation
+              </button>
+            )}
+          </div>
+          <p className="text-sm text-gray-600">Your ultra-fast AI creations appear here instantly</p>
+          {renderContent()}
+        </div>
+      );
+    };
 
     // 控件内容组件
     const ControlsContent = () => (
@@ -571,18 +774,20 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         {/* Generate Button */}
         <button
           onClick={handleSubmit}
-          disabled={!canGenerate || submitting}
+          disabled={!canGenerate || isGenerating}
           className={clsx(
             "w-full py-4 px-6 rounded-xl font-semibold text-white transition-all duration-200 flex items-center justify-center space-x-2",
-            canGenerate && !submitting
+            canGenerate && !isGenerating
               ? "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
               : "bg-gray-300 cursor-not-allowed"
           )}
         >
-          {submitting ? (
+          {isGenerating ? (
             <>
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              <span>Generating...</span>
+              <span>
+                {generationState === 'submitting' ? 'Submitting...' : 'Generating...'}
+              </span>
             </>
           ) : (
             <>
@@ -638,88 +843,9 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                 <ControlsContent />
               </div>
 
-              {/* Right Panel - Output */}
+              {/* Right Panel - Output Gallery */}
               <div className="lg:w-1/2 bg-gray-50 p-6">
-                <h3 className="text-lg font-semibold mb-4">Output Gallery</h3>
-                
-                {/* 初始状态：等待用户操作 */}
-                {!done && !submitting && (
-                  <div className="h-96 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
-                    <div className="text-center">
-                      <ImageIcon size={64} className="mx-auto mb-4 text-gray-400" />
-                      <p className="text-gray-500">Ready for instant generation</p>
-                      <p className="text-sm text-gray-400">Enter your prompt and unleash the power</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* 提交中状态：正在调用API */}
-                {submitting && (
-                  <div className="h-96 border border-gray-300 rounded-lg flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="loading loading-spinner loading-lg mb-4"></div>
-                      <p className="text-gray-500">Submitting to AI service...</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* 任务创建后状态：显示任务进度和结果 */}
-                {done && tasks.length > 0 && (
-                  <div className="space-y-4 max-h-[80vh] overflow-y-auto">
-                    {tasks.map((task) => (
-                      <div key={task.task_no} className="bg-white border rounded-lg p-4 shadow-sm">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="font-medium text-gray-800">Task {task.task_no}</span>
-                          <span className={clsx(
-                            "px-2 py-1 rounded-full text-xs font-medium",
-                            task.status === "succeeded" && "bg-green-100 text-green-700",
-                            task.status === "failed" && "bg-red-100 text-red-700",
-                            task.status === "running" && "bg-blue-100 text-blue-700",
-                          )}>
-                            {task.status === "succeeded" && "✓ Complete"}
-                            {task.status === "failed" && "✗ Failed"}
-                            {task.status === "running" && "⟳ Generating"}
-                          </span>
-                        </div>
-                        
-                        {task.status === "running" && (
-                          <div className="mb-4">
-                            <div className="flex items-center gap-2 mb-3">
-                              <div className="loading loading-spinner loading-sm"></div>
-                              <span className="text-sm text-gray-600">AI正在生成图片，请稍候...</span>
-                            </div>
-                            <div className="flex justify-between text-sm mb-1">
-                              <span className="text-gray-600">Progress</span>
-                              <span className="font-medium text-blue-600">{task.progress}%</span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div 
-                                className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
-                                style={{ width: `${task.progress}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                        )}
-
-                        {task.result_url && (
-                          <div className="border rounded-lg overflow-hidden">
-                            <Image
-                              src={task.result_url}
-                              alt="Generated"
-                              className="w-full"
-                            />
-                          </div>
-                        )}
-                        
-                        {task.status === "failed" && task.fail_reason && (
-                          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-                            <strong>Error:</strong> {task.fail_reason}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <OutputGallery />
               </div>
             </div>
           </div>
