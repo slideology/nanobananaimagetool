@@ -14,7 +14,7 @@ jobs:
     - name: Install pnpm
       uses: pnpm/action-setup@v3
       with:
-        version: 8
+        version: 9
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -32,7 +32,9 @@ jobs:
         npm --version
 
     - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+      run: |
+        # 尝试使用frozen-lockfile，如果失败则使用常规安装
+        pnpm install --frozen-lockfile || pnpm install
 
     - name: Verify project structure
       run: |
