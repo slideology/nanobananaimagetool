@@ -24,10 +24,16 @@
     "DOMAIN": "https://nanobanana.slideology0816.workers.dev",
     "CDN_URL": "https://pub-cb92e8dab89d452aadee075624e92b5a.r2.dev",
     "GOOGLE_ANALYTICS_ID": "",
-    "GOOGLE_ADS_ID": ""
-    // 注意：敏感变量 (SESSION_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, 
-    // KIEAI_APIKEY, CREEM_KEY, CREEM_WEBHOOK_SECRET, CREEM_TEST_KEY) 
-    // 通过 'wrangler secret put' 单独设置，不在此配置文件中定义
+    "GOOGLE_ADS_ID": "",
+    // 紧急修复：应用需要这些变量存在，使用占位符值
+    // 生产环境通过 'wrangler secret put' 覆盖这些值
+    "SESSION_SECRET": "placeholder-will-be-overridden-by-secret",
+    "GOOGLE_CLIENT_ID": "placeholder-will-be-overridden-by-secret",
+    "GOOGLE_CLIENT_SECRET": "placeholder-will-be-overridden-by-secret",
+    "KIEAI_APIKEY": "placeholder-will-be-overridden-by-secret",
+    "CREEM_KEY": "placeholder-will-be-overridden-by-secret",
+    "CREEM_WEBHOOK_SECRET": "placeholder-will-be-overridden-by-secret",
+    "CREEM_TEST_KEY": "placeholder-will-be-overridden-by-secret"
   },
   "observability": {
     "enabled": true
@@ -66,8 +72,15 @@
         "DOMAIN": "http://localhost:3004",
         "CDN_URL": "https://pub-cb92e8dab89d452aadee075624e92b5a.r2.dev",
         "GOOGLE_ANALYTICS_ID": "",
-        "GOOGLE_ADS_ID": ""
-        // 开发环境敏感变量通过 'wrangler secret put --env development' 设置
+        "GOOGLE_ADS_ID": "",
+        // 开发环境：使用占位符，实际值通过 'wrangler secret put --env development' 设置
+        "SESSION_SECRET": "dev-placeholder-will-be-overridden-by-secret",
+        "GOOGLE_CLIENT_ID": "dev-placeholder-will-be-overridden-by-secret",
+        "GOOGLE_CLIENT_SECRET": "dev-placeholder-will-be-overridden-by-secret",
+        "KIEAI_APIKEY": "dev-placeholder-will-be-overridden-by-secret",
+        "CREEM_KEY": "dev-placeholder-will-be-overridden-by-secret",
+        "CREEM_WEBHOOK_SECRET": "dev-placeholder-will-be-overridden-by-secret",
+        "CREEM_TEST_KEY": "dev-placeholder-will-be-overridden-by-secret"
       },
       "d1_databases": [
         {
@@ -100,8 +113,15 @@
         // 当前：通过Workers统一管理（推荐）
         "CDN_URL": "https://pub-cb92e8dab89d452aadee075624e92b5a.r2.dev",
         "GOOGLE_ANALYTICS_ID": "",
-        "GOOGLE_ADS_ID": ""
-        // 生产环境敏感变量通过 'wrangler secret put --env production' 设置
+        "GOOGLE_ADS_ID": "",
+        // 生产环境：使用占位符，实际值通过 'wrangler secret put --env production' 设置
+        "SESSION_SECRET": "prod-placeholder-will-be-overridden-by-secret",
+        "GOOGLE_CLIENT_ID": "prod-placeholder-will-be-overridden-by-secret",
+        "GOOGLE_CLIENT_SECRET": "prod-placeholder-will-be-overridden-by-secret",
+        "KIEAI_APIKEY": "prod-placeholder-will-be-overridden-by-secret",
+        "CREEM_KEY": "prod-placeholder-will-be-overridden-by-secret",
+        "CREEM_WEBHOOK_SECRET": "prod-placeholder-will-be-overridden-by-secret",
+        "CREEM_TEST_KEY": "prod-placeholder-will-be-overridden-by-secret"
       },
       "d1_databases": [
         {
