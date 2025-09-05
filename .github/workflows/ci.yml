@@ -44,6 +44,8 @@ jobs:
     # 6. 构建应用
     - name: Build application
       run: pnpm run build
+      env:
+        NODE_ENV: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
 
     # 7. 部署到 Cloudflare
     - name: Deploy to Cloudflare Workers
@@ -51,4 +53,5 @@ jobs:
       with:
         apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        command: deploy --env ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+        workingDirectory: .
+        wranglerVersion: "4.33.1"

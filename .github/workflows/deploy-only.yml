@@ -35,6 +35,8 @@ jobs:
     # 5. 构建应用
     - name: 构建应用
       run: pnpm run build
+      env:
+        NODE_ENV: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
 
     # 6. 部署到 Cloudflare Workers
     - name: 部署到 Cloudflare Workers
@@ -42,7 +44,8 @@ jobs:
       with:
         apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        command: deploy --env ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+        workingDirectory: .
+        wranglerVersion: "4.33.1"
 
     # 7. 部署成功通知
     - name: 部署成功
