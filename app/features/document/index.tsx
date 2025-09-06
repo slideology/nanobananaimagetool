@@ -97,7 +97,7 @@ export function Document({
     // 第三方广告网络
     if (THIRD_PARTY_ADS_ID) {
       thirdPartyAdsScript = document.createElement("script");
-      thirdPartyAdsScript.src = `//pl27453148.profitableratecpm.com/${THIRD_PARTY_ADS_ID}/invoke.js`;
+      thirdPartyAdsScript.src = `//pl27453148.revenuecpmgate.com/${THIRD_PARTY_ADS_ID}/invoke.js`;
       thirdPartyAdsScript.async = true;
       thirdPartyAdsScript.setAttribute("data-cfasync", "false");
 

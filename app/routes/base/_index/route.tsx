@@ -38,11 +38,17 @@ export function meta({ matches }: Route.MetaArgs) {
 }
 
 export function loader({ context }: Route.LoaderArgs) {
-  return { imageStyles, promptCategories, styleTypes, product: CREDITS_PRODUCT };
+  return { 
+    imageStyles, 
+    promptCategories, 
+    styleTypes, 
+    product: CREDITS_PRODUCT,
+    THIRD_PARTY_ADS_ID: context.cloudflare.env.THIRD_PARTY_ADS_ID 
+  };
 }
 
 export default function Home({
-  loaderData: { imageStyles, promptCategories, styleTypes, product },
+  loaderData: { imageStyles, promptCategories, styleTypes, product, THIRD_PARTY_ADS_ID },
 }: Route.ComponentProps) {
   const [requestPayment, setRequestPayment] = useState(false);
   const user = useUser((state) => state.user);
@@ -419,6 +425,7 @@ export default function Home({
       <Landing
         {...pageData}
         onCTAClick={handleUpload}
+        thirdPartyAdsId={THIRD_PARTY_ADS_ID}
       />
     </Fragment>
   );

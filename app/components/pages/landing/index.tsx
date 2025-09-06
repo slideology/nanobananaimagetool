@@ -10,6 +10,7 @@ import TestimonialsSection, {
   type TestimonialsSectionProps,
 } from "./testimonials";
 import FAQSection, { type FAQSectionProps } from "./faqs";
+import { ThirdPartyAd } from "~/components/common";
 
 export interface LandingProps {
   howItWorks: HowItWorksSectionProps;
@@ -20,6 +21,7 @@ export interface LandingProps {
   testimonials: TestimonialsSectionProps;
   faqs: FAQSectionProps;
   onCTAClick?: () => void;
+  thirdPartyAdsId?: string; // 第三方广告ID
 }
 
 export default function Landing({
@@ -31,10 +33,24 @@ export default function Landing({
   testimonials,
   faqs,
   onCTAClick,
+  thirdPartyAdsId,
 }: LandingProps) {
   return (
     <Fragment>
       <HowItWorksSection {...howItWorks} />
+      
+      {/* 第三方广告位 - 放在 How It Works 和 Features 之间 */}
+      {thirdPartyAdsId && (
+        <section className="py-4 bg-gray-50/50">
+          <div className="container mx-auto px-4">
+            <ThirdPartyAd 
+              adId={thirdPartyAdsId} 
+              className="max-w-4xl mx-auto"
+            />
+          </div>
+        </section>
+      )}
+      
       <FeaturesGrid {...features} />
       <PricingCards {...pricing} />
       <AlternatingContentSection {...alternatingContent} />
