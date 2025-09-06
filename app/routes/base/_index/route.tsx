@@ -210,7 +210,7 @@ export default function Home({
             description:
               "Want to edit more photos? Purchase credits to unlock unlimited photo editing capabilities with our advanced AI technology.",
             buttonText: `Buy Credits – $${product.price} for ${product.credits} Credits`,
-            footerText: "More contact support@nanobananai.com",
+            footerText: "More contact support@nanobananaimage.org",
             loading: requestPayment,
             onButtonClick: handleBuyCredits,
           },

@@ -23,8 +23,8 @@ export const loader = ({}: Route.LoaderArgs) => {
         label: "Support",
         list: [
           {
-            to: "mailto:support@example.com",
-            label: "support@example.com",
+            to: "mailto:support@nanobananaimage.org",
+            label: "support@nanobananaimage.org",
             target: "_blank",
           },
         ],
