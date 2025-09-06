@@ -94,15 +94,15 @@ export function Document({
       document.head.appendChild(clarityScript);
     }
 
-    // 第三方广告网络
-    if (THIRD_PARTY_ADS_ID) {
-      thirdPartyAdsScript = document.createElement("script");
-      thirdPartyAdsScript.src = `//pl27453148.revenuecpmgate.com/${THIRD_PARTY_ADS_ID}/invoke.js`;
-      thirdPartyAdsScript.async = true;
-      thirdPartyAdsScript.setAttribute("data-cfasync", "false");
+    // 第三方广告网络 - 临时禁用
+    // if (THIRD_PARTY_ADS_ID) {
+    //   thirdPartyAdsScript = document.createElement("script");
+    //   thirdPartyAdsScript.src = `//pl27453148.revenuecpmgate.com/${THIRD_PARTY_ADS_ID}/invoke.js`;
+    //   thirdPartyAdsScript.async = true;
+    //   thirdPartyAdsScript.setAttribute("data-cfasync", "false");
 
-      document.head.appendChild(thirdPartyAdsScript);
-    }
+    //   document.head.appendChild(thirdPartyAdsScript);
+    // }
 
     // Plausible
     if (DOMAIN) {
@@ -119,7 +119,7 @@ export function Document({
       if (gaScript) gaScript.remove();
       if (gaInitScript) gaInitScript.remove();
       if (clarityScript) clarityScript.remove();
-      if (thirdPartyAdsScript) thirdPartyAdsScript.remove();
+      // if (thirdPartyAdsScript) thirdPartyAdsScript.remove(); // 临时禁用
       if (pScript) pScript.remove();
     };
   }, [GOOGLE_ADS_ID, GOOGLE_ANALYTICS_ID, MICROSOFT_CLARITY_ID, THIRD_PARTY_ADS_ID, DOMAIN, error]);

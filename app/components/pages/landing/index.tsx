@@ -39,8 +39,8 @@ export default function Landing({
     <Fragment>
       <HowItWorksSection {...howItWorks} />
       
-      {/* 第三方广告位 - 放在 How It Works 和 Features 之间 */}
-      {thirdPartyAdsId && (
+      {/* 第三方广告位 - 临时禁用 */}
+      {/* {thirdPartyAdsId && (
         <section className="py-4 bg-gray-50/50">
           <div className="container mx-auto px-4">
             <ThirdPartyAd 
@@ -49,7 +49,7 @@ export default function Landing({
             />
           </div>
         </section>
-      )}
+      )} */}
       
       <FeaturesGrid {...features} />
       <PricingCards {...pricing} />

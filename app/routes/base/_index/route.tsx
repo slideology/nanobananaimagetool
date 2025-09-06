@@ -425,7 +425,7 @@ export default function Home({
       <Landing
         {...pageData}
         onCTAClick={handleUpload}
-        thirdPartyAdsId={THIRD_PARTY_ADS_ID}
+        // thirdPartyAdsId={THIRD_PARTY_ADS_ID} // 临时禁用第三方广告
       />
     </Fragment>
   );
