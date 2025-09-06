@@ -19,15 +19,20 @@
   //   }
   // ],
   "vars": {
-    // Essential Variables Only
-    "INITLIZE_CREDITS": 3,
-    "DOMAIN": "https://nanobanana.slideology0816.workers.dev",
+    "DOMAIN": "https://nanobananaimage.org",
     "CDN_URL": "https://pub-cb92e8dab89d452aadee075624e92b5a.r2.dev",
-    "GOOGLE_ANALYTICS_ID": "",
-    "GOOGLE_ADS_ID": "",
-    // 紧急修复：应用需要这些变量存在，使用占位符值
-    // 生产环境通过 'wrangler secret put' 覆盖这些值
+    "GOOGLE_ADS_ID": "pub-3179065211650247"
   },
+  "routes": [
+    {
+      "pattern": "nanobananaimage.org",
+      "custom_domain": true
+    },
+    {
+      "pattern": "www.nanobananaimage.org",
+      "custom_domain": true
+    }
+  ],
   "observability": {
     "enabled": true
   },

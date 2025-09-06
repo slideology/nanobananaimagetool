@@ -47,7 +47,7 @@ export const Layout = ({ children }: React.PropsWithChildren) => {
       lang="en"
       theme="cupcake"
       DOMAIN={data?.DOMAIN}
-      // GOOGLE_ADS_ID={data?.GOOGLE_ADS_ID} // 控制是否加载 AdSense 的自动广告
+      GOOGLE_ADS_ID={data?.GOOGLE_ADS_ID} // 控制是否加载 AdSense 的自动广告
       GOOGLE_ANALYTICS_ID={data?.GOOGLE_ANALYTICS_ID}
       MICROSOFT_CLARITY_ID={data?.MICROSOFT_CLARITY_ID}
       THIRD_PARTY_ADS_ID={data?.THIRD_PARTY_ADS_ID}
