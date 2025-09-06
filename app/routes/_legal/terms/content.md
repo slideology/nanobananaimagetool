@@ -54,7 +54,7 @@ Your data is handled in accordance with our [Privacy Policy](/legal/privacy) and
 
 We implement reasonable security practices but **cannot guarantee 100% data security**.
 
-You have the right to access, modify, or delete your data at any time by contacting: [support@nanobanana.app](mailto:support@nanobanana.app).
+You have the right to access, modify, or delete your data at any time by contacting: [support@nanobananaimage.org](mailto:support@nanobananaimage.org).
 
 ## 8. Payment & Refund Policy
 
@@ -83,7 +83,7 @@ In no event shall Nano Banana, its team, or affiliates be liable for any indirec
 
 Nano Banana may suspend or terminate your access at any time for violations of these Terms. Upon termination, your right to use the Service will end immediately.
 
-You may terminate your account at any time via account settings or by contacting [support@nanobanana.app](mailto:support@nanobanana.app).
+You may terminate your account at any time via account settings or by contacting [support@nanobananaimage.org](mailto:support@nanobananaimage.org).
 
 ## 12. Governing Law
 
@@ -101,7 +101,7 @@ These Terms constitute the entire agreement between you and Nano Banana regardin
 
 If you have any questions about these Terms, please reach out to us at:
 
-- **Email:** [support@nanobanana.app](mailto:support@nanobanana.app)
+- **Email:** [support@nanobananaimage.org](mailto:support@nanobananaimage.org)
 
 We are committed to resolving any issues promptly and respectfully.
 

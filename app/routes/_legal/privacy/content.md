@@ -103,7 +103,7 @@ You have the right to:
 
 To exercise any of your rights, contact us via:
 
-**Email**: [support@nanobanana.app](mailto:support@nanobanana.app)
+**Email**: [support@nanobananaimage.org](mailto:support@nanobananaimage.org)
 
 We may require verification of your identity before fulfilling your request.
 
@@ -128,7 +128,7 @@ If substantial changes are made:
 
 If you have questions, concerns, or feedback about this policy or your data:
 
-- **Email**: [support@nanobanana.app](mailto:support@nanobanana.app)
+- **Email**: [support@nanobananaimage.org](mailto:support@nanobananaimage.org)
 
 We are committed to resolving any issues promptly and respectfully.
 

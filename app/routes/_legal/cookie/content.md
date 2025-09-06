@@ -91,7 +91,7 @@ We may update this Cookie Policy from time to time. Significant changes that aff
 
 If you have any questions or concerns regarding this Cookie Policy, please contact us:
 
-- **Email:** [support@nanobanana.app](mailto:support@nanobanana.app)
+- **Email:** [support@nanobananaimage.org](mailto:support@nanobananaimage.org)
 
 We are committed to resolving any issues promptly and respectfully.
 
