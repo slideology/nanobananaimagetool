@@ -2,6 +2,15 @@
 
 一个基于 React Router v7 和 Cloudflare Workers 的企业级 AI 图像生成 SaaS 平台，提供完整的商业化解决方案。
 
+## 🌐 在线演示
+
+**🔗 立即体验**: [https://nanobananaimage.org](https://nanobananaimage.org)
+
+- 💡 **Text-to-Image**: 输入文字描述生成精美图像
+- 🖼️ **Image-to-Image**: 上传图片进行AI智能编辑
+- 🆓 **免费试用**: 新用户获得3个免费积分
+- ⚡ **即时生成**: 30-120秒完成高质量图像生成
+
 ## ✨ 核心特性
 
 ### 🎨 AI 图像生成能力
@@ -270,6 +279,9 @@ npm run dev
 访问 http://localhost:3004 查看应用
 
 ## 🚀 部署
+
+### 生产环境
+**🌐 在线访问**: [https://nanobananaimage.org](https://nanobananaimage.org)
 
 ### 自动部署
 项目配置了 GitHub Actions 自动部署，推送到 main 分支即可自动部署到生产环境。
@@ -615,5 +627,15 @@ npm run dev
 - ✅ 支付和 AI 服务密钥有效
 - ✅ CDN 和域名配置正确
 可以直接通过git部署
+
+## 🎉 最新更新
+
+**✅ 域名迁移完成** (2024年12月)
+- 🌐 新域名：[https://nanobananaimage.org](https://nanobananaimage.org)
+- ⚡ 全球CDN加速，访问速度更快
+- 🔒 SSL证书自动配置
+- 📱 完全响应式设计，支持所有设备
+
+---
 
 *最后更新：2024年12月 | 基于 MCP 思维分析的完整架构文档*
