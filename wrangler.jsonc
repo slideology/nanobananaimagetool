@@ -22,6 +22,8 @@
     "DOMAIN": "https://nanobananaimage.org",
     "CDN_URL": "https://pub-cb92e8dab89d452aadee075624e92b5a.r2.dev",
     "GOOGLE_ADS_ID": "pub-3179065211650247",
+    "GOOGLE_ANALYTICS_ID": "G-KJPS3ZZYHC",
+    "MICROSOFT_CLARITY_ID": "sun0y1p1i1",
     "THIRD_PARTY_ADS_ID": "c2e95556903c6f4bc49bfefaac809241"
   },
   "routes": [
