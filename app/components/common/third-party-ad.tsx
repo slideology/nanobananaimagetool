@@ -49,7 +49,7 @@ export function ThirdPartyAd({ adId, className = "" }: ThirdPartyAdProps) {
       {/* 加载指示器或占位符 */}
       {!import.meta.env.PROD && (
         <div className="text-sm text-gray-400 p-4 border border-dashed border-gray-300 rounded">
-          [第三方广告位 - 仅在生产环境显示]
+          [Third-party Ad Space - Production Only]
         </div>
       )}
     </div>

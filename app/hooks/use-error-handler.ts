@@ -128,9 +128,9 @@ function parseError(error: any, context?: string): ErrorInfo {
   // 如果是网络错误
   if (error.name === "TypeError" && error.message.includes("fetch")) {
     return {
-      title: "网络连接错误",
-      message: "无法连接到服务器，请检查网络连接",
-      action: "检查网络",
+      title: "Network Connection Error",
+      message: "Unable to connect to server, please check your network connection",
+      action: "Check Network",
       severity: "error",
       code: "NETWORK_ERROR"
     };
@@ -138,9 +138,9 @@ function parseError(error: any, context?: string): ErrorInfo {
 
   // 默认错误处理
   return {
-    title: "操作失败",
-    message: error.message || "发生了未知错误",
-    action: "重试",
+    title: "Operation Failed",
+    message: error.message || "An unknown error occurred",
+    action: "Retry",
     severity: "error",
     code: "UNKNOWN_ERROR",
     details: context ? { context } : undefined
@@ -163,36 +163,36 @@ function parseHttpError(error: any): ErrorInfo {
   switch (status) {
     case 400:
       return {
-        title: "请求参数错误",
-        message: "请检查输入信息是否正确",
-        action: "检查输入",
+        title: "Request Parameter Error",
+        message: "Please check if the input information is correct",
+        action: "Check Input",
         severity: "warning",
         code: "INVALID_REQUEST"
       };
     
     case 401:
       return {
-        title: "身份验证失败",
-        message: "请先登录后再试",
-        action: "重新登录",
+        title: "Authentication Failed",
+        message: "Please login first and try again",
+        action: "Login Again",
         severity: "warning",
         code: "UNAUTHORIZED"
       };
     
     case 402:
       return {
-        title: "积分不足",
-        message: "您的积分余额不足，请充值后再试",
-        action: "立即充值",
+        title: "Insufficient Credits",
+        message: "Your credit balance is insufficient, please recharge and try again",
+        action: "Recharge Now",
         severity: "info",
         code: "INSUFFICIENT_CREDITS"
       };
     
     case 413:
       return {
-        title: "文件过大",
-        message: "上传的文件超过10MB限制",
-        action: "压缩文件",
+        title: "File Too Large",
+        message: "The uploaded file exceeds the 10MB limit",
+        action: "Compress File",
         severity: "warning",
         code: "FILE_TOO_LARGE"
       };
@@ -201,7 +201,7 @@ function parseHttpError(error: any): ErrorInfo {
       return {
         title: "请求频率过高",
         message: "请稍后再试，避免频繁请求",
-        action: "稍后重试",
+        action: "Retry Later",
         severity: "warning",
         code: "RATE_LIMIT_EXCEEDED"
       };
@@ -210,9 +210,9 @@ function parseHttpError(error: any): ErrorInfo {
     case 502:
     case 503:
       return {
-        title: "服务器错误",
-        message: "服务暂时不可用，请稍后重试",
-        action: "稍后重试",
+        title: "Server Error",
+        message: "Service is temporarily unavailable, please try again later",
+        action: "Retry Later",
         severity: "error",
         code: "SERVICE_UNAVAILABLE"
       };
@@ -221,7 +221,7 @@ function parseHttpError(error: any): ErrorInfo {
       return {
         title: "请求超时",
         message: "服务响应超时，请稍后重试",
-        action: "重试",
+        action: "Retry",
         severity: "warning",
         code: "TIMEOUT"
       };
@@ -230,7 +230,7 @@ function parseHttpError(error: any): ErrorInfo {
       return {
         title: "网络错误",
         message: `请求失败 (${status})`,
-        action: "重试",
+        action: "Retry",
         severity: "error",
         code: "HTTP_ERROR"
       };
@@ -242,7 +242,7 @@ function parseHttpError(error: any): ErrorInfo {
  */
 function parseBackendError(backendError: any, httpStatus: number): ErrorInfo {
   const errorCode = backendError.code || "UNKNOWN_ERROR";
-  const errorMessage = backendError.message || "发生了未知错误";
+  const errorMessage = backendError.message || "An unknown error occurred";
   
   // 根据错误代码返回用户友好的错误信息
   switch (errorCode) {
@@ -251,16 +251,16 @@ function parseBackendError(backendError: any, httpStatus: number): ErrorInfo {
       return {
         title: "会话已过期",
         message: "您的登录会话已过期，请重新登录",
-        action: "重新登录",
+        action: "Login Again",
         severity: "warning",
         code: errorCode
       };
     
     case "AUTH_002":
       return {
-        title: "身份验证失败",
-        message: "请先登录后再试",
-        action: "重新登录",
+        title: "Authentication Failed",
+        message: "Please login first and try again",
+        action: "Login Again",
         severity: "warning",
         code: errorCode
       };
@@ -279,7 +279,7 @@ function parseBackendError(backendError: any, httpStatus: number): ErrorInfo {
       return {
         title: "缺少必要参数",
         message: errorMessage,
-        action: "检查输入",
+        action: "Check Input",
         severity: "warning",
         code: errorCode
       };
@@ -305,9 +305,9 @@ function parseBackendError(backendError: any, httpStatus: number): ErrorInfo {
     // 业务逻辑错误
     case "BIZ_001":
       return {
-        title: "积分不足",
-        message: "您的积分余额不足，请充值后再试",
-        action: "立即充值",
+        title: "Insufficient Credits",
+        message: "Your credit balance is insufficient, please recharge and try again",
+        action: "Recharge Now",
         severity: "info",
         code: errorCode
       };
@@ -316,7 +316,7 @@ function parseBackendError(backendError: any, httpStatus: number): ErrorInfo {
       return {
         title: "任务处理失败",
         message: errorMessage,
-        action: "重试",
+        action: "Retry",
         severity: "error",
         code: errorCode
       };
@@ -344,7 +344,7 @@ function parseBackendError(backendError: any, httpStatus: number): ErrorInfo {
       return {
         title: "数据库错误",
         message: "数据库操作失败，请稍后重试",
-        action: "稍后重试",
+        action: "Retry Later",
         severity: "error",
         code: errorCode
       };
@@ -353,7 +353,7 @@ function parseBackendError(backendError: any, httpStatus: number): ErrorInfo {
       return {
         title: "外部服务错误",
         message: "外部服务暂时不可用，请稍后重试",
-        action: "稍后重试",
+        action: "Retry Later",
         severity: "error",
         code: errorCode
       };
@@ -363,7 +363,7 @@ function parseBackendError(backendError: any, httpStatus: number): ErrorInfo {
       return {
         title: "请求超时",
         message: "请求处理超时，请稍后重试",
-        action: "重试",
+        action: "Retry",
         severity: "warning",
         code: errorCode
       };
@@ -372,7 +372,7 @@ function parseBackendError(backendError: any, httpStatus: number): ErrorInfo {
       return {
         title: "请求频率过高",
         message: "请求过于频繁，请稍后再试",
-        action: "稍后重试",
+        action: "Retry Later",
         severity: "warning",
         code: errorCode
       };
@@ -398,9 +398,9 @@ function parseBackendError(backendError: any, httpStatus: number): ErrorInfo {
     
     case "FILE_003":
       return {
-        title: "文件过大",
+        title: "File Too Large",
         message: "上传的文件超过大小限制",
-        action: "压缩文件",
+        action: "Compress File",
         severity: "warning",
         code: errorCode
       };
@@ -410,7 +410,7 @@ function parseBackendError(backendError: any, httpStatus: number): ErrorInfo {
       return {
         title: "操作失败",
         message: errorMessage,
-        action: "重试",
+        action: "Retry",
         severity: httpStatus >= 500 ? "error" : "warning",
         code: errorCode,
         details: backendError.details
@@ -500,9 +500,9 @@ export function useFileValidation() {
       // 检查文件大小上限
       if (file.size > maxSize) {
         handleError({
-          title: "文件过大",
+          title: "File Too Large",
           message: `文件大小${Math.round(file.size / 1024 / 1024)}MB，超过10MB限制`,
-          action: "压缩文件",
+          action: "Compress File",
           severity: "warning",
           code: "FILE_TOO_LARGE"
         });
@@ -558,7 +558,7 @@ export function usePromptValidation() {
 
       if (!prompt.trim()) {
         handleError({
-          title: "提示词不能为空",
+          title: "Prompt cannot be empty",
           message: "请输入图像描述",
           action: "输入描述",
           severity: "warning",

@@ -106,7 +106,7 @@ export const Header = ({ navLinks }: HeaderProps) => {
                       onClick={handleLogout}
                       disabled={isLoggingOut}
                       className="btn btn-ghost btn-sm p-1 min-h-0 h-8 w-8 hover:bg-red-100 hover:text-red-600 disabled:opacity-50"
-                      title="退出登录"
+                      title="Sign Out"
                     >
                       {isLoggingOut ? (
                         <span className="loading loading-spinner loading-xs" />
@@ -180,7 +180,7 @@ export const Header = ({ navLinks }: HeaderProps) => {
                           className="rounded-box text-red-600 hover:bg-red-100 disabled:opacity-50"
                         >
                           <LogOut size={20} />
-                          {isLoggingOut ? '退出中...' : '退出登录'}
+                          {isLoggingOut ? 'Signing Out...' : 'Sign Out'}
                         </button>
                       </li>
                     )}

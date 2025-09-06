@@ -7,7 +7,7 @@ export interface PRODUCT {
 }
 
 export const CREDITS_PRODUCT: PRODUCT = {
-  price: 9,
+  price: 9.9,
   credits: 100,
   product_id: import.meta.env.PROD
     ? "prod_3q2PT9pqzfw5URK7TdIhyb"

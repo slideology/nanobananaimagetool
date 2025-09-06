@@ -7,22 +7,13 @@
     "build": "react-router build",
     "cf-typegen": "wrangler types",
     "deploy": "pnpm run build && wrangler deploy",
-    "deploy:dev": "pnpm run build && wrangler deploy --env development",
-    "deploy:prod": "pnpm run build && wrangler deploy --env production",
-    "ci:test": "pnpm run typecheck && pnpm run test:run && pnpm run build",
     "dev": "react-router dev",
     "postinstall": "npm run cf-typegen",
     "preview": "pnpm run build && vite preview",
-    "test": "vitest",
-    "test:ui": "vitest --ui",
-    "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage",
     "typecheck": "npm run cf-typegen && react-router typegen && tsc -b",
     "db:generate": "drizzle-kit generate --config app/.server/drizzle/config.ts",
     "db:migrate": "drizzle-kit migrate --config app/.server/drizzle/config.ts",
-    "db:migrate:local": "wrangler d1 migrations apply DB --local",
-    "monitor": "node scripts/quick-monitor.mjs",
-    "monitor:detailed": "npx tsx scripts/monitor-image-generation.ts"
+    "db:migrate:local": "wrangler d1 migrations apply DB --local"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.3.22",

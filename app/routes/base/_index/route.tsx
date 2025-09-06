@@ -260,7 +260,6 @@ export default function Home({
       cta: {
         title: "Start Editing Photos Today",
         subtitle: "with Natural Language Commands",
-        userCount: "25,000+",
         buttonText: "Edit Photos Now",
         testimonialAvatars: [
           "/assets/72*72-1.png",
@@ -334,7 +333,7 @@ export default function Home({
           {
             question: "How many images can I generate?",
             answer:
-              "Each generation uses 1 credit. New users get 3 free credits to start. You can purchase additional credits anytime - we offer packages starting at $9.9 for 100 credits with no subscription required.",
+              "Each generation uses 1 credit. New users get 1 free credits to start. You can purchase additional credits anytime - we offer packages starting at $9.9 for 100 credits with no subscription required.",
           },
           {
             question: "Are my images and prompts private?",

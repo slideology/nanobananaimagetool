@@ -138,7 +138,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         {
           id: "nano-banana",
           name: "Nano Banana",
-          description: "🍌 快速生成 | 经济实惠",
+          description: "🍌 Fast Generation | Affordable",
           credits: 1
         }
       ],
@@ -146,7 +146,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         {
           id: "nano-banana-edit",
           name: "Nano Banana Edit",
-          description: "🍌 快速编辑 | 经济实惠",
+          description: "🍌 Fast Editing | Affordable",
           credits: 1
         }
       ]
@@ -229,13 +229,13 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         validationErrors.push('Missing reference image');
         FrontendLogger.logDataCollectionError({
           type: 'validation_error',
-          message: '图片转图片模式需要上传一张参考图片',
+          message: 'Image-to-image mode requires uploading a reference image',
           code: 'MISSING_REQUIRED_PARAM'
         });
         handleError({
-          title: "缺少参考图片",
-          message: "图片转图片模式需要上传一张参考图片",
-          action: "上传图片",
+          title: "Missing Reference Image",
+          message: "Image-to-image mode requires uploading a reference image",
+          action: "Upload Image",
           severity: "warning",
           code: "MISSING_REQUIRED_PARAM"
         });
@@ -285,7 +285,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
              const uploadError = await uploadRes.json().catch(() => ({ error: "Upload failed" })) as { error?: string };
              throw {
                status: uploadRes.status,
-               message: uploadError.error || "图片上传失败",
+               message: uploadError.error || "Image upload failed",
                details: uploadError
              };
            }
@@ -544,7 +544,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                       </div>
                       <div className="flex items-center space-x-1 text-sm text-gray-500">
                         <span>{model.credits}</span>
-                        <span>积分</span>
+                        <span>Credits</span>
                       </div>
                     </div>
                     <p className="text-sm text-gray-600 ml-6">{model.description}</p>
@@ -658,8 +658,8 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
-                    <p className="text-green-700 font-medium mb-2">任务创建成功！</p>
-                    <p className="text-green-600 text-sm">正在初始化AI生成流程...</p>
+                    <p className="text-green-700 font-medium mb-2">Task Created Successfully!</p>
+                    <p className="text-green-600 text-sm">Initializing AI generation process...</p>
                   </div>
                 </div>
               )}
@@ -670,7 +670,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                   {tasks.map((task) => (
                     <div key={task.task_no} className="bg-white border rounded-lg p-4 shadow-sm">
                       <div className="flex items-center justify-between mb-3">
-                        <span className="font-medium text-gray-800">图片生成任务</span>
+                        <span className="font-medium text-gray-800">Image Generation Task</span>
                         <span className={clsx(
                           "px-2 py-1 rounded-full text-xs font-medium",
                           task.status === "succeeded" && "bg-green-100 text-green-700",
@@ -688,13 +688,13 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                           <div className="flex items-center gap-2 mb-3">
                             <div className="loading loading-spinner loading-sm"></div>
                             <span className="text-sm text-gray-600">
-                              {task.progress === 0 ? "正在启动AI生成流程..." : "AI正在生成图片，请稍候..."}
+                              {task.progress === 0 ? "Starting AI generation process..." : "AI is generating image, please wait..."}
                             </span>
                           </div>
                           <div className="flex justify-between text-sm mb-1">
                             <span className="text-gray-600">Progress</span>
                             <span className="font-medium text-blue-600">
-                              {task.progress === 0 ? "初始化中" : `${task.progress}%`}
+                              {task.progress === 0 ? "Initializing" : `${task.progress}%`}
                             </span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2">
@@ -828,8 +828,8 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                       </div>
-                      <p className="text-green-700 font-medium mb-2">任务创建成功！</p>
-                      <p className="text-green-600 text-sm">正在初始化AI生成流程...</p>
+                      <p className="text-green-700 font-medium mb-2">Task Created Successfully!</p>
+                      <p className="text-green-600 text-sm">Initializing AI generation process...</p>
                     </div>
                   </div>
                 )}
@@ -840,7 +840,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                     {tasks.map((task) => (
                       <div key={task.task_no} className="bg-white border rounded-lg p-4 shadow-sm">
                         <div className="flex items-center justify-between mb-3">
-                          <span className="font-medium text-gray-800">图片生成任务</span>
+                          <span className="font-medium text-gray-800">Image Generation Task</span>
                           <span className={clsx(
                             "px-2 py-1 rounded-full text-xs font-medium",
                             task.status === "succeeded" && "bg-green-100 text-green-700",
@@ -858,13 +858,13 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                             <div className="flex items-center gap-2 mb-3">
                               <div className="loading loading-spinner loading-sm"></div>
                               <span className="text-sm text-gray-600">
-                                {task.progress === 0 ? "正在启动AI生成流程..." : "AI正在生成图片，请稍候..."}
+                                {task.progress === 0 ? "Starting AI generation process..." : "AI is generating image, please wait..."}
                               </span>
                             </div>
                             <div className="flex justify-between text-sm mb-1">
                               <span className="text-gray-600">Progress</span>
                               <span className="font-medium text-blue-600">
-                                {task.progress === 0 ? "初始化中" : `${task.progress}%`}
+                                {task.progress === 0 ? "Initializing" : `${task.progress}%`}
                               </span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-2">
