@@ -610,7 +610,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           <div className="lg:w-1/2">
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <div className="space-y-6">
-                <ControlsContent />
+                {ControlsContent()}
               </div>
             </div>
           </div>
@@ -791,7 +791,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
             <div className="flex flex-col lg:flex-row h-full">
               {/* Left Panel - Controls */}
               <div className="lg:w-1/2 p-6 space-y-6">
-                <ControlsContent />
+                {ControlsContent()}
               </div>
 
               {/* Right Panel - Output */}

@@ -17,8 +17,8 @@ export interface LandingProps {
   features: FeaturesGridProps;
   pricing: PricingCardsProps;
   alternatingContent: AlternatingContentSectionProps;
-  cta: CTASectionProps;
-  testimonials: TestimonialsSectionProps;
+  cta?: CTASectionProps; // 可选，因为已注释掉
+  testimonials?: TestimonialsSectionProps; // 可选，因为已注释掉
   faqs: FAQSectionProps;
   onCTAClick?: () => void;
   thirdPartyAdsId?: string; // 第三方广告ID
@@ -54,8 +54,10 @@ export default function Landing({
       <FeaturesGrid {...features} />
       <PricingCards {...pricing} />
       <AlternatingContentSection {...alternatingContent} />
-      <CTASection {...cta} onButtonClick={onCTAClick} />
-      <TestimonialsSection {...testimonials} />
+      {/* CTA 模块 - 已注释掉 */}
+      {/* <CTASection {...cta} onButtonClick={onCTAClick} /> */}
+      {/* Testimonials 模块 - 已注释掉 */}
+      {/* <TestimonialsSection {...testimonials} /> */}
       <FAQSection {...faqs} />
     </Fragment>
   );

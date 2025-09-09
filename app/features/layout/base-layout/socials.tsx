@@ -3,8 +3,6 @@ import { Link } from "react-router";
 
 import {
   UserDetail,
-  GoogleSolid,
-  LinktreeLogoFill,
   Pinterest,
   TwitterSolid,
 } from "~/components/icons";
@@ -24,7 +22,7 @@ export const Socials = ({
       className={clsx("flex items-center justify-center gap-3 mb-4", className)}
       {...props}
     >
-      <Link to="https://about.me/" target="_blank" title="Aboue Me">
+      {/* <Link to="https://about.me/" target="_blank" title="Aboue Me">
         <UserDetail
           strokeWidth={strokeWidth}
           width={iconSize}
@@ -51,7 +49,7 @@ export const Socials = ({
           height={iconSize}
           className="w-6 h-6"
         />
-      </Link>
+      </Link> */}
     </div>
   );
 };

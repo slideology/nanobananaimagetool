@@ -257,7 +257,8 @@ export default function Home({
           },
         ],
       },
-      cta: {
+      // CTA 模块数据 - 已注释掉
+      /* cta: {
         title: "Start Editing Photos Today",
         subtitle: "with Natural Language Commands",
         buttonText: "Edit Photos Now",
@@ -268,8 +269,9 @@ export default function Home({
           "/assets/72*72-4.png",
           "/assets/72*72-1.png",
         ],
-      },
-      testimonials: {
+      }, */
+      // Testimonials 模块数据 - 已注释掉
+      /* testimonials: {
         title: "What Our Users Are Saying",
         subtitle:
           "See what photographers and creators are saying about Nano Banana and the amazing photo edits they've achieved!",
@@ -303,7 +305,7 @@ export default function Home({
               "/assets/640*640-4.png",
           },
         ],
-      },
+      }, */
 
       faqs: {
         title: "Frequently Asked Questions",
