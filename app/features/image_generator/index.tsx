@@ -6,12 +6,14 @@ import {
   useImperativeHandle,
   useMemo,
   useCallback,
+  useEffect,
 } from "react";
 import { useUser } from "~/store";
 import { useTasks } from "~/hooks/data";
 import { useErrorHandler, useFileValidation, usePromptValidation } from "~/hooks/use-error-handler";
 
 import { GoogleOAuth, type GoogleOAuthBtnRef } from "~/features/oauth";
+import { CreditRechargeModal, type CreditRechargeModalRef } from "~/components/ui";
 import { X, ImageIcon, Type, Wand2 } from "lucide-react";
 import { Image } from "~/components/common";
 
@@ -49,20 +51,37 @@ interface ImageGeneratorProps {
   styles: ImageStyle[];
   promptCategories: PromptCategory[];
   inline?: boolean;
+  // 新增：产品配置信息，用于充值弹窗
+  product?: {
+    price: number;
+    credits: number;
+    product_id: string;
+    product_name: string;
+    type: "once" | "monthly" | "yearly";
+  };
 }
 
 export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>(
-  ({ styles, promptCategories, inline = false }, ref) => {
+  ({ styles, promptCategories, inline = false, product }, ref) => {
     const loginRef = useRef<GoogleOAuthBtnRef>(null);
     const modalRef = useRef<HTMLDialogElement>(null);
+    const rechargeModalRef = useRef<CreditRechargeModalRef>(null);
 
     const [visible, setVisible] = useState(false);
     const user = useUser((state) => state.user);
+    const credits = useUser((state) => state.credits);
     const setCredits = useUser((state) => state.setCredits);
+    
+    // 监听充值弹窗状态
+    // 分开选择，避免返回新对象导致的无意义渲染
+    const showRechargeModal = useUser(state => state.showRechargeModal);
+    const rechargeModalData = useUser(state => state.rechargeModalData);
+    const hideRechargeDialog = useUser(state => state.hideRechargeDialog);
 
-    // 错误处理
+    // 错误处理（启用积分不足弹窗处理）
     const { handleError, withErrorHandling, clearError } = useErrorHandler({
       showToast: true,
+      enableCreditModal: true, // 启用积分不足弹窗
       onError: (error) => {
         console.error("ImageGenerator Error Detail:", {
           component: "ImageGenerator",
@@ -155,11 +174,41 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
     // 获取当前模式可用的AI模型
     const availableModels = aiModels[mode] || [];
 
-    // 确保选中的模型在当前模式下可用
-    const isSelectedModelValid = availableModels.some(model => model.id === selectedModel);
-    if (!isSelectedModelValid && availableModels.length > 0) {
-      setSelectedModel(availableModels[0].id);
-    }
+    // ✅ 正确：使用useEffect来处理模型验证和更新
+    useEffect(() => {
+      const isSelectedModelValid = availableModels.some(model => model.id === selectedModel);
+      if (!isSelectedModelValid && availableModels.length > 0) {
+        setSelectedModel(availableModels[0].id);
+      }
+    }, [selectedModel, availableModels, mode]);
+
+    // 监听充值弹窗状态，自动打开弹窗
+    // 防抖标记，确保一次显示周期内仅触发一次
+    const openedRechargeRef = useRef(false);
+    useEffect(() => {
+      if (showRechargeModal && rechargeModalRef.current && product && !openedRechargeRef.current) {
+        openedRechargeRef.current = true;
+        rechargeModalRef.current.open(rechargeModalData?.currentCredits || 0);
+        // 立即复位store标记，避免其他组件再次触发
+        hideRechargeDialog();
+      }
+      if (!showRechargeModal) {
+        // 当外部标记为false时，允许下次再触发
+        openedRechargeRef.current = false;
+      }
+    }, [showRechargeModal, product, rechargeModalData, hideRechargeDialog]);
+
+    // 处理充值成功回调
+    const handleRechargeSuccess = useCallback(() => {
+      hideRechargeDialog();
+      // 充值成功后可以提示用户继续操作
+      console.log('充值成功，用户可以继续生图操作');
+    }, [hideRechargeDialog]);
+
+    // 处理充值取消回调
+    const handleRechargeCancel = useCallback(() => {
+      hideRechargeDialog();
+    }, [hideRechargeDialog]);
 
     useImperativeHandle(ref, () => ({
       open: handleOpen,
@@ -249,6 +298,21 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           code: 'UNAUTHORIZED'
         });
         loginRef.current.login();
+        return;
+      }
+
+      // 生成前刷新一次账户信息，确保credits最新
+      try {
+        const res = await fetch("/api/auth");
+        if (res.ok) {
+          const data = await res.json().catch(() => null) as { profile: UserInfo | null; credits: number } | null;
+          if (data) setCredits(data.credits);
+        }
+      } catch {}
+
+      // 如果积分不足，直接弹出充值弹窗
+      if ((credits ?? 0) < 1 && product && rechargeModalRef.current) {
+        rechargeModalRef.current.open(credits || 0);
         return;
       }
 
@@ -348,12 +412,20 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         if (!res.ok) {
           // 解析后端返回的标准化错误响应
           const errorData = await res.json().catch(() => ({ message: "Unknown error" })) as any;
-          throw {
+          const richError = {
             status: res.status,
             data: errorData,
             message: errorData.error?.message || errorData.message || errorData.error || `HTTP ${res.status}`,
             details: errorData
-          };
+          } as any;
+
+          // 如果是积分不足错误，弹出充值弹窗
+          const code = errorData?.error?.code;
+          if ((res.status === 402 || code === 'INSUFFICIENT_CREDITS' || code === 'BIZ_001') && product && rechargeModalRef.current) {
+            rechargeModalRef.current.open(credits || 0);
+          }
+
+          throw richError;
         }
 
         const result = await res.json<AiImageResult>();
@@ -602,7 +674,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
       </>
     );
 
-    // Inline 模式返回完整的左右布局
+    // Inline 模式返回完整的左右布局  
     if (inline) {
       return (
         <div className="flex flex-col lg:flex-row gap-6">
@@ -763,13 +835,23 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           <div className="hidden">
             <GoogleOAuth ref={loginRef} />
           </div>
+
+          {/* 充值弹窗 */}
+          {product && (
+            <CreditRechargeModal
+              ref={rechargeModalRef}
+              product={product}
+              onPurchaseSuccess={handleRechargeSuccess}
+              onCancel={handleRechargeCancel}
+            />
+          )}
         </div>
       );
     }
 
     // 模态框模式
-
     return (
+      <>
       <dialog
         ref={modalRef}
         className="modal modal-bottom sm:modal-middle"
@@ -819,7 +901,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                   </div>
                 )}
 
-                {/* 🔧 新增：任务创建成功过渡状态 */}
+                {/* 任务创建成功过渡状态 */}
                 {!submitting && tasks.length > 0 && !done && (
                   <div className="h-96 border border-green-300 rounded-lg flex items-center justify-center bg-green-50">
                     <div className="text-center">
@@ -904,7 +986,18 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           </div>
         )}
       </dialog>
-    );
+
+      {/* 充值弹窗 */}
+      {product && (
+        <CreditRechargeModal
+          ref={rechargeModalRef}
+          product={product}
+          onPurchaseSuccess={handleRechargeSuccess}
+          onCancel={handleRechargeCancel}
+        />
+      )}
+    </>
+  );
   }
 );
 

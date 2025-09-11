@@ -5,6 +5,7 @@
  */
 
 import { useState, useCallback } from "react";
+import { useUser } from "~/store";
 
 export interface ErrorInfo {
   title: string;
@@ -20,6 +21,8 @@ export interface UseErrorHandlerOptions {
   showToast?: boolean;
   autoRetry?: boolean;
   maxRetries?: number;
+  // 新增：是否启用积分不足弹窗处理
+  enableCreditModal?: boolean;
 }
 
 export function useErrorHandler(options: UseErrorHandlerOptions = {}) {
@@ -27,7 +30,11 @@ export function useErrorHandler(options: UseErrorHandlerOptions = {}) {
   const [isRetrying, setIsRetrying] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
-  const { onError, showToast = true, autoRetry = false, maxRetries = 3 } = options;
+  const { onError, showToast = true, autoRetry = false, maxRetries = 3, enableCreditModal = true } = options;
+  
+  // 获取用户store中的弹窗控制方法（分开选择，避免返回新对象导致的订阅循环）
+  const credits = useUser((state) => state.credits);
+  const showRechargeDialog = useUser((state) => state.showRechargeDialog);
 
   /**
    * 处理错误
@@ -35,6 +42,22 @@ export function useErrorHandler(options: UseErrorHandlerOptions = {}) {
   const handleError = useCallback((error: any, context?: string) => {
     const errorInfo = parseError(error, context);
     setError(errorInfo);
+
+    // 特殊处理：积分不足错误
+    if (enableCreditModal && isCreditInsufficientError(errorInfo)) {
+      // 获取当前积分和需要的积分
+      const requiredCredits = extractRequiredCredits(error);
+      
+      // 显示充值弹窗而不是普通的错误提示
+      showRechargeDialog({
+        currentCredits: credits, // 直接使用闭包中的credits值
+        requiredCredits,
+        trigger: context || 'error_handler'
+      });
+      
+      // 不显示错误 toast，由弹窗处理
+      return errorInfo;
+    }
 
     // 调用自定义错误处理函数
     if (onError) {
@@ -50,7 +73,7 @@ export function useErrorHandler(options: UseErrorHandlerOptions = {}) {
     logError(errorInfo, context);
 
     return errorInfo;
-  }, [onError, showToast]);
+  }, [onError, showToast, enableCreditModal, showRechargeDialog]); // ✅ 移除credits依赖，避免频繁重创建
 
   /**
    * 清除错误状态
@@ -586,4 +609,53 @@ export function usePromptValidation() {
   }, [handleError]);
 
   return { validatePrompt };
+}
+
+/**
+ * 检测是否为积分不足错误
+ */
+function isCreditInsufficientError(errorInfo: ErrorInfo): boolean {
+  // 检查错误代码
+  if (errorInfo.code === "INSUFFICIENT_CREDITS" || errorInfo.code === "BIZ_001") {
+    return true;
+  }
+  
+  // 检查HTTP状态码
+  if (errorInfo.code === "402" || errorInfo.title.includes("Insufficient Credits")) {
+    return true;
+  }
+  
+  // 检查错误消息关键词
+  const insufficientKeywords = [
+    "insufficient", "credit", "余额不足", "积分不足", "balance"
+  ];
+  
+  const message = errorInfo.message.toLowerCase();
+  const title = errorInfo.title.toLowerCase();
+  
+  return insufficientKeywords.some(keyword => 
+    message.includes(keyword) || title.includes(keyword)
+  );
+}
+
+/**
+ * 从错误信息中提取所需积分数
+ */
+function extractRequiredCredits(error: any): number | undefined {
+  try {
+    // 尝试从错误详情中提取
+    if (error.details?.required) {
+      return Number(error.details.required);
+    }
+    
+    // 尝试从data中提取
+    if (error.data?.error?.details?.required) {
+      return Number(error.data.error.details.required);
+    }
+    
+    // 默认返回1（大多数操作需要1积分）
+    return 1;
+  } catch {
+    return 1;
+  }
 }

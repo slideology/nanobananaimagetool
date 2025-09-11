@@ -83,8 +83,8 @@ export class InsufficientPermissionError extends BaseError {
  * 用户积分不足
  */
 export class CreditInsufficientError extends BaseError {
-  readonly code = 'CREDIT_001';
-  readonly httpStatus = 400;
+  readonly code = 'INSUFFICIENT_CREDITS';
+  readonly httpStatus = 402;
 
   constructor(currentBalance: number, requiredCredits: number, details?: any) {
     super(`积分不足：当前余额 ${currentBalance}，需要 ${requiredCredits} 积分`, {
@@ -686,7 +686,8 @@ export const ERROR_TYPE_MAP = {
   AUTH_003: InsufficientPermissionError,
   
   // 积分相关
-  CREDIT_001: CreditInsufficientError,
+  CREDIT_001: CreditInsufficientError, // 兼容旧码
+  INSUFFICIENT_CREDITS: CreditInsufficientError,
   CREDIT_002: CreditDeductionError,
   CREDIT_003: CreditQueryError,
   CREDIT_004: CreditRecordCreationError,

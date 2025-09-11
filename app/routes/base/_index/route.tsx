@@ -414,6 +414,7 @@ export default function Home({
                    ref={generatorRef}
                    styles={imageStyles}
                    promptCategories={promptCategories}
+                   product={product}
                    inline={true}
                  />
               </div>

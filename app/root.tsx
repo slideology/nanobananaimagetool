@@ -8,7 +8,7 @@ import {
   useLoaderData,
 } from "react-router";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useUser } from "~/store";
 import { useErrorHandler } from "~/hooks/use-error-handler";
 
@@ -59,6 +59,9 @@ export const Layout = ({ children }: React.PropsWithChildren) => {
 export default function App({}: Route.ComponentProps) {
   const setUser = useUser((state) => state.setUser);
   const setCredits = useUser((state) => state.setCredits);
+  const credits = useUser((state) => state.credits);
+  const [toastLocked, setToastLocked] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   // 错误处理钩子
   const { handleError } = useErrorHandler({
@@ -87,6 +90,20 @@ export default function App({}: Route.ComponentProps) {
           }>();
           setUser(data.profile);
           setCredits(data.credits);
+          // 检测是否需要展示购买成功提示（英文，3s）
+          try {
+            const pending = typeof window !== 'undefined' ? localStorage.getItem('pendingPurchase') : null;
+            const before = typeof window !== 'undefined' ? Number(localStorage.getItem('creditsBeforePurchase') || '0') : 0;
+            if (!toastLocked && pending === '1' && data.credits > before) {
+              setToast('Purchase successful. Credits added to your account.');
+              setTimeout(() => setToast(null), 3000);
+              setToastLocked(true);
+            }
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('pendingPurchase');
+              localStorage.removeItem('creditsBeforePurchase');
+            }
+          } catch {}
         } else {
           setUser(null);
         }
@@ -100,7 +117,18 @@ export default function App({}: Route.ComponentProps) {
     initializeAuth();
   }, [handleError, setUser, setCredits]);
 
-  return <Outlet />;
+  return (
+    <>
+      <Outlet />
+      {toast && (
+        <div className="toast toast-end">
+          <div className="alert alert-success">
+            <span>{toast}</span>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {

@@ -10,7 +10,7 @@ export const CREDITS_PRODUCT: PRODUCT = {
   price: 9.9,
   credits: 100,
   product_id: import.meta.env.PROD
-    ? "prod_3q2PT9pqzfw5URK7TdIhyb"
+    ? "prod_5DnBzJYPwodpZsJvLs2XzK"
     : "prod_tMa1e6wOR5SnpYzLKUVaP",
   product_name: "AI Image Generation Credits",
   type: "once",
