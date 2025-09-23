@@ -547,12 +547,18 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                   </button>
                 </div>
               ) : (
-                <div>
-                  <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <ImageIcon size={32} className="text-gray-400" />
-                  </div>
-                  <p className="text-sm text-gray-600 mb-2">Add Image</p>
-                  <p className="text-xs text-gray-400 mb-4">Max 50MB</p>
+                <>
+                  {/* 将整个占位内容作为可点击区域，指向隐藏的文件输入 */}
+                  <label htmlFor="image-upload" className="block cursor-pointer select-none" aria-label="Upload reference image">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-lg flex items-center justify-center">
+                      <ImageIcon size={32} className="text-gray-400" />
+                    </div>
+                    <p className="text-sm text-gray-600 mb-2">Add Image</p>
+                    <p className="text-xs text-gray-400 mb-4">Max 50MB</p>
+                    <span className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                      Choose File
+                    </span>
+                  </label>
                   <input
                     type="file"
                     accept="image/*"
@@ -563,13 +569,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                     className="hidden"
                     id="image-upload"
                   />
-                  <label
-                    htmlFor="image-upload"
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer transition-colors"
-                  >
-                    Choose File
-                  </label>
-                </div>
+                </>
               )}
             </div>
           </div>
@@ -789,6 +789,18 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                             alt="Generated"
                             className="w-full"
                           />
+                          <div className="p-3 border-t bg-gray-50 flex justify-end">
+                            <a
+                              href={task.result_url}
+                              download={`nanobananaimage.org-${task.task_no}.png`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors"
+                              aria-label="Download generated image"
+                            >
+                              Download
+                            </a>
+                          </div>
                         </div>
                       )}
                       
@@ -969,6 +981,18 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                               alt="Generated"
                               className="w-full"
                             />
+                            <div className="p-3 border-t bg-gray-50 flex justify-end">
+                              <a
+                                href={task.result_url}
+                                download={`nanobananaimage.org-${task.task_no}.png`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors"
+                                aria-label="Download generated image"
+                              >
+                                Download
+                              </a>
+                            </div>
                           </div>
                         )}
                         
