@@ -11,5 +11,7 @@ declare namespace Cloudflare {
     CREEM_KEY: string;
     CREEM_WEBHOOK_SECRET: string;
     CREEM_TEST_KEY: string;
+    // 由 wrangler.jsonc vars 设置的公开变量
+    INITLIZE_CREDITS: string;
   }
 }

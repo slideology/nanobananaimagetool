@@ -7,7 +7,8 @@ import { BackendApiLogger } from "~/.server/utils/step-loggers";
 import { ErrorHandler } from "~/.server/utils/error-handler";
 import { BaseError } from "~/.server/types/errors";
 
-import { createAiImage } from "~/.server/services/ai-tasks";
+import { createAiImage, createAiImageForGuest } from "~/.server/services/ai-tasks";
+import { atomicCheckAndInsertGuestCreditUsage } from "~/.server/model/guest_credit_usage";
 
 export const action = async ({ request, context }: Route.ActionArgs) => {
   if (request.method.toLowerCase() !== "post") {
@@ -45,7 +46,81 @@ export const action = async ({ request, context }: Route.ActionArgs) => {
 
   const [session] = await getSessionHandler(request);
   const user = session.get("user");
-  if (!user) throw new Response("Unauthorized", { status: 401 });
+  
+  // 如果用户未登录，检查是否有临时积分权限和IP限制
+  if (!user) {
+    // 🔒 安全检查1：验证前端传递的临时积分状态
+    const hasGuestCredit = json.hasGuestCredit === true;
+    if (!hasGuestCredit) {
+      throw new Response("Unauthorized", { status: 401 });
+    }
+    
+    // 🔒 安全检查1.5：验证请求来源和基本参数
+    const referer = request.headers.get("referer");
+    const origin = request.headers.get("origin");
+    const userAgent = request.headers.get("user-agent");
+    
+    // 检查请求来源是否合法（防止跨域恶意调用）
+    if (origin && !origin.includes("nanobananaimage.org") && !origin.includes("localhost")) {
+      console.warn("Suspicious origin for guest request:", origin);
+      throw new Response("Forbidden", { status: 403 });
+    }
+    
+    // 检查用户代理是否为正常浏览器（防止脚本调用）
+    if (!userAgent || userAgent.length < 10) {
+      console.warn("Suspicious user agent for guest request:", userAgent);
+      throw new Response("Forbidden", { status: 403 });
+    }
+    
+    // 🔒 安全检查2：IP地址限制，防止重复使用临时积分（原子性操作）
+     const clientIP = request.headers.get("x-forwarded-for") || 
+                     request.headers.get("x-real-ip") || 
+                     request.headers.get("cf-connecting-ip") ||
+                     "unknown";
+     
+     if (clientIP !== "unknown") {
+       const userAgent = request.headers.get("user-agent");
+       
+       // 🔒 并发安全：原子性检查并插入IP使用记录
+       const canUseCredit = await atomicCheckAndInsertGuestCreditUsage(clientIP, userAgent || undefined);
+       
+       if (!canUseCredit) {
+         throw new Response(
+           JSON.stringify({
+             success: false,
+             error: {
+               code: 'GUEST_CREDIT_EXHAUSTED',
+               message: '该网络已使用过免费体验，请登录获取更多积分',
+               details: { 
+                 reason: 'IP address already used guest credit',
+                 suggestion: '请登录您的账户以获得更多积分'
+               }
+             }
+           }),
+           { 
+             status: 403,
+             headers: { 'Content-Type': 'application/json' }
+           }
+         );
+       }
+     }
+    
+    // 使用临时用户继续处理
+    try {
+      const result = await createAiImageForGuest(context.cloudflare.env, json);
+      return data(result);
+    } catch (e) {
+      console.error("Create ai image error for guest user:", e);
+      if (e instanceof BaseError) {
+        const errorResponse = ErrorHandler.createErrorResponse(e.code, e.message, e.details);
+        throw new Response(JSON.stringify(errorResponse), {
+          status: errorResponse.status,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+      throw new Response("Internal Server Error", { status: 500 });
+    }
+  }
 
   try {
     // 生成请求ID

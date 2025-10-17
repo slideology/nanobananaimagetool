@@ -12,12 +12,17 @@ export const users = sqliteTable(
     password: text(), // 用户密码（可为空，适配第三方登录）
     nickname: text().notNull(), // 昵称
     avatar_url: text(), // 头像地址
+    has_received_login_bonus: integer().notNull().default(0), // 是否已获得登录奖励（0=否，1=是）
     created_at: integer({ mode: "timestamp" })
+      .notNull()
+      .default(sql`(strftime('%s', 'now'))`),
+    updated_at: integer({ mode: "timestamp" })
       .notNull()
       .default(sql`(strftime('%s', 'now'))`),
   },
   (table) => [
     index("email_unique_idx").on(table.email), // 创建email索引以确保唯一性
+    index("users_login_bonus_idx").on(table.has_received_login_bonus), // 登录奖励状态索引
   ]
 );
 
@@ -161,6 +166,24 @@ export const subscriptions = sqliteTable("subscriptions", {
     .default(sql`(strftime('%s', 'now'))`), // 创建时间
 });
 
+// 临时积分使用跟踪表 - 防止IP地址重复获得临时积分
+export const guest_credit_usage = sqliteTable(
+  "guest_credit_usage",
+  {
+    id: integer().primaryKey({ autoIncrement: true }),
+    ip_address: text().notNull().unique(), // IP地址，唯一
+    user_agent: text(), // 用户代理字符串
+    used_at: integer({ mode: "timestamp" })
+      .notNull()
+      .default(sql`(strftime('%s', 'now'))`), // 使用时间
+    usage_count: integer().notNull().default(1), // 使用次数
+  },
+  (table) => [
+    index("guest_credit_usage_ip_unique").on(table.ip_address), // IP地址唯一索引
+    index("guest_credit_usage_used_at_idx").on(table.used_at), // 时间索引用于清理
+  ]
+);
+
 export const ai_tasks = sqliteTable("ai_tasks", {
   task_no: text()
     .primaryKey()
@@ -290,6 +313,9 @@ export type InsertCredit = typeof credit_records.$inferInsert;
 
 export type CreditConsumption = typeof credit_consumptions.$inferSelect;
 export type InsertCreditConsumption = typeof credit_consumptions.$inferInsert;
+
+export type GuestCreditUsage = typeof guest_credit_usage.$inferSelect;
+export type InsertGuestCreditUsage = typeof guest_credit_usage.$inferInsert;
 
 export type Subscription = typeof subscriptions.$inferSelect;
 export type InsertSubscription = typeof subscriptions.$inferInsert;

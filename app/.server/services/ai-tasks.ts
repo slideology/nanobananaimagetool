@@ -514,3 +514,151 @@ export const createAiImage = async (
   // 如果不是nano-banana模型，抛出错误
   throw new UnsupportedFileFormatError(type, ["nano-banana", "nano-banana-edit"]);
 };
+
+/**
+ * 为未登录用户创建AI图像生成任务（不涉及积分扣除）
+ * @param env - Cloudflare环境变量
+ * @param value - 图像生成参数
+ * @returns 创建的任务列表（不包含积分信息）
+ */
+export const createAiImageForGuest = async (
+  env: Env,
+  value: CreateAiImageDTO
+) => {
+  // 生成请求ID用于日志追踪
+  const requestId = `guest_img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  // 记录业务逻辑处理开始
+  BusinessLogicLogger.logProcessingStart(requestId, {
+    userId: "guest",
+    mode: value.mode,
+    type: value.type
+  });
+  
+  // 创建日志上下文
+  const logger = Logger.createContext();
+  
+  logger.info("开始处理未登录用户AI图像生成请求", "createAiImageForGuest", {
+    requestId,
+    requestParams: {
+      mode: value.mode,
+      type: value.type,
+      hasImage: !!value.image,
+      promptLength: (value.prompt || '').length,
+      width: value.width,
+      height: value.height
+    },
+    environment: import.meta.env.PROD ? 'production' : 'development',
+  });
+  
+  const { mode, image, prompt, type, width, height } = value;
+
+  let fileUrl: string | undefined;
+  
+  // 如果是 image-to-image 模式，直接使用传入的图片URL
+  if (mode === "image-to-image" && image) {
+    fileUrl = image;
+    
+    BusinessLogicLogger.logImageUploadToR2(requestId, {
+      fileName: "external_image",
+      fileSize: 0,
+      uploadUrl: fileUrl,
+      success: true
+    });
+  }
+
+  const aspect = "1:1";
+  const callbakUrl = new URL("/webhooks/kie-image", env.DOMAIN).toString();
+
+  let kieResponse: any;
+
+  if (type === "nano-banana" || type === "nano-banana-edit") {
+    // 验证参数
+    if (type === "nano-banana-edit" && !fileUrl) {
+      throw new RequiredParameterMissingError("image", "Image is required for nano-banana-edit model");
+    }
+
+    const fullPrompt = prompt;
+
+    console.log("🚀 开始调用 Kie AI API (Guest User)...");
+    
+    // 记录Kie AI API调用开始
+    const apiStartTime = Date.now();
+    KieAiApiLogger.logApiCallStart(requestId, {
+      endpoint: "/api/v1/jobs/createTask",
+      method: "POST",
+      taskType: type
+    });
+    
+    const kieAI = new KieAI({ accessKey: env.KIEAI_APIKEY });
+
+    try {
+      if (type === "nano-banana") {
+        // Text-to-Image 模式
+        kieResponse = await kieAI.createNanoBananaTask({
+          prompt: fullPrompt,
+          callBackUrl: import.meta.env.PROD ? callbakUrl : undefined,
+        });
+      } else {
+        // Image-to-Image 模式
+        kieResponse = await kieAI.createNanoBananaEditTask({
+          prompt: fullPrompt,
+          image_urls: [fileUrl!],
+          callBackUrl: import.meta.env.PROD ? callbakUrl : undefined,
+        });
+      }
+
+      // 记录API调用成功
+      KieAiApiLogger.logApiCallComplete(requestId, {
+        taskId: kieResponse.taskId,
+        status: "success",
+        responseTime: Date.now() - apiStartTime
+      });
+
+      console.log("✅ Kie AI API调用成功:", kieResponse);
+    } catch (error) {
+      // 记录API调用失败
+      KieAiApiLogger.logApiCallError(requestId, error instanceof Error ? error : new Error(String(error)), {
+        statusCode: 0,
+        responseBody: error instanceof Error ? error.message : String(error)
+      });
+
+      console.error("❌ Kie AI API调用失败:", error);
+      throw error;
+    }
+
+    // 为未登录用户创建临时任务记录（不存储到数据库）
+    const guestTask = {
+      task_no: `guest_${nanoid()}`,
+      task_id: kieResponse.taskId,
+      created_at: new Date(),
+      status: "running" as const,
+      completed_at: null,
+      aspect: aspect,
+      result_url: null,
+      fail_reason: null,
+      ext: {
+        mode,
+        prompt_preview: (prompt || '').substring(0, 100),
+      },
+    };
+    
+    // 记录业务逻辑处理完成
+    BusinessLogicLogger.logProcessingComplete(requestId, {
+      taskId: kieResponse.taskId,
+      fileUrl: fileUrl
+    });
+    
+    // 返回格式与正常用户一致，但不包含积分信息
+    return { 
+      tasks: [guestTask], 
+      consumptionCredits: { 
+        consumed: 0, 
+        consumptionRecords: 0, 
+        remainingBalance: 0 
+      } 
+    };
+  }
+  
+  throw new UnsupportedFileFormatError(type, ["nano-banana", "nano-banana-edit"]);
+};

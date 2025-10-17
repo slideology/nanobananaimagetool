@@ -24,7 +24,10 @@
     "GOOGLE_ADS_ID": "pub-3179065211650247",
     "GOOGLE_ANALYTICS_ID": "G-KJPS3ZZYHC",
     "MICROSOFT_CLARITY_ID": "sun0y1p1i1",
-  "INITLIZE_CREDITS": "1"
+    "INITLIZE_CREDITS": "1",
+    // Turnstile configuration - Replace with your actual keys
+    "TURNSTILE_SITE_KEY": "1x00000000000000000000AA", // Demo key - replace with real site key
+    "TURNSTILE_SECRET_KEY": "1x0000000000000000000000000000000AA" // Demo key - replace with real secret key
     // "THIRD_PARTY_ADS_ID": "c2e95556903c6f4bc49bfefaac809241" // 临时禁用第三方广告
   },
   "routes": [

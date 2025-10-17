@@ -14,6 +14,7 @@ const googleSchema = z.object({
   data: z.object({
     access_token: z.string().optional(),
     credential: z.string().optional(),
+    hasUsedGuestCredit: z.boolean().optional(), // 是否已使用过临时积分
   }),
 });
 
@@ -110,6 +111,7 @@ export const action = async ({ request, context }: Route.ActionArgs) => {
       profile: userInfo,
       request,
       session: session.id,
+      hasUsedGuestCredit: json.data.hasUsedGuestCredit || false,
     });
     session.set("user", user);
 

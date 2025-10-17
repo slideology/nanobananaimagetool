@@ -10,6 +10,7 @@ export const createAiImageSchema = z.object({
   type: z.enum(["nano-banana", "nano-banana-edit"]).default("nano-banana"),
   width: z.number().optional().default(1024),
   height: z.number().optional().default(1024),
+  hasGuestCredit: z.boolean().optional(), // 用于未登录用户的临时积分验证
 }).refine(
   (data) => {
     // If mode is image-to-image, image URL is required

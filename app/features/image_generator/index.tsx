@@ -13,7 +13,7 @@ import { useTasks } from "~/hooks/data";
 import { useErrorHandler, useFileValidation, usePromptValidation } from "~/hooks/use-error-handler";
 
 import { GoogleOAuth, type GoogleOAuthBtnRef } from "~/features/oauth";
-import { CreditRechargeModal, type CreditRechargeModalRef } from "~/components/ui";
+import { CreditRechargeModal, type CreditRechargeModalRef, TurnstileVerification } from "~/components/ui";
 import { X, ImageIcon, Type, Wand2 } from "lucide-react";
 import { Image } from "~/components/common";
 
@@ -72,6 +72,12 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
     const credits = useUser((state) => state.credits);
     const setCredits = useUser((state) => state.setCredits);
     
+    // 临时积分相关状态
+    const getTotalCredits = useUser((state) => state.getTotalCredits);
+    const useGuestCredit = useUser((state) => state.useGuestCredit);
+    const rollbackGuestCredit = useUser((state) => state.rollbackGuestCredit);
+    const getGuestCreditStatus = useUser((state) => state.getGuestCreditStatus);
+    
     // 监听充值弹窗状态
     // 分开选择，避免返回新对象导致的无意义渲染
     const showRechargeModal = useUser(state => state.showRechargeModal);
@@ -117,6 +123,11 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
     // 生成状态
     const [submitting, setSubmitting] = useState(false);
     const [done, setDone] = useState(false);
+    
+    // Turnstile验证状态
+    const [showVerification, setShowVerification] = useState(false);
+    const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+    const [verificationError, setVerificationError] = useState<string>("");
 
     const [tasks, setTasks] = useTasks<
       AiImageResult["tasks"][number] & { progress: number }
@@ -249,6 +260,26 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
       clearError();
     }, [mode, validateFile, clearError]);
 
+    // Turnstile验证回调函数
+    const handleTurnstileSuccess = useCallback((token: string) => {
+      setTurnstileToken(token);
+      setVerificationError("");
+      setShowVerification(false);
+      console.log("Turnstile verification successful");
+    }, []);
+
+    const handleTurnstileError = useCallback((error: string) => {
+      setTurnstileToken(null);
+      setVerificationError(error);
+      console.error("Turnstile verification error:", error);
+    }, []);
+
+    const handleTurnstileExpire = useCallback(() => {
+      setTurnstileToken(null);
+      setVerificationError("Verification expired. Please try again.");
+      console.warn("Turnstile verification expired");
+    }, []);
+
     const handleSubmit = async () => {
       // 开始前端数据收集日志监控
       const requestId = FrontendLogger.startImageGeneration({
@@ -291,29 +322,62 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         return;
       }
       
-      if (!user && loginRef.current) {
+      // 获取当前总积分（包括临时积分）
+      const totalCredits = getTotalCredits();
+      const guestStatus = getGuestCreditStatus();
+      
+      // 如果用户未登录且没有临时积分，提示登录
+      if (!user && !guestStatus.hasCredits) {
+        if (loginRef.current) {
+          FrontendLogger.logDataCollectionError({
+            type: 'authentication_error',
+            message: 'User not authenticated and no guest credits',
+            code: 'UNAUTHORIZED'
+          });
+          loginRef.current.login();
+        }
+        return;
+      }
+      
+      // 如果用户未登录且使用image-to-image模式，需要Turnstile验证
+      if (!user && mode === "image-to-image" && !turnstileToken) {
+        setShowVerification(true);
+        setVerificationError("");
         FrontendLogger.logDataCollectionError({
-          type: 'authentication_error',
-          message: 'User not authenticated',
-          code: 'UNAUTHORIZED'
+          type: 'verification_required',
+          message: 'Turnstile verification required for guest image upload',
+          code: 'VERIFICATION_REQUIRED'
         });
-        loginRef.current.login();
         return;
       }
 
-      // 生成前刷新一次账户信息，确保credits最新
-      try {
-        const res = await fetch("/api/auth");
-        if (res.ok) {
-          const data = await res.json().catch(() => null) as { profile: UserInfo | null; credits: number } | null;
-          if (data) setCredits(data.credits);
-        }
-      } catch {}
+      // 如果用户已登录，刷新一次账户信息，确保credits最新
+      if (user) {
+        try {
+          const res = await fetch("/api/auth");
+          if (res.ok) {
+            const data = await res.json().catch(() => null) as { profile: UserInfo | null; credits: number } | null;
+            if (data) setCredits(data.credits);
+          }
+        } catch {}
+      }
 
-      // 如果积分不足，直接弹出充值弹窗
-      if ((credits ?? 0) < 1 && product && rechargeModalRef.current) {
-        rechargeModalRef.current.open(credits || 0);
+      // 检查总积分是否足够
+      if (totalCredits < 1) {
+        if (product && rechargeModalRef.current) {
+          rechargeModalRef.current.open(user ? credits : 0);
+        }
         return;
+      }
+
+      // 🔒 时序优化：预扣积分，API失败时回滚
+      let guestCreditUsed = false;
+      if (!user && guestStatus.hasCredits) {
+        guestCreditUsed = useGuestCredit();
+        if (!guestCreditUsed) {
+          console.error("Failed to use guest credit");
+          return;
+        }
       }
 
       setSubmitting(true);
@@ -339,6 +403,11 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         if (file && mode === "image-to-image") {
           const uploadFormData = new FormData();
           uploadFormData.set("image", file);
+          
+          // 如果用户未登录，添加Turnstile token
+          if (!user && turnstileToken) {
+            uploadFormData.set("cf-turnstile-response", turnstileToken);
+          }
           
           const uploadRes = await fetch("/api/upload/image", {
             method: "POST",
@@ -398,7 +467,9 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           mode,
           prompt,
           type: selectedModel,
-          ...(imageUrl && { image: imageUrl })
+          ...(imageUrl && { image: imageUrl }),
+          // 如果用户未登录，传递临时积分状态
+          ...(!user && { hasGuestCredit: guestStatus.hasCredits })
         };
         
         const res = await fetch("/api/create/ai-image", {
@@ -439,7 +510,11 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           success: true
         });
 
-        setCredits(consumptionCredits.remainingBalance);
+        // 处理积分扣除：如果用户已登录，更新持久积分；临时积分已预扣，无需再次扣除
+        if (user) {
+          setCredits(consumptionCredits.remainingBalance);
+        }
+        // 注意：未登录用户的临时积分已在API调用前预扣，这里无需再次处理
         
         // 🔧 修复状态设置时序：先设置任务，再设置done状态
         const tasksWithProgress = tasks.map((item: AiImageResult["tasks"][number]) => ({ 
@@ -462,6 +537,12 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         clearError();
         
       } catch (error: any) {
+        // 🔒 时序优化：API失败时回滚临时积分
+        if (guestCreditUsed && !user) {
+          const rollbackSuccess = rollbackGuestCredit();
+          console.log("Guest credit rollback:", rollbackSuccess ? "success" : "failed");
+        }
+        
         // 记录API请求失败
         const apiEndTime = performance.now();
         FrontendLogger.logApiRequestComplete({
@@ -477,7 +558,9 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           mode,
           selectedModel,
           hasFile: !!file,
-          promptLength: prompt.length
+          promptLength: prompt.length,
+          guestCreditUsed,
+          rollbackAttempted: guestCreditUsed && !user
         });
                 
         handleError(error, "Image generation");
@@ -531,6 +614,24 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
               <label className="text-sm font-medium text-gray-700">Reference Image</label>
               <span className="text-xs text-gray-500">0/9</span>
             </div>
+            
+            {/* 未登录用户验证提示 */}
+            {!user && (
+              <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs">!</span>
+                  </div>
+                  <p className="text-sm text-blue-700">
+                    {turnstileToken ? (
+                      <span className="text-green-700">✓ Verification completed. You can now upload images.</span>
+                    ) : (
+                      "Image upload requires verification for guest users."
+                    )}
+                  </p>
+                </div>
+              </div>
+            )}
             <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:border-gray-300 transition-colors">
               {fileUrl ? (
                 <div className="relative">
@@ -1010,6 +1111,44 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           </div>
         )}
       </dialog>
+
+      {/* Turnstile验证弹窗 */}
+      {showVerification && (
+        <dialog className="modal modal-open">
+          <div className="modal-box max-w-md">
+            <h3 className="font-bold text-lg mb-4">Verification Required</h3>
+            <p className="text-gray-600 mb-6">
+              Please complete the verification to upload images. This helps us prevent automated abuse.
+            </p>
+            
+            <div className="flex justify-center mb-6">
+               <TurnstileVerification
+                 siteKey="1x00000000000000000000AA" // Demo key - will be replaced with real key in production
+                 onSuccess={handleTurnstileSuccess}
+                 onError={handleTurnstileError}
+                 onExpire={handleTurnstileExpire}
+                 theme="light"
+                 size="normal"
+               />
+             </div>
+            
+            {verificationError && (
+              <div className="alert alert-error mb-4">
+                <span>{verificationError}</span>
+              </div>
+            )}
+            
+            <div className="modal-action">
+              <button
+                className="btn btn-ghost"
+                onClick={() => setShowVerification(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </dialog>
+      )}
 
       {/* 充值弹窗 */}
       {product && (
