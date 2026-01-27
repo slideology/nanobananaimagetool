@@ -71,13 +71,13 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
     const user = useUser((state) => state.user);
     const credits = useUser((state) => state.credits);
     const setCredits = useUser((state) => state.setCredits);
-    
+
     // 临时积分相关状态
     const getTotalCredits = useUser((state) => state.getTotalCredits);
     const useGuestCredit = useUser((state) => state.useGuestCredit);
     const rollbackGuestCredit = useUser((state) => state.rollbackGuestCredit);
     const getGuestCreditStatus = useUser((state) => state.getGuestCreditStatus);
-    
+
     // 监听充值弹窗状态
     // 分开选择，避免返回新对象导致的无意义渲染
     const showRechargeModal = useUser(state => state.showRechargeModal);
@@ -106,7 +106,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
 
     // 生成模式
     const [mode, setMode] = useState<"image-to-image" | "text-to-image">("image-to-image");
-    
+
     // 图片相关
     const [file, setFile] = useState<File>();
     const fileUrl = useMemo(() => {
@@ -116,14 +116,14 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
 
     // 提示词
     const [prompt, setPrompt] = useState("");
-      
+
     // AI模型选择
     const [selectedModel, setSelectedModel] = useState<string>("nano-banana");
 
     // 生成状态
     const [submitting, setSubmitting] = useState(false);
     const [done, setDone] = useState(false);
-    
+
     // Turnstile验证状态
     const [showVerification, setShowVerification] = useState(false);
     const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
@@ -155,7 +155,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         description: "Transform your photos with AI-powered editing"
       },
       {
-        id: "text-to-image", 
+        id: "text-to-image",
         name: "Text to Image",
         icon: <Type size={20} />,
         description: "Create photos from text descriptions"
@@ -221,6 +221,50 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
       hideRechargeDialog();
     }, [hideRechargeDialog]);
 
+    // 处理图片下载 (解决跨域 CDN 资源下载问题)
+    const handleDownloadImage = useCallback(async (imageUrl: string | null, taskNo: string) => {
+      try {
+      // 检查 imageUrl 是否有效
+      if (!imageUrl) {
+        console.error('图片 URL 为空');
+        return;
+      }
+
+        // 1. 使用 fetch 获取图片数据
+        const response = await fetch(imageUrl);
+        if (!response.ok) {
+          throw new Error('Failed to fetch image');
+        }
+
+        // 2. 将响应转换为 blob
+        const blob = await response.blob();
+
+        // 3. 创建临时 blob URL
+        const blobUrl = URL.createObjectURL(blob);
+
+        // 4. 创建隐藏的 <a> 标签并触发下载
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = `nanobananaimage.org-${taskNo}.png`;
+        document.body.appendChild(link);
+        link.click();
+
+        // 5. 清理:移除 <a> 标签和释放 blob URL
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+
+        console.log('图片下载成功:', taskNo);
+      } catch (error) {
+        console.error('图片下载失败:', error);
+        handleError({
+          title: "下载失败",
+          message: "无法下载图片,请稍后重试或右键保存图片",
+          severity: "error",
+          code: "DOWNLOAD_ERROR"
+        });
+      }
+    }, [handleError]);
+
     useImperativeHandle(ref, () => ({
       open: handleOpen,
       close: () => modalRef.current?.close(),
@@ -255,7 +299,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
       if (mode === "text-to-image") {
         setMode("image-to-image");
       }
-      
+
       // 清除之前的错误
       clearError();
     }, [mode, validateFile, clearError]);
@@ -303,7 +347,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         });
         return;
       }
-      
+
       // 验证模式和文件
       if (mode === "image-to-image" && !file) {
         validationErrors.push('Missing reference image');
@@ -321,11 +365,11 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         });
         return;
       }
-      
+
       // 获取当前总积分（包括临时积分）
       const totalCredits = getTotalCredits();
       const guestStatus = getGuestCreditStatus();
-      
+
       // 如果用户未登录且没有临时积分，提示登录
       if (!user && !guestStatus.hasCredits) {
         if (loginRef.current) {
@@ -338,7 +382,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         }
         return;
       }
-      
+
       // 如果用户未登录且使用image-to-image模式，需要Turnstile验证
       if (!user && mode === "image-to-image" && !turnstileToken) {
         setShowVerification(true);
@@ -359,7 +403,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
             const data = await res.json().catch(() => null) as { profile: UserInfo | null; credits: number } | null;
             if (data) setCredits(data.credits);
           }
-        } catch {}
+        } catch { }
       }
 
       // 检查总积分是否足够
@@ -398,70 +442,70 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
 
       try {
         let imageUrl: string | undefined;
-        
+
         // 如果是image-to-image模式，先上传图片获取URL
         if (file && mode === "image-to-image") {
           const uploadFormData = new FormData();
           uploadFormData.set("image", file);
-          
+
           // 如果用户未登录，添加Turnstile token
           if (!user && turnstileToken) {
             uploadFormData.set("cf-turnstile-response", turnstileToken);
           }
-          
+
           const uploadRes = await fetch("/api/upload/image", {
             method: "POST",
             body: uploadFormData,
           });
-          
+
           if (!uploadRes.ok) {
-             const uploadError = await uploadRes.json().catch(() => ({ error: "Upload failed" })) as { error?: string };
-             throw {
-               status: uploadRes.status,
-               message: uploadError.error || "Image upload failed",
-               details: uploadError
-             };
-           }
-           
-           const uploadResult = await uploadRes.json() as { imageUrl: string; fileName: string; fileSize: number; fileType: string };
-           imageUrl = uploadResult.imageUrl;
-           
-           // 🔧 时序优化：验证图片URL是否可访问（增强重试机制）
-           console.log("📋 验证图片URL可访问性:", imageUrl);
-           let imageAccessible = false;
-           const maxRetries = 3;
-           const retryDelays = [1000, 2000, 3000]; // 1秒, 2秒, 3秒
-           
-           for (let attempt = 0; attempt < maxRetries; attempt++) {
-             try {
-               const checkRes = await fetch(imageUrl, { 
-                 method: 'HEAD',
-                 cache: 'no-cache' // 确保不使用缓存
-               });
-               
-               if (checkRes.ok) {
-                 console.log(`✅ 图片URL验证成功 (尝试 ${attempt + 1})`);
-                 imageAccessible = true;
-                 break;
-               } else {
-                 console.warn(`⚠️ 图片URL返回 ${checkRes.status} (尝试 ${attempt + 1}/${maxRetries})`);
-               }
-             } catch (error) {
-               console.warn(`⚠️ 图片URL检查失败 (尝试 ${attempt + 1}/${maxRetries}):`, error);
-             }
-             
-             // 如果不是最后一次尝试，等待后重试
-             if (attempt < maxRetries - 1) {
-               console.log(`⏳ 等待 ${retryDelays[attempt]}ms 后重试...`);
-               await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]));
-             }
-           }
-           
-           if (!imageAccessible) {
-             console.warn("⚠️ 图片URL在多次重试后仍不可访问，但继续处理（可能是CDN延迟）");
-           }
+            const uploadError = await uploadRes.json().catch(() => ({ error: "Upload failed" })) as { error?: string };
+            throw {
+              status: uploadRes.status,
+              message: uploadError.error || "Image upload failed",
+              details: uploadError
+            };
+          }
+
+          const uploadResult = await uploadRes.json() as { imageUrl: string; fileName: string; fileSize: number; fileType: string };
+          imageUrl = uploadResult.imageUrl;
+
+          // 🔧 时序优化：验证图片URL是否可访问（增强重试机制）
+          console.log("📋 验证图片URL可访问性:", imageUrl);
+          let imageAccessible = false;
+          const maxRetries = 3;
+          const retryDelays = [1000, 2000, 3000]; // 1秒, 2秒, 3秒
+
+          for (let attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+              const checkRes = await fetch(imageUrl, {
+                method: 'HEAD',
+                cache: 'no-cache' // 确保不使用缓存
+              });
+
+              if (checkRes.ok) {
+                console.log(`✅ 图片URL验证成功 (尝试 ${attempt + 1})`);
+                imageAccessible = true;
+                break;
+              } else {
+                console.warn(`⚠️ 图片URL返回 ${checkRes.status} (尝试 ${attempt + 1}/${maxRetries})`);
+              }
+            } catch (error) {
+              console.warn(`⚠️ 图片URL检查失败 (尝试 ${attempt + 1}/${maxRetries}):`, error);
+            }
+
+            // 如果不是最后一次尝试，等待后重试
+            if (attempt < maxRetries - 1) {
+              console.log(`⏳ 等待 ${retryDelays[attempt]}ms 后重试...`);
+              await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]));
+            }
+          }
+
+          if (!imageAccessible) {
+            console.warn("⚠️ 图片URL在多次重试后仍不可访问，但继续处理（可能是CDN延迟）");
+          }
         }
-        
+
         // 发送JSON格式的请求
         const requestData = {
           mode,
@@ -471,7 +515,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           // 如果用户未登录，传递临时积分状态
           ...(!user && { hasGuestCredit: guestStatus.hasCredits })
         };
-        
+
         const res = await fetch("/api/create/ai-image", {
           method: "POST",
           headers: {
@@ -515,34 +559,34 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           setCredits(consumptionCredits.remainingBalance);
         }
         // 注意：未登录用户的临时积分已在API调用前预扣，这里无需再次处理
-        
+
         // 🔧 修复状态设置时序：先设置任务，再设置done状态
-        const tasksWithProgress = tasks.map((item: AiImageResult["tasks"][number]) => ({ 
-          ...item, 
+        const tasksWithProgress = tasks.map((item: AiImageResult["tasks"][number]) => ({
+          ...item,
           progress: item.status === "running" ? 0 : // running状态从0%开始，由轮询更新
-                   item.status === "succeeded" ? 100 : 
-                   item.status === "failed" ? 100 : 0
+            item.status === "succeeded" ? 100 :
+              item.status === "failed" ? 100 : 0
         }));
-        
+
         setTasks(tasksWithProgress);
-        
+
         // 🔧 延迟设置done状态，确保UI有时间显示提交完成到任务开始的过渡
         setTimeout(() => {
           setDone(true);
         }, 500); // 500ms延迟，让用户看到"提交成功"的状态
-        
+
         console.log("📋 任务创建成功:", tasks.map(t => `${t.task_no} (${t.status})`).join(", "));
-        
+
         // 成功后清理错误状态
         clearError();
-        
+
       } catch (error: any) {
         // 🔒 时序优化：API失败时回滚临时积分
         if (guestCreditUsed && !user) {
           const rollbackSuccess = rollbackGuestCredit();
           console.log("Guest credit rollback:", rollbackSuccess ? "success" : "failed");
         }
-        
+
         // 记录API请求失败
         const apiEndTime = performance.now();
         FrontendLogger.logApiRequestComplete({
@@ -562,9 +606,9 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           guestCreditUsed,
           rollbackAttempted: guestCreditUsed && !user
         });
-                
+
         handleError(error, "Image generation");
-        
+
         // 特殊错误处理
         if (error.status === 401 && loginRef.current) {
           loginRef.current.login();
@@ -614,7 +658,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
               <label className="text-sm font-medium text-gray-700">Reference Image</label>
               <span className="text-xs text-gray-500">0/9</span>
             </div>
-            
+
             {/* 未登录用户验证提示 */}
             {!user && (
               <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -855,7 +899,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                           {task.status === "running" && "⟳ Generating"}
                         </span>
                       </div>
-                      
+
                       {task.status === "running" && (
                         <div className="mb-4">
                           <div className="flex items-center gap-2 mb-3">
@@ -871,12 +915,11 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                             </span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className={`h-2 rounded-full transition-all duration-500 ${
-                                task.progress === 0 
-                                  ? "bg-gradient-to-r from-blue-300 to-blue-400 animate-pulse" 
-                                  : "bg-gradient-to-r from-blue-500 to-purple-500"
-                              }`}
+                            <div
+                              className={`h-2 rounded-full transition-all duration-500 ${task.progress === 0
+                                ? "bg-gradient-to-r from-blue-300 to-blue-400 animate-pulse"
+                                : "bg-gradient-to-r from-blue-500 to-purple-500"
+                                }`}
                               style={{ width: `${Math.max(task.progress, 5)}%` }}
                             ></div>
                           </div>
@@ -891,20 +934,17 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                             className="w-full"
                           />
                           <div className="p-3 border-t bg-gray-50 flex justify-end">
-                            <a
-                              href={task.result_url}
-                              download={`nanobananaimage.org-${task.task_no}.png`}
-                              target="_blank"
-                              rel="noreferrer"
+                            <button
+                              onClick={() => handleDownloadImage(task.result_url, task.task_no)}
                               className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors"
                               aria-label="Download generated image"
                             >
                               Download
-                            </a>
+                            </button>
                           </div>
                         </div>
                       )}
-                      
+
                       {task.status === "failed" && task.fail_reason && (
                         <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
                           <strong>Error:</strong> {task.fail_reason}
@@ -965,202 +1005,198 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
     // 模态框模式
     return (
       <>
-      <dialog
-        ref={modalRef}
-        className="modal modal-bottom sm:modal-middle"
-        onClose={handleClose}
-      >
-        {visible && (
-          <div className="modal-box max-w-7xl w-full max-h-[90vh] p-0">
-            {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-2xl font-bold">Nano Banana AI Generator</h2>
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={() => modalRef.current?.close()}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="flex flex-col lg:flex-row h-full">
-              {/* Left Panel - Controls */}
-              <div className="lg:w-1/2 p-6 space-y-6">
-                {ControlsContent()}
+        <dialog
+          ref={modalRef}
+          className="modal modal-bottom sm:modal-middle"
+          onClose={handleClose}
+        >
+          {visible && (
+            <div className="modal-box max-w-7xl w-full max-h-[90vh] p-0">
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b">
+                <h2 className="text-2xl font-bold">Nano Banana AI Generator</h2>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => modalRef.current?.close()}
+                >
+                  <X size={20} />
+                </button>
               </div>
 
-              {/* Right Panel - Output */}
-              <div className="lg:w-1/2 bg-gray-50 p-6">
-                <h3 className="text-lg font-semibold mb-4">Output Gallery</h3>
-                
-                {/* 初始状态：等待用户操作 */}
-                {!done && !submitting && (
-                  <div className="h-96 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
-                    <div className="text-center">
-                      <ImageIcon size={64} className="mx-auto mb-4 text-gray-400" />
-                      <p className="text-gray-500">Ready for instant generation</p>
-                      <p className="text-sm text-gray-400">Enter your prompt and unleash the power</p>
-                    </div>
-                  </div>
-                )}
+              <div className="flex flex-col lg:flex-row h-full">
+                {/* Left Panel - Controls */}
+                <div className="lg:w-1/2 p-6 space-y-6">
+                  {ControlsContent()}
+                </div>
 
-                {/* 提交中状态：正在调用API */}
-                {submitting && (
-                  <div className="h-96 border border-gray-300 rounded-lg flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="loading loading-spinner loading-lg mb-4"></div>
-                      <p className="text-gray-500">Submitting to AI service...</p>
-                    </div>
-                  </div>
-                )}
+                {/* Right Panel - Output */}
+                <div className="lg:w-1/2 bg-gray-50 p-6">
+                  <h3 className="text-lg font-semibold mb-4">Output Gallery</h3>
 
-                {/* 任务创建成功过渡状态 */}
-                {!submitting && tasks.length > 0 && !done && (
-                  <div className="h-96 border border-green-300 rounded-lg flex items-center justify-center bg-green-50">
-                    <div className="text-center">
-                      <div className="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
-                        <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
+                  {/* 初始状态：等待用户操作 */}
+                  {!done && !submitting && (
+                    <div className="h-96 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
+                      <div className="text-center">
+                        <ImageIcon size={64} className="mx-auto mb-4 text-gray-400" />
+                        <p className="text-gray-500">Ready for instant generation</p>
+                        <p className="text-sm text-gray-400">Enter your prompt and unleash the power</p>
                       </div>
-                      <p className="text-green-700 font-medium mb-2">Task Created Successfully!</p>
-                      <p className="text-green-600 text-sm">Initializing AI generation process...</p>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* 任务创建后状态：显示任务进度和结果 */}
-                {done && tasks.length > 0 && (
-                  <div className="space-y-4 max-h-[80vh] overflow-y-auto">
-                    {tasks.map((task) => (
-                      <div key={task.task_no} className="bg-white border rounded-lg p-4 shadow-sm">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="font-medium text-gray-800">Image Generation Task</span>
-                          <span className={clsx(
-                            "px-2 py-1 rounded-full text-xs font-medium",
-                            task.status === "succeeded" && "bg-green-100 text-green-700",
-                            task.status === "failed" && "bg-red-100 text-red-700",
-                            task.status === "running" && "bg-blue-100 text-blue-700",
-                          )}>
-                            {task.status === "succeeded" && "✓ Complete"}
-                            {task.status === "failed" && "✗ Failed"}
-                            {task.status === "running" && "⟳ Generating"}
-                          </span>
+                  {/* 提交中状态：正在调用API */}
+                  {submitting && (
+                    <div className="h-96 border border-gray-300 rounded-lg flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="loading loading-spinner loading-lg mb-4"></div>
+                        <p className="text-gray-500">Submitting to AI service...</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 任务创建成功过渡状态 */}
+                  {!submitting && tasks.length > 0 && !done && (
+                    <div className="h-96 border border-green-300 rounded-lg flex items-center justify-center bg-green-50">
+                      <div className="text-center">
+                        <div className="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
+                          <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
                         </div>
-                        
-                        {task.status === "running" && (
-                          <div className="mb-4">
-                            <div className="flex items-center gap-2 mb-3">
-                              <div className="loading loading-spinner loading-sm"></div>
-                              <span className="text-sm text-gray-600">
-                                {task.progress === 0 ? "Starting AI generation process..." : "AI is generating image, please wait..."}
-                              </span>
-                            </div>
-                            <div className="flex justify-between text-sm mb-1">
-                              <span className="text-gray-600">Progress</span>
-                              <span className="font-medium text-blue-600">
-                                {task.progress === 0 ? "Initializing" : `${task.progress}%`}
-                              </span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div 
-                                className={`h-2 rounded-full transition-all duration-500 ${
-                                  task.progress === 0 
-                                    ? "bg-gradient-to-r from-blue-300 to-blue-400 animate-pulse" 
-                                    : "bg-gradient-to-r from-blue-500 to-purple-500"
-                                }`}
-                                style={{ width: `${Math.max(task.progress, 5)}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                        )}
-
-                        {task.result_url && (
-                          <div className="border rounded-lg overflow-hidden">
-                            <Image
-                              src={task.result_url}
-                              alt="Generated"
-                              className="w-full"
-                            />
-                            <div className="p-3 border-t bg-gray-50 flex justify-end">
-                              <a
-                                href={task.result_url}
-                                download={`nanobananaimage.org-${task.task_no}.png`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors"
-                                aria-label="Download generated image"
-                              >
-                                Download
-                              </a>
-                            </div>
-                          </div>
-                        )}
-                        
-                        {task.status === "failed" && task.fail_reason && (
-                          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-                            <strong>Error:</strong> {task.fail_reason}
-                          </div>
-                        )}
+                        <p className="text-green-700 font-medium mb-2">Task Created Successfully!</p>
+                        <p className="text-green-600 text-sm">Initializing AI generation process...</p>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </dialog>
+                    </div>
+                  )}
 
-      {/* Turnstile验证弹窗 */}
-      {showVerification && (
-        <dialog className="modal modal-open">
-          <div className="modal-box max-w-md">
-            <h3 className="font-bold text-lg mb-4">Verification Required</h3>
-            <p className="text-gray-600 mb-6">
-              Please complete the verification to upload images. This helps us prevent automated abuse.
-            </p>
-            
-            <div className="flex justify-center mb-6">
-               <TurnstileVerification
-                 siteKey="1x00000000000000000000AA" // Demo key - will be replaced with real key in production
-                 onSuccess={handleTurnstileSuccess}
-                 onError={handleTurnstileError}
-                 onExpire={handleTurnstileExpire}
-                 theme="light"
-                 size="normal"
-               />
-             </div>
-            
-            {verificationError && (
-              <div className="alert alert-error mb-4">
-                <span>{verificationError}</span>
+                  {/* 任务创建后状态：显示任务进度和结果 */}
+                  {done && tasks.length > 0 && (
+                    <div className="space-y-4 max-h-[80vh] overflow-y-auto">
+                      {tasks.map((task) => (
+                        <div key={task.task_no} className="bg-white border rounded-lg p-4 shadow-sm">
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="font-medium text-gray-800">Image Generation Task</span>
+                            <span className={clsx(
+                              "px-2 py-1 rounded-full text-xs font-medium",
+                              task.status === "succeeded" && "bg-green-100 text-green-700",
+                              task.status === "failed" && "bg-red-100 text-red-700",
+                              task.status === "running" && "bg-blue-100 text-blue-700",
+                            )}>
+                              {task.status === "succeeded" && "✓ Complete"}
+                              {task.status === "failed" && "✗ Failed"}
+                              {task.status === "running" && "⟳ Generating"}
+                            </span>
+                          </div>
+
+                          {task.status === "running" && (
+                            <div className="mb-4">
+                              <div className="flex items-center gap-2 mb-3">
+                                <div className="loading loading-spinner loading-sm"></div>
+                                <span className="text-sm text-gray-600">
+                                  {task.progress === 0 ? "Starting AI generation process..." : "AI is generating image, please wait..."}
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-sm mb-1">
+                                <span className="text-gray-600">Progress</span>
+                                <span className="font-medium text-blue-600">
+                                  {task.progress === 0 ? "Initializing" : `${task.progress}%`}
+                                </span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div
+                                  className={`h-2 rounded-full transition-all duration-500 ${task.progress === 0
+                                    ? "bg-gradient-to-r from-blue-300 to-blue-400 animate-pulse"
+                                    : "bg-gradient-to-r from-blue-500 to-purple-500"
+                                    }`}
+                                  style={{ width: `${Math.max(task.progress, 5)}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          )}
+
+                          {task.result_url && (
+                            <div className="border rounded-lg overflow-hidden">
+                              <Image
+                                src={task.result_url}
+                                alt="Generated"
+                                className="w-full"
+                              />
+                              <div className="p-3 border-t bg-gray-50 flex justify-end">
+                                <button
+                                  onClick={() => handleDownloadImage(task.result_url, task.task_no)}
+                                  className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors"
+                                  aria-label="Download generated image"
+                                >
+                                  Download
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {task.status === "failed" && task.fail_reason && (
+                            <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                              <strong>Error:</strong> {task.fail_reason}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
-            
-            <div className="modal-action">
-              <button
-                className="btn btn-ghost"
-                onClick={() => setShowVerification(false)}
-              >
-                Cancel
-              </button>
             </div>
-          </div>
+          )}
         </dialog>
-      )}
 
-      {/* 充值弹窗 */}
-      {product && (
-        <CreditRechargeModal
-          ref={rechargeModalRef}
-          product={product}
-          onPurchaseSuccess={handleRechargeSuccess}
-          onCancel={handleRechargeCancel}
-        />
-      )}
-    </>
-  );
+        {/* Turnstile验证弹窗 */}
+        {showVerification && (
+          <dialog className="modal modal-open">
+            <div className="modal-box max-w-md">
+              <h3 className="font-bold text-lg mb-4">Verification Required</h3>
+              <p className="text-gray-600 mb-6">
+                Please complete the verification to upload images. This helps us prevent automated abuse.
+              </p>
+
+              <div className="flex justify-center mb-6">
+                <TurnstileVerification
+                  siteKey="1x00000000000000000000AA" // Demo key - will be replaced with real key in production
+                  onSuccess={handleTurnstileSuccess}
+                  onError={handleTurnstileError}
+                  onExpire={handleTurnstileExpire}
+                  theme="light"
+                  size="normal"
+                />
+              </div>
+
+              {verificationError && (
+                <div className="alert alert-error mb-4">
+                  <span>{verificationError}</span>
+                </div>
+              )}
+
+              <div className="modal-action">
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => setShowVerification(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </dialog>
+        )}
+
+        {/* 充值弹窗 */}
+        {product && (
+          <CreditRechargeModal
+            ref={rechargeModalRef}
+            product={product}
+            onPurchaseSuccess={handleRechargeSuccess}
+            onCancel={handleRechargeCancel}
+          />
+        )}
+      </>
+    );
   }
 );
 
