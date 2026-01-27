@@ -231,7 +231,8 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
       }
 
         // 1. 使用 fetch 获取图片数据
-        const response = await fetch(imageUrl);
+        const proxyUrl = `/api/download-image?url=${encodeURIComponent(imageUrl)}`;
+        const response = await fetch(proxyUrl);
         if (!response.ok) {
           throw new Error('Failed to fetch image');
         }
