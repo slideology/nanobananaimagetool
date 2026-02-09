@@ -12,6 +12,8 @@ import type {
   CreateNanoBananaEditTaskOptions,
   CreateNanoBananaUnifiedOptions,
   NanoBananaTaskDetail,
+  CreateSeedanceTaskOptions,
+  SeedanceTaskDetail,
 } from "./type";
 
 // Create GPT 4o Options
@@ -26,6 +28,12 @@ export type {
   CreateNanoBananaEditTaskOptions,
   CreateNanoBananaUnifiedOptions,
   NanoBananaTaskDetail,
+};
+
+// Create Seedance Options
+export type {
+  CreateSeedanceTaskOptions,
+  SeedanceTaskDetail,
 };
 
 interface KieAIModelConfig {
@@ -59,10 +67,10 @@ export class KieAI {
     init: RequestInit & { useCache?: boolean } = {}
   ) {
     const { headers, method = "get", useCache = false, ...rest } = init;
-    
+
     // 生成缓存键
     const cacheKey = useCache ? `kie_api_${method}_${path}_${JSON.stringify(data)}` : null;
-    
+
     // 检查缓存
     if (cacheKey) {
       const cached = cache.get<ApiResult<T>>(cacheKey);
@@ -74,9 +82,9 @@ export class KieAI {
     // 🔧 重试机制配置 - 生产环境更保守
     const maxRetries = 2; // 减少重试次数
     const retryDelays = [2000, 5000]; // 2秒, 5秒 - 增加重试间隔
-    
+
     let lastError: any;
-    
+
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         const url = new URL(path, this.API_URL);
@@ -101,7 +109,7 @@ export class KieAI {
         }
 
         console.log(`🔄 Kie AI API调用尝试 ${attempt + 1}/${maxRetries + 1}:`, url.toString());
-        
+
         const response = await fetch(url, options);
         const json = await response.json<ApiResult<T>>();
 
@@ -111,7 +119,7 @@ export class KieAI {
             message: json.msg ?? response.statusText,
             data: json ? json.data : json,
           };
-          
+
           // 判断是否应该重试 - 更严格的重试条件
           const shouldRetry = attempt < maxRetries && (
             response.status >= 500 || // 服务器错误
@@ -122,7 +130,7 @@ export class KieAI {
             // 🔧 移除对"No image content found"的自动重试，这通常是图片URL问题，重试无意义
             (json.code === 10040 && !json.msg?.includes("No image content found"))
           );
-          
+
           if (shouldRetry) {
             console.warn(`⚠️ API调用失败，${retryDelays[attempt]}ms后重试:`, apiError.message);
             lastError = apiError;
@@ -135,24 +143,24 @@ export class KieAI {
 
         // 🎉 成功响应处理
         console.log(`✅ Kie AI API调用成功 (尝试 ${attempt + 1})`);
-        
+
         // 缓存结果
         if (cacheKey) {
           cache.set(cacheKey, json, CACHE_CONFIG.KIE_API);
         }
 
         return json;
-        
+
       } catch (error) {
         lastError = error;
-        
+
         // 网络错误或其他异常的重试逻辑
         const shouldRetry = attempt < maxRetries && (
           error instanceof TypeError || // 网络错误
           (error as any)?.name === 'AbortError' || // 超时错误
           (error as any)?.cause?.code === 'ECONNRESET' // 连接重置
         );
-        
+
         if (shouldRetry) {
           console.warn(`⚠️ 网络错误，${retryDelays[attempt]}ms后重试:`, error instanceof Error ? error.message : String(error));
           await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]));
@@ -163,7 +171,7 @@ export class KieAI {
         }
       }
     }
-    
+
     // 所有重试都失败了
     console.error(`❌ 经过 ${maxRetries + 1} 次尝试后API调用仍然失败:`, lastError);
     throw lastError;
@@ -306,6 +314,50 @@ export class KieAI {
    */
   async queryNanoBananaTask(taskId: string) {
     const result = await this.fetch<NanoBananaTaskDetail>(
+      "/api/v1/jobs/recordInfo",
+      { taskId },
+      { method: "get", useCache: true } // 启用缓存以减少频繁查询
+    );
+
+    return result.data;
+  }
+
+  // ===== Seedance 1.5 Pro API Methods =====
+
+  /**
+   * 创建 Seedance 1.5 Pro 视频生成任务
+   * 支持文字生成视频和图片生成视频
+   */
+  async createSeedanceTask(payload: CreateSeedanceTaskOptions) {
+    const result = await this.fetch<CreateTaskResult>(
+      "/api/v1/jobs/createTask",
+      {
+        model: "bytedance/seedance-1.5-pro",
+        callBackUrl: payload.callBackUrl,
+        input: {
+          prompt: payload.prompt,
+          input_urls: payload.input_urls || [],
+          aspect_ratio: payload.aspect_ratio,
+          resolution: payload.resolution || "720p",
+          duration: payload.duration,
+          fixed_lens: payload.fixed_lens || false,
+          generate_audio: payload.generate_audio || false,
+        }
+      },
+      {
+        method: "post",
+      }
+    );
+
+    return result.data;
+  }
+
+  /**
+   * 查询 Seedance 任务状态
+   * 使用统一的查询接口
+   */
+  async querySeedanceTask(taskId: string) {
+    const result = await this.fetch<SeedanceTaskDetail>(
       "/api/v1/jobs/recordInfo",
       { taskId },
       { method: "get", useCache: true } // 启用缓存以减少频繁查询

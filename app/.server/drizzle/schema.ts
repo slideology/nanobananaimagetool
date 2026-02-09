@@ -215,7 +215,7 @@ export const ai_tasks = sqliteTable("ai_tasks", {
   result_url: text(), // 返回的结果图片地址
   fail_reason: text(), // 失败原因（从外部系统的返回结果中获取）
   // 外部接口提供方数据
-  provider: text({ enum: ["kie_nano_banana"] }), // AI服务提供方（简化版只支持Nano Banana）
+  provider: text({ enum: ["kie_nano_banana", "kie_seedance"] }), // AI服务提供方(Nano Banana图像生成 / Seedance视频生成)
   task_id: text(), // 外部系统的任务编号，任务未开始时可以为 null
   request_param: text({ mode: "json" }), // 调用外部系统提供的参数
   result_data: text({ mode: "json" }), // 执行完成后结果（JSON，可为空）

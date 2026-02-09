@@ -91,7 +91,7 @@ export interface CreateNanoBananaEditTaskOptions {
  * 通用的 Nano Banana 任务创建接口
  * 根据模型类型自动选择正确的参数结构
  */
-export type CreateNanoBananaUnifiedOptions = 
+export type CreateNanoBananaUnifiedOptions =
   | { mode: "text-to-image"; options: CreateNanoBananaTaskOptions }
   | { mode: "image-to-image"; options: CreateNanoBananaEditTaskOptions };
 
@@ -109,4 +109,64 @@ export interface NanoBananaTaskDetail {
   completeTime: number;
   createTime: number;
   updateTime: number;
+}
+
+// ===== Seedance 1.5 Pro API Types =====
+
+/**
+ * Seedance 视频宽高比选项
+ */
+export type SeedanceAspectRatio =
+  | '1:1'
+  | '21:9'
+  | '4:3'
+  | '3:4'
+  | '16:9'
+  | '9:16';
+
+/**
+ * Seedance 视频分辨率选项
+ */
+export type SeedanceResolution = '480p' | '720p' | '1080p';
+
+/**
+ * Seedance 视频时长选项(秒)
+ */
+export type SeedanceDuration = '4' | '8' | '12';
+
+/**
+ * Seedance 视频生成任务创建选项
+ */
+export interface CreateSeedanceTaskOptions {
+  prompt: string;                      // 必需：视频描述 (3-2500字符)
+  input_urls?: string[];               // 可选：参考图片URL (0-2张, 最大10MB)
+  aspect_ratio: SeedanceAspectRatio;   // 必需：宽高比
+  resolution?: SeedanceResolution;     // 可选：分辨率，默认 720p
+  duration: SeedanceDuration;          // 必需：视频时长
+  fixed_lens?: boolean;                // 可选：固定镜头
+  generate_audio?: boolean;            // 可选：生成音频
+  callBackUrl?: string;                // 可选：异步回调地址
+}
+
+/**
+ * Seedance 任务状态查询响应
+ */
+export interface SeedanceTaskDetail {
+  taskId: string;
+  model: string;                       // "bytedance/seedance-1.5-pro"
+  state: 'waiting' | 'success' | 'fail';
+  param: string;                       // 创建任务时的完整请求参数（JSON字符串）
+  resultJson: string | null;           // 结果JSON字符串，包含视频URL: {"resultUrls":["https://...mp4"]}
+  failCode: string | null;
+  failMsg: string | null;
+  costTime: number | null;             // 任务耗时(毫秒)
+  completeTime: number | null;         // 完成时间戳
+  createTime: number;                  // 创建时间戳
+}
+
+/**
+ * Seedance 视频结果 JSON 结构
+ */
+export interface SeedanceResultJson {
+  resultUrls: string[];                // 生成的视频URL数组
 }

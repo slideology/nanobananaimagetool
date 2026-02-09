@@ -3,10 +3,11 @@ import type { Route } from "./+types/index";
 
 import { BaseLayout, type BaseLayoutProps } from "~/features/layout";
 
-export const loader = ({}: Route.LoaderArgs) => {
+export const loader = ({ }: Route.LoaderArgs) => {
   const header: BaseLayoutProps["header"] = {
     navLinks: [
       { label: "AI Photo Editor", to: "/" },
+      { label: "AI Video Generator", to: "/video-generator" },
       { label: "How it Works", to: "/#how-it-works" },
       { label: "Pricing", to: "/#pricing" },
       { label: "FAQs", to: "/#faqs" },
@@ -17,7 +18,10 @@ export const loader = ({}: Route.LoaderArgs) => {
     navLinks: [
       {
         label: "Tools",
-        list: [{ to: "/", label: "AI Photo Editor" }],
+        list: [
+          { to: "/", label: "AI Photo Editor" },
+          { to: "/video-generator", label: "AI Video Generator" },
+        ],
       },
       {
         label: "Support",

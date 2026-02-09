@@ -102,15 +102,15 @@ export const startTask = async (env: Env, params: AiTask["task_no"] | AiTask) =>
 
   const kie = new KieAI({ accessKey: env.KIEAI_APIKEY });
   let newTask: AiTask;
-  
+
   try {
     if (task.provider === "kie_nano_banana") {
-       // Nano Banana 任务处理逻辑在 createAiImage 中已完成
-       // 这里不需要额外处理
-       newTask = task;
-     } else {
-       throw new UnsupportedProviderError(task.provider || "unknown", ["kie_nano_banana"]);
-     }
+      // Nano Banana 任务处理逻辑在 createAiImage 中已完成
+      // 这里不需要额外处理
+      newTask = task;
+    } else {
+      throw new UnsupportedProviderError(task.provider || "unknown", ["kie_nano_banana"]);
+    }
   } catch (error) {
     // 如果是我们定义的错误类型，直接重新抛出
     if (error instanceof BaseError) {
@@ -168,12 +168,12 @@ export const updateTaskStatus = async (env: Env, taskNo: AiTask["task_no"] | AiT
   const kie = new KieAI({ accessKey: env.KIEAI_APIKEY });
 
   if (task.provider === "kie_nano_banana") {
-     if (!task.task_id) {
-       throw new Error("Task ID is required for querying Nano Banana task");
-     }
-     // Nano Banana 任务状态查询
-     const result = await kie.queryNanoBananaTask(task.task_id);
-    
+    if (!task.task_id) {
+      throw new Error("Task ID is required for querying Nano Banana task");
+    }
+    // Nano Banana 任务状态查询
+    const result = await kie.queryNanoBananaTask(task.task_id);
+
     if (result.state === "generating" || result.state === "queuing" || result.state === "waiting") {
       // 任务还在进行中，返回进度
       const progress = (() => {
@@ -184,22 +184,22 @@ export const updateTaskStatus = async (env: Env, taskNo: AiTask["task_no"] | AiT
           default: return 10;
         }
       })();
-      
+
       return {
-         task: transformResult(task),
-         progress,
-       };
+        task: transformResult(task),
+        progress,
+      };
     } else if (result.state === "success") {
       // 任务成功完成
       let resultUrl: string | undefined;
-      
+
       try {
         const resultData = JSON.parse(result.resultJson);
         resultUrl = resultData.resultUrls?.[0];
       } catch (e) {
         console.error("Failed to parse Nano Banana result JSON:", e);
       }
-      
+
       let newTask: AiTask;
       if (!resultUrl) {
         const [aiTask] = await updateAiTask(task.task_no, {
@@ -234,19 +234,76 @@ export const updateTaskStatus = async (env: Env, taskNo: AiTask["task_no"] | AiT
       }
 
       return { task: transformResult(newTask), progress: 100 };
-     } else {
-       // 任务失败
-       const [newTask] = await updateAiTask(task.task_no, {
-         status: "failed",
-         completed_at: new Date(result.completeTime || Date.now()),
-         fail_reason: result.failMsg || "Nano Banana generation failed",
-         result_data: result,
-       });
+    } else {
+      // 任务失败
+      const [newTask] = await updateAiTask(task.task_no, {
+        status: "failed",
+        completed_at: new Date(result.completeTime || Date.now()),
+        fail_reason: result.failMsg || "Nano Banana generation failed",
+        result_data: result,
+      });
 
-       return { task: transformResult(newTask), progress: 100 };
-     }
+      return { task: transformResult(newTask), progress: 100 };
+    }
+  } else if (task.provider === "kie_seedance") {
+    // Seedance 视频任务状态查询
+    if (!task.task_id) {
+      throw new Error("Task ID is required for querying Seedance task");
+    }
+
+    const result = await kie.querySeedanceTask(task.task_id);
+
+    if (result.state === "waiting") {
+      // 任务等待中
+      return {
+        task: transformResult(task),
+        progress: 20,
+      };
+    } else if (result.state === "success") {
+      // 任务成功完成
+      let resultUrl: string | undefined;
+
+      try {
+        const resultData = JSON.parse(result.resultJson || "{}");
+        resultUrl = resultData.resultUrls?.[0];
+      } catch (e) {
+        console.error("Failed to parse Seedance result JSON:", e);
+      }
+
+      let newTask: AiTask;
+      if (!resultUrl) {
+        const [aiTask] = await updateAiTask(task.task_no, {
+          status: "failed",
+          completed_at: new Date(result.completeTime || Date.now()),
+          result_data: result,
+          fail_reason: "Video URL not found in response",
+        });
+        newTask = aiTask;
+      } else {
+        // 视频文件直接使用 Kie AI 返回的 CDN URL,不需要下载到本地
+        const [aiTask] = await updateAiTask(task.task_no, {
+          status: "succeeded",
+          completed_at: new Date(result.completeTime || Date.now()),
+          result_data: result,
+          result_url: resultUrl,
+        });
+        newTask = aiTask;
+      }
+
+      return { task: transformResult(newTask), progress: 100 };
+    } else {
+      // 任务失败
+      const [newTask] = await updateAiTask(task.task_no, {
+        status: "failed",
+        completed_at: new Date(result.completeTime || Date.now()),
+        fail_reason: result.failMsg || "Seedance video generation failed",
+        result_data: result,
+      });
+
+      return { task: transformResult(newTask), progress: 100 };
+    }
   } else {
-    throw new UnsupportedProviderError(task.provider || "unknown", ["kie_nano_banana"]);
+    throw new UnsupportedProviderError(task.provider || "unknown", ["kie_nano_banana", "kie_seedance"]);
   }
 };
 
@@ -274,17 +331,17 @@ export const createAiImage = async (
 ) => {
   // 生成请求ID用于日志追踪
   const requestId = `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  
+
   // 记录业务逻辑处理开始
   BusinessLogicLogger.logProcessingStart(requestId, {
     userId: user.id.toString(),
     mode: value.mode,
     type: value.type
   });
-  
+
   // 创建日志上下文
   const logger = Logger.createContext();
-  
+
   logger.info("开始处理AI图像生成请求", "createAiImage", {
     requestId,
     userId: user.id,
@@ -316,13 +373,13 @@ export const createAiImage = async (
     requiredCredits: taskCredits,
     isValid: false // 还在检查中
   });
-  
+
   const { balance } = await import("./credits").then(m => m.getUserCredits(user));
   if (balance < taskCredits) {
     BusinessLogicLogger.logProcessingError(requestId, new CreditInsufficientError(balance, taskCredits));
     throw new CreditInsufficientError(balance, taskCredits);
   }
-  
+
   BusinessLogicLogger.logCreditValidation(requestId, {
     userId: user.id.toString(),
     currentCredits: balance,
@@ -331,11 +388,11 @@ export const createAiImage = async (
   });
 
   let fileUrl: string | undefined;
-  
+
   // 如果是 image-to-image 模式，直接使用传入的图片URL
   if (mode === "image-to-image" && image) {
     fileUrl = image; // 现在image是URL字符串
-    
+
     BusinessLogicLogger.logImageUploadToR2(requestId, {
       fileName: "external_image",
       fileSize: 0, // 外部URL无法获取文件大小
@@ -375,7 +432,7 @@ export const createAiImage = async (
       hasApiKey: !!env.KIEAI_APIKEY,
       apiKeyPreview: env.KIEAI_APIKEY ? `${env.KIEAI_APIKEY.substring(0, 8)}...` : "未设置"
     });
-    
+
     // 记录Kie AI API调用开始
     const apiStartTime = Date.now();
     KieAiApiLogger.logApiCallStart(requestId, {
@@ -383,14 +440,14 @@ export const createAiImage = async (
       method: "POST",
       taskType: type
     });
-    
+
     // 记录API请求参数
     KieAiApiLogger.logApiParameters(requestId, {
       prompt: fullPrompt,
       hasImageUrls: !!fileUrl,
       callbackUrl: import.meta.env.PROD ? callbakUrl : "development-mode"
     });
-    
+
     const kieAI = new KieAI({ accessKey: env.KIEAI_APIKEY });
 
     try {
@@ -407,16 +464,16 @@ export const createAiImage = async (
         if (!fileUrl) {
           throw new RequiredParameterMissingError("image", "Image is required for nano-banana-edit model");
         }
-        
+
         // 🔧 时序优化：验证图片URL在Kie AI调用前是否可访问
         console.log("📋 后端验证图片URL可访问性:", fileUrl);
         try {
-          const imageCheckResponse = await fetch(fileUrl, { 
+          const imageCheckResponse = await fetch(fileUrl, {
             method: 'HEAD',
             // 添加超时设置，避免长时间等待
             signal: AbortSignal.timeout(5000)
           });
-          
+
           if (!imageCheckResponse.ok) {
             console.warn(`⚠️ 图片URL返回状态码 ${imageCheckResponse.status}，但继续尝试调用Kie AI`);
           } else {
@@ -425,16 +482,16 @@ export const createAiImage = async (
         } catch (error) {
           console.warn("⚠️ 图片URL验证失败，但继续尝试调用Kie AI:", error instanceof Error ? error.message : String(error));
         }
-        
+
         kieResponse = await kieAI.createNanoBananaEditTask({
           prompt: fullPrompt,
           image_urls: [fileUrl],
           callBackUrl: import.meta.env.PROD ? callbakUrl : undefined,
         });
       }
-      
+
       console.log("✅ API调用成功:", { taskId: kieResponse.taskId });
-      
+
       // 记录API调用成功
       const responseTime = Date.now() - apiStartTime;
       KieAiApiLogger.logApiCallComplete(requestId, {
@@ -442,7 +499,7 @@ export const createAiImage = async (
         status: "success",
         responseTime: responseTime
       });
-      
+
     } catch (error) {
       console.error("❌ Kie AI API调用失败:");
       console.error("错误详情:", {
@@ -450,15 +507,15 @@ export const createAiImage = async (
         type: typeof error,
         errorObject: error
       });
-      
+
       // 记录API调用失败
       KieAiApiLogger.logApiCallError(requestId, error instanceof Error ? error : new Error(String(error)));
-      
+
       // 重新抛出错误，让上层处理
       throw new KieParameterError(
-         `AI服务调用失败: ${error instanceof Error ? error.message : String(error)}`,
-         { originalError: error instanceof Error ? error.message : String(error) }
-       );
+        `AI服务调用失败: ${error instanceof Error ? error.message : String(error)}`,
+        { originalError: error instanceof Error ? error.message : String(error) }
+      );
     }
 
     // 🔥 只有在API调用成功后才扣除积分
@@ -499,18 +556,18 @@ export const createAiImage = async (
         callBackUrl: import.meta.env.PROD ? callbakUrl : undefined,
       },
     };
-    
+
     const tasks = await createAiTask([insertPayload]);
-    
+
     // 记录业务逻辑处理完成
     BusinessLogicLogger.logProcessingComplete(requestId, {
       taskId: kieResponse.taskId,
       fileUrl: fileUrl
     });
-    
+
     return { tasks, consumptionCredits: consumptionResult };
   }
-  
+
   // 如果不是nano-banana模型，抛出错误
   throw new UnsupportedFileFormatError(type, ["nano-banana", "nano-banana-edit"]);
 };
@@ -527,17 +584,17 @@ export const createAiImageForGuest = async (
 ) => {
   // 生成请求ID用于日志追踪
   const requestId = `guest_img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  
+
   // 记录业务逻辑处理开始
   BusinessLogicLogger.logProcessingStart(requestId, {
     userId: "guest",
     mode: value.mode,
     type: value.type
   });
-  
+
   // 创建日志上下文
   const logger = Logger.createContext();
-  
+
   logger.info("开始处理未登录用户AI图像生成请求", "createAiImageForGuest", {
     requestId,
     requestParams: {
@@ -550,15 +607,15 @@ export const createAiImageForGuest = async (
     },
     environment: import.meta.env.PROD ? 'production' : 'development',
   });
-  
+
   const { mode, image, prompt, type, width, height } = value;
 
   let fileUrl: string | undefined;
-  
+
   // 如果是 image-to-image 模式，直接使用传入的图片URL
   if (mode === "image-to-image" && image) {
     fileUrl = image;
-    
+
     BusinessLogicLogger.logImageUploadToR2(requestId, {
       fileName: "external_image",
       fileSize: 0,
@@ -581,7 +638,7 @@ export const createAiImageForGuest = async (
     const fullPrompt = prompt;
 
     console.log("🚀 开始调用 Kie AI API (Guest User)...");
-    
+
     // 记录Kie AI API调用开始
     const apiStartTime = Date.now();
     KieAiApiLogger.logApiCallStart(requestId, {
@@ -589,7 +646,7 @@ export const createAiImageForGuest = async (
       method: "POST",
       taskType: type
     });
-    
+
     const kieAI = new KieAI({ accessKey: env.KIEAI_APIKEY });
 
     try {
@@ -642,23 +699,23 @@ export const createAiImageForGuest = async (
         prompt_preview: (prompt || '').substring(0, 100),
       },
     };
-    
+
     // 记录业务逻辑处理完成
     BusinessLogicLogger.logProcessingComplete(requestId, {
       taskId: kieResponse.taskId,
       fileUrl: fileUrl
     });
-    
+
     // 返回格式与正常用户一致，但不包含积分信息
-    return { 
-      tasks: [guestTask], 
-      consumptionCredits: { 
-        consumed: 0, 
-        consumptionRecords: 0, 
-        remainingBalance: 0 
-      } 
+    return {
+      tasks: [guestTask],
+      consumptionCredits: {
+        consumed: 0,
+        consumptionRecords: 0,
+        remainingBalance: 0
+      }
     };
   }
-  
+
   throw new UnsupportedFileFormatError(type, ["nano-banana", "nano-banana-edit"]);
 };
