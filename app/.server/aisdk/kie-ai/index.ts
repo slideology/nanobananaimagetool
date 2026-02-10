@@ -193,7 +193,7 @@ export class KieAI {
     const result = await this.fetch<GPT4oTask>(
       "/api/v1/gpt4o-image/record-info",
       params,
-      { useCache: true } // 启用缓存以减少频繁查询
+      { useCache: false } // 禁用缓存以获取最新状态
     );
 
     return result.data;
@@ -316,7 +316,7 @@ export class KieAI {
     const result = await this.fetch<NanoBananaTaskDetail>(
       "/api/v1/jobs/recordInfo",
       { taskId },
-      { method: "get", useCache: true } // 启用缓存以减少频繁查询
+      { method: "get", useCache: false } // 禁用缓存以获取最新状态
     );
 
     return result.data;
@@ -360,7 +360,7 @@ export class KieAI {
     const result = await this.fetch<SeedanceTaskDetail>(
       "/api/v1/jobs/recordInfo",
       { taskId },
-      { method: "get", useCache: true } // 启用缓存以减少频繁查询
+      { method: "get", useCache: false } // 禁用缓存以获取最新状态
     );
 
     return result.data;

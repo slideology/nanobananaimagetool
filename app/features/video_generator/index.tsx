@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { Film, Upload, FileText, Image as ImageIcon, ChevronRight, Info } from 'lucide-react';
+import { Film, Upload, FileText, Image as ImageIcon, ChevronRight, ChevronDown, Check, Info } from 'lucide-react';
 import type {
     VideoGeneratorProps,
     VideoMode,
@@ -24,6 +24,7 @@ export function VideoGenerator({ product, onTaskCreated }: VideoGeneratorProps) 
     const [generateAudio, setGenerateAudio] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string>('');
+    const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -128,10 +129,13 @@ export function VideoGenerator({ product, onTaskCreated }: VideoGeneratorProps) 
             const data = await response.json() as any;
             console.log('视频生成任务创建成功:', data);
 
+            // 提取任务编号 (兼顾新旧API结构)
+            const taskNo = data.task_no || (data.tasks && data.tasks.length > 0 ? data.tasks[0].task_no : null);
+
             // 调用回调通知父组件
-            if (onTaskCreated && data.task_no) {
+            if (onTaskCreated && taskNo) {
                 onTaskCreated({
-                    task_no: data.task_no,
+                    task_no: taskNo,
                     prompt,
                     aspectRatio,
                     resolution,
@@ -149,7 +153,7 @@ export function VideoGenerator({ product, onTaskCreated }: VideoGeneratorProps) 
     const estimatedCredits = calculateCredits();
 
     return (
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 max-w-md mx-auto">
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 h-full">
             {/* 标题 */}
             <div className="flex items-center gap-2 mb-5">
                 <Film size={18} className="text-gray-700" />
@@ -181,12 +185,46 @@ export function VideoGenerator({ product, onTaskCreated }: VideoGeneratorProps) 
             </div>
 
             {/* 模型选择 */}
-            <div className="mb-5">
+            <div className="mb-5 relative">
                 <label className="block text-xs font-medium text-gray-600 mb-2">Model</label>
-                <div className="flex items-center justify-between px-3 py-2.5 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
+
+                {/* 触发器 */}
+                <div
+                    onClick={() => setIsModelMenuOpen(!isModelMenuOpen)}
+                    className="flex items-center justify-between px-3 py-2.5 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors border border-transparent hover:border-gray-200"
+                >
                     <span className="text-sm font-medium text-gray-900">Seedance 1.5 Pro</span>
-                    <ChevronRight size={16} className="text-gray-400" />
+                    <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${isModelMenuOpen ? 'rotate-180' : ''}`} />
                 </div>
+
+                {/* 下拉菜单 */}
+                {isModelMenuOpen && (
+                    <>
+                        {/* 点击遮罩 (用于关闭菜单) */}
+                        <div
+                            className="fixed inset-0 z-10"
+                            onClick={() => setIsModelMenuOpen(false)}
+                        ></div>
+
+                        {/* 菜单内容 */}
+                        <div className="absolute top-full left-0 w-full mt-1 bg-white border border-gray-100 rounded-xl shadow-xl z-20 p-1.5 animate-in fade-in zoom-in-95 duration-100 overflow-hidden">
+                            {/* 选项 1: 1.5 Pro (选中) */}
+                            <div
+                                onClick={() => setIsModelMenuOpen(false)}
+                                className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                            >
+                                <span className="text-sm font-medium text-gray-900">Seedance 1.5 Pro</span>
+                                <Check size={16} className="text-purple-600" />
+                            </div>
+
+                            {/* 选项 2: 2.0 (不可用) */}
+                            <div className="flex items-center justify-between px-3 py-2.5 rounded-lg opacity-50 cursor-not-allowed bg-gray-50/50">
+                                <span className="text-sm font-medium text-gray-500">Seedance 2.0</span>
+                                <span className="text-xs text-gray-400">Available Feb 24</span>
+                            </div>
+                        </div>
+                    </>
+                )}
             </div>
 
             {/* 图片上传区域 (仅在 image-to-video 模式) */}
@@ -246,8 +284,8 @@ export function VideoGenerator({ product, onTaskCreated }: VideoGeneratorProps) 
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     placeholder="Describe the scene you imagine, with details."
-                    className="w-full px-0 py-2 text-sm text-gray-700 placeholder-gray-400 border-0 focus:ring-0 focus:outline-none resize-none"
-                    rows={2}
+                    className="w-full px-3 py-3 text-sm text-gray-700 placeholder-gray-400 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all resize-none shadow-sm"
+                    rows={4}
                     maxLength={2500}
                 />
             </div>

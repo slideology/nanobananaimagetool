@@ -130,7 +130,7 @@ export class CreemApiClient {
     const encoder = new TextEncoder();
     const keyData = encoder.encode(this.webhookSecret);
     const payloadData = encoder.encode(payload);
-    
+
     const key = await crypto.subtle.importKey(
       'raw',
       keyData,
@@ -138,7 +138,7 @@ export class CreemApiClient {
       false,
       ['sign']
     );
-    
+
     const signature = await crypto.subtle.sign('HMAC', key, payloadData);
     const hashArray = Array.from(new Uint8Array(signature));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
@@ -152,17 +152,17 @@ export class CreemApiClient {
    */
   async verifyWebhookSignature(signature: string, payload: string): Promise<boolean> {
     const computedSignature = await this.createWebhookSignature(payload);
-    
+
     // Use a constant-time comparison
     if (signature.length !== computedSignature.length) {
       return false;
     }
-    
+
     let result = 0;
     for (let i = 0; i < signature.length; i++) {
       result |= signature.charCodeAt(i) ^ computedSignature.charCodeAt(i);
     }
-    
+
     return result === 0;
   }
 }

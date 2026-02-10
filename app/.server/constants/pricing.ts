@@ -67,8 +67,83 @@ export const BASIC_PLAN: PLAN = {
   },
 };
 
-export const PRICING_LIST = [BASIC_PLAN, PREMIUM_PLAN] as PLAN[];
+// 新增订阅计划（对应新定价系统）
+export const BASIC_SUBSCRIPTION_PLAN: PLAN = {
+  id: "basic",
+  popular: false,
+  price: { monthly: 9.9, yearly: 58.8 },
+  product_id: {
+    monthly: import.meta.env.PROD ? "prod_7c1K73uJ8fqnL5eU8L6OQt" : "prod_7c1K73uJ8fqnL5eU8L6OQt",
+    yearly: import.meta.env.PROD ? "prod_1NWDRyPgyVPSFWJfuDp8pS" : "prod_1NWDRyPgyVPSFWJfuDp8pS"
+  },
+  name: "Basic Plan",
+  description: "For individuals and hobbyists",
+  limit: {
+    adblock: false,
+    watermarks: false,
+    highResolution: true,
+    fullStyles: true,
+    credits: 100,
+    private: false,
+    features: false,
+    imageToImage: true,
+    textToImage: true,
+    advancedStyles: false
+  }
+};
+
+export const PRO_SUBSCRIPTION_PLAN: PLAN = {
+  id: "pro",
+  popular: true,
+  price: { monthly: 13.9, yearly: 82.8 },
+  product_id: {
+    monthly: import.meta.env.PROD ? "prod_o8uTOr8elcWzcaNJPKpxe" : "prod_o8uTOr8elcWzcaNJPKpxe",
+    yearly: import.meta.env.PROD ? "prod_5qwb7z8pqv3aseabp0myF6" : "prod_5qwb7z8pqv3aseabp0myF6"
+  },
+  name: "Pro Plan",
+  description: "For creators and professionals",
+  limit: {
+    adblock: true,
+    watermarks: false,
+    highResolution: true,
+    fullStyles: true,
+    credits: 400,
+    private: true,
+    features: true,
+    imageToImage: true,
+    textToImage: true,
+    advancedStyles: true
+  }
+};
+
+export const ULTRA_PLAN: PLAN = {
+  id: "ultra",
+  popular: false,
+  price: { monthly: 39.9, yearly: 238.8 },
+  product_id: {
+    monthly: import.meta.env.PROD ? "prod_Wa1F8nhQUn1pVTbzxX9yN" : "prod_Wa1F8nhQUn1pVTbzxX9yN",
+    yearly: import.meta.env.PROD ? "prod_YATVzoRcg4Rl3RO74gDV7" : "prod_YATVzoRcg4Rl3RO74gDV7"
+  },
+  name: "Ultra Plan",
+  description: "For teams and enterprises with advanced needs",
+  limit: {
+    adblock: true,
+    watermarks: false,
+    highResolution: true,
+    fullStyles: true,
+    credits: 1500,
+    private: true,
+    features: true,
+    imageToImage: true,
+    textToImage: true,
+    advancedStyles: true
+  }
+};
+
+export const PRICING_LIST = [BASIC_PLAN, BASIC_SUBSCRIPTION_PLAN, PRO_SUBSCRIPTION_PLAN, ULTRA_PLAN, PREMIUM_PLAN] as PLAN[];
 export const PLANS = {
-  basic: BASIC_PLAN,
+  basic: BASIC_SUBSCRIPTION_PLAN,
+  pro: PRO_SUBSCRIPTION_PLAN,
+  ultra: ULTRA_PLAN,
   premium: PREMIUM_PLAN,
 } as Record<string, PLAN>;

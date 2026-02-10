@@ -16,6 +16,9 @@ import { Document } from "~/features/document";
 
 import "@fontsource/libre-baskerville/400.css";
 import "@fontsource/libre-baskerville/700.css";
+import "@fontsource/inter/400.css";
+import "@fontsource/inter/500.css";
+import "@fontsource/inter/600.css";
 
 export const links: Route.LinksFunction = () => [
   { rel: "stylesheet", href: stylesUrl },
@@ -50,13 +53,13 @@ export const Layout = ({ children }: React.PropsWithChildren) => {
       GOOGLE_ADS_ID={data?.GOOGLE_ADS_ID} // 控制是否加载 AdSense 的自动广告
       GOOGLE_ANALYTICS_ID={data?.GOOGLE_ANALYTICS_ID}
       MICROSOFT_CLARITY_ID={data?.MICROSOFT_CLARITY_ID}
-      // THIRD_PARTY_ADS_ID={data?.THIRD_PARTY_ADS_ID} // 临时禁用第三方广告
+    // THIRD_PARTY_ADS_ID={data?.THIRD_PARTY_ADS_ID} // 临时禁用第三方广告
     >
       {children}
     </Document>
   );
 };
-export default function App({}: Route.ComponentProps) {
+export default function App({ }: Route.ComponentProps) {
   const setUser = useUser((state) => state.setUser);
   const setCredits = useUser((state) => state.setCredits);
   const credits = useUser((state) => state.credits);
@@ -82,11 +85,11 @@ export default function App({}: Route.ComponentProps) {
   useEffect(() => {
     // 初始化临时积分状态
     initGuestCredits();
-    
+
     const initializeAuth = async () => {
       try {
         const res = await fetch("/api/auth");
-        
+
         if (res.ok) {
           const data = await res.json<{
             profile: UserInfo | null;
@@ -107,7 +110,7 @@ export default function App({}: Route.ComponentProps) {
               localStorage.removeItem('pendingPurchase');
               localStorage.removeItem('creditsBeforePurchase');
             }
-          } catch {}
+          } catch { }
         } else {
           setUser(null);
         }
@@ -117,7 +120,7 @@ export default function App({}: Route.ComponentProps) {
         setUser(null);
       }
     };
-    
+
     initializeAuth();
   }, [handleError, setUser, setCredits, initGuestCredits]);
 

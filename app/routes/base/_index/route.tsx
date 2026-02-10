@@ -18,10 +18,11 @@ import {
   ImageGenerator,
   type ImageGeneratorRef,
 } from "~/features/image_generator";
+import { PricingSection } from "~/components/ui";
 
 import { createCanonical } from "~/utils/meta";
 import { imageStyles, promptCategories, styleTypes } from "./config";
-import { CREDITS_PRODUCT } from "~/.server/constants";
+import { CREDITS_PRODUCT, PRICING_TIERS, type PricingTier, type PaymentMode } from "~/.server/constants";
 
 export function meta({ matches }: Route.MetaArgs) {
   const canonical = createCanonical("/", matches[0].data.DOMAIN);
@@ -38,17 +39,18 @@ export function meta({ matches }: Route.MetaArgs) {
 }
 
 export function loader({ context }: Route.LoaderArgs) {
-  return { 
-    imageStyles, 
-    promptCategories, 
-    styleTypes, 
+  return {
+    imageStyles,
+    promptCategories,
+    styleTypes,
     product: CREDITS_PRODUCT,
-    THIRD_PARTY_ADS_ID: context.cloudflare.env.THIRD_PARTY_ADS_ID 
+    THIRD_PARTY_ADS_ID: context.cloudflare.env.THIRD_PARTY_ADS_ID,
+    pricingTiers: PRICING_TIERS
   };
 }
 
 export default function Home({
-  loaderData: { imageStyles, promptCategories, styleTypes, product, THIRD_PARTY_ADS_ID },
+  loaderData: { imageStyles, promptCategories, styleTypes, product, THIRD_PARTY_ADS_ID, pricingTiers },
 }: Route.ComponentProps) {
   const [requestPayment, setRequestPayment] = useState(false);
   const user = useUser((state) => state.user);
@@ -68,7 +70,7 @@ export default function Home({
     }
   });
 
-  const openRef = useRef(() => {});
+  const openRef = useRef(() => { });
   const generatorRef = useRef<ImageGeneratorRef>(null);
 
   const handleUpload = useCallback(() => {
@@ -102,7 +104,7 @@ export default function Home({
     } catch (error) {
       console.error('创建订单失败:', error);
       handleError(error);
-      
+
       // 如果是401错误，触发登录
       if ((error as any)?.status === 401) {
         document.querySelector<HTMLButtonElement>("#google-oauth-btn")?.click();
@@ -111,6 +113,48 @@ export default function Home({
       setRequestPayment(false);
     }
   }, [user, handleError, product]);
+
+  const handlePurchaseTier = useCallback(async (tier: PricingTier, mode: PaymentMode) => {
+    if (!window) return;
+    setRequestPayment(true);
+
+    try {
+      const selectedPricing = tier.pricing[mode];
+      const res = await fetch("/api/create-order", {
+        method: "POST",
+        body: JSON.stringify({
+          product_id: selectedPricing.product_id,
+          product_name: `${tier.name} Plan - ${mode === 'yearly' ? 'Yearly' : mode === 'monthly' ? 'Monthly' : 'One-Time'}`,
+          price: mode === 'yearly' && selectedPricing.billedAmount ? selectedPricing.billedAmount : selectedPricing.price,
+          credits: selectedPricing.credits,
+          type: mode,
+          plan_id: mode !== 'once' ? tier.id : undefined  // 订阅类型需要 plan_id
+        }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ message: "Unknown error" })) as any;
+        throw {
+          status: res.status,
+          data: errorData,
+          message: errorData.error?.message || errorData.message || errorData.error || `HTTP ${res.status}`,
+          details: errorData
+        };
+      }
+
+      const data = await res.json<{ checkout_url: string }>();
+      location.href = data.checkout_url;
+    } catch (error) {
+      console.error('创建订单失败:', error);
+      handleError(error);
+
+      if ((error as any)?.status === 401) {
+        document.querySelector<HTMLButtonElement>("#google-oauth-btn")?.click();
+      }
+    } finally {
+      setRequestPayment(false);
+    }
+  }, [handleError]);
 
   const pageData = useMemo<LandingProps>(() => {
     return {
@@ -404,20 +448,14 @@ export default function Home({
       <section className="py-16 bg-base-100">
         <div className="container mx-auto px-4">
           <div className="max-w-7xl mx-auto">
-            <div className="bg-white rounded-2xl shadow-2xl p-8">
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-2xl font-bold mb-6">AI Image Generator</h3>
-                </div>
-                
-                <ImageGenerator
-                   ref={generatorRef}
-                   styles={imageStyles}
-                   promptCategories={promptCategories}
-                   product={product}
-                   inline={true}
-                 />
-              </div>
+            <div className="py-4">
+              <ImageGenerator
+                ref={generatorRef}
+                styles={imageStyles}
+                promptCategories={promptCategories}
+                product={product}
+                inline={true}
+              />
             </div>
           </div>
         </div>
@@ -427,7 +465,15 @@ export default function Home({
       <Landing
         {...pageData}
         onCTAClick={handleUpload}
-        // thirdPartyAdsId={THIRD_PARTY_ADS_ID} // 临时禁用第三方广告
+      // thirdPartyAdsId={THIRD_PARTY_ADS_ID} // 临时禁用第三方广告
+      />
+
+      {/* New Pricing Section */}
+      <PricingSection
+        tiers={pricingTiers}
+        onPurchase={handlePurchaseTier}
+        onStartFree={handleUpload}
+        loading={requestPayment}
       />
     </Fragment>
   );

@@ -43,7 +43,7 @@ interface CreateOrderOptions {
   credits?: number; // 订单购买的 Credits 数量（仅 once 订单）
   plan_id?: string; // 订阅计划的编码
 }
-export const createOrder = async (payload: CreateOrderOptions, user: User) => {
+export const createOrder = async (payload: CreateOrderOptions, user: User, contextEnv?: any) => {
   const orderNo = generateUniqueOrderNo();
 
   const [order] = await insertOrder({
@@ -56,7 +56,7 @@ export const createOrder = async (payload: CreateOrderOptions, user: User) => {
     status: "pending",
   });
 
-  const creem = createCreem();
+  const creem = createCreem(contextEnv);
   const session = await creem.createCheckout({
     product_id: order.product_id,
     customer: { email: user.email },

@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
  */
 interface VideoTask {
     task_no: string;
-    status: 'pending' | 'running' | 'completed' | 'failed';
+    status: 'pending' | 'running' | 'succeeded' | 'failed';
     videoUrl?: string;
     thumbnailUrl?: string;
     prompt?: string;
@@ -42,7 +42,7 @@ export function VideoResult({ currentTask, recentTasks = [] }: VideoResultProps)
                 });
             }, 1000);
             return () => clearInterval(interval);
-        } else if (currentTask?.status === 'completed') {
+        } else if (currentTask?.status === 'succeeded') {
             setProgress(100);
         } else {
             setProgress(0);
@@ -50,25 +50,21 @@ export function VideoResult({ currentTask, recentTasks = [] }: VideoResultProps)
     }, [currentTask?.status]);
 
     // 下载视频
-    const handleDownload = async (videoUrl: string, taskNo: string) => {
-        try {
-            const response = await fetch(videoUrl);
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `seedance-${taskNo}.mp4`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-        } catch (error) {
-            console.error('下载失败:', error);
-        }
+    const handleDownload = (videoUrl: string, taskNo: string) => {
+        // 使用后端代理进行下载，避免跨域问题并强制下载
+        const downloadUrl = `/api/download-video?url=${encodeURIComponent(videoUrl)}&filename=seedance-${taskNo}`;
+
+        // 创建隐藏的a标签触发下载
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     };
 
     return (
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 max-w-md mx-auto">
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 h-full">
             {/* 标题 */}
             <div className="mb-5">
                 <h3 className="text-base font-semibold text-gray-900">Seedance 2.0 AI Video Result</h3>
@@ -84,7 +80,7 @@ export function VideoResult({ currentTask, recentTasks = [] }: VideoResultProps)
                 <div className="mb-6">
                     {/* 视频预览区域 */}
                     <div className="relative bg-gradient-to-br from-purple-100 to-blue-100 rounded-xl overflow-hidden aspect-video mb-3">
-                        {currentTask.status === 'completed' && currentTask.videoUrl ? (
+                        {currentTask.status === 'succeeded' && currentTask.videoUrl ? (
                             // 已完成 - 显示视频
                             <>
                                 <video
@@ -139,7 +135,7 @@ export function VideoResult({ currentTask, recentTasks = [] }: VideoResultProps)
                     </div>
 
                     {/* 任务信息 */}
-                    {currentTask.status === 'completed' && (
+                    {currentTask.status === 'succeeded' && (
                         <div className="text-center">
                             <p className="text-sm text-gray-600 mb-3">
                                 Fill in the form on the left and click "Generate" to create your own video.
@@ -222,7 +218,7 @@ export function VideoResult({ currentTask, recentTasks = [] }: VideoResultProps)
 
                                 {/* 状态 */}
                                 <div className="flex-shrink-0">
-                                    {task.status === 'completed' ? (
+                                    {task.status === 'succeeded' ? (
                                         <CheckCircle size={16} className="text-green-500" />
                                     ) : task.status === 'running' ? (
                                         <Clock size={16} className="text-blue-500" />

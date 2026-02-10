@@ -91,5 +91,45 @@ export const consumptionsCredits = async (
     consumed: payload.credits,
     consumptionRecords: consumptionRecords.length,
     remainingBalance: balance - payload.credits,
+    details: consumptionRecords,
   };
+};
+
+/**
+ * 积分回滚
+ * 用于任务失败时恢复已扣除的积分
+ */
+import { getCreditRecordById } from "~/.server/model/credit_record";
+
+export const rollbackCredits = async (
+  details: InsertCreditConsumption[],
+  reason: string = "Task Failed Rollback"
+) => {
+  console.log(`↺ Starting credit rollback: ${reason}`, details);
+
+  for (const record of details) {
+    if (!record.credit_record_id || !record.credits) continue;
+
+    try {
+      // 1. 获取原始积分记录
+      const creditRecord = await getCreditRecordById(record.credit_record_id);
+
+      if (creditRecord) {
+        // 2. 恢复剩余积分
+        const newRemaining = creditRecord.remaining_credits + record.credits;
+
+        await updateCreditRecord(record.credit_record_id, {
+          remaining_credits: newRemaining
+        });
+
+        console.log(`✅ Rolled back ${record.credits} credits to record ${record.credit_record_id}. New balance: ${newRemaining}`);
+      } else {
+        console.warn(`⚠️ Original credit record ${record.credit_record_id} not found during rollback`);
+      }
+    } catch (error) {
+      console.error(`❌ Failed to rollback credit record ${record.credit_record_id}:`, error);
+    }
+  }
+
+  return true;
 };

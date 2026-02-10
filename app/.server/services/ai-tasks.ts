@@ -47,6 +47,8 @@ export type AiTaskResult = Pick<
   | "result_url"
   | "fail_reason"
   | "ext"
+  | "input_params"
+  | "result_data"
 >;
 const transformResult = (value: AiTask): AiTaskResult => {
   const {
@@ -59,6 +61,8 @@ const transformResult = (value: AiTask): AiTaskResult => {
     result_url,
     fail_reason,
     ext,
+    input_params,
+    result_data,
   } = value;
 
   return {
@@ -71,6 +75,8 @@ const transformResult = (value: AiTask): AiTaskResult => {
     result_url,
     fail_reason,
     ext,
+    input_params,
+    result_data,
   };
 };
 
@@ -104,12 +110,12 @@ export const startTask = async (env: Env, params: AiTask["task_no"] | AiTask) =>
   let newTask: AiTask;
 
   try {
-    if (task.provider === "kie_nano_banana") {
-      // Nano Banana 任务处理逻辑在 createAiImage 中已完成
-      // 这里不需要额外处理
-      newTask = task;
+    if (task.provider === "kie_nano_banana" || task.provider === "kie_seedance") {
+      // 这里的任务已经提交给Kie，直接更新为running
+      const [updated] = await updateAiTask(task.task_no, { status: "running" });
+      newTask = updated;
     } else {
-      throw new UnsupportedProviderError(task.provider || "unknown", ["kie_nano_banana"]);
+      throw new UnsupportedProviderError(task.provider || "unknown", ["kie_nano_banana", "kie_seedance"]);
     }
   } catch (error) {
     // 如果是我们定义的错误类型，直接重新抛出
@@ -280,7 +286,29 @@ export const updateTaskStatus = async (env: Env, taskNo: AiTask["task_no"] | AiT
         });
         newTask = aiTask;
       } else {
-        // 视频文件直接使用 Kie AI 返回的 CDN URL,不需要下载到本地
+        // 生产环境下下载到本地R2存储 (result/ai-video)
+        if (import.meta.env.PROD) {
+          try {
+            console.log(`Downloading video to R2: ${resultUrl}`);
+            const [file] = await downloadFilesToBucket(
+              env,
+              [{ src: resultUrl, fileName: task.task_no, ext: "mp4" }],
+              "result/ai-video"
+            );
+
+            if (file) {
+              const r2Url = new URL(file.key, env.CDN_URL).toString();
+              console.log(`Video uploaded to R2: ${r2Url}`);
+              resultUrl = r2Url;
+            } else {
+              console.warn("R2 upload returned no file object, using original URL");
+            }
+          } catch (e) {
+            console.error("Failed to download Seedance video to bucket:", e);
+            // 失败时降级使用原始URL
+          }
+        }
+
         const [aiTask] = await updateAiTask(task.task_no, {
           status: "succeeded",
           completed_at: new Date(result.completeTime || Date.now()),

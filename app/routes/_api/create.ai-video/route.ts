@@ -2,7 +2,10 @@ import type { Route } from "./+types/route";
 import { env } from "cloudflare:workers";
 
 import { getSessionHandler } from "~/.server/libs/session";
-import { consumptionsCredits } from "~/.server/services/credits";
+import {
+    consumptionsCredits,
+    rollbackCredits
+} from "~/.server/services/credits";
 import { KieAI } from "~/.server/aisdk/kie-ai";
 import { calculateVideoCredits } from "~/.server/utils/video-credits";
 import { insertAiTask } from "~/.server/model/ai_tasks";
@@ -116,8 +119,9 @@ export async function action({ request, context }: Route.ActionArgs) {
         });
 
         // 5. 扣除积分
+        let consumptionResult;
         try {
-            const consumptionResult = await consumptionsCredits(user, {
+            consumptionResult = await consumptionsCredits(user, {
                 credits: requiredCredits,
                 source_type: "ai_video_task",
                 reason: `视频生成 (${resolution}, ${duration}s${generate_audio ? ', 含音频' : ''})`
@@ -163,13 +167,16 @@ export async function action({ request, context }: Route.ActionArgs) {
             console.error(`❌ Kie AI API 调用失败:`, error);
 
             // API 调用失败,回滚积分
-            // TODO: 实现积分回滚逻辑
+            if (consumptionResult?.details) {
+                console.log("↺ 正在回滚积分...");
+                await rollbackCredits(consumptionResult.details, `Video Generation Failed: ${error.message}`);
+            }
 
             return Response.json(
                 {
                     error: {
                         code: "API_ERROR",
-                        message: error.message || "视频生成服务暂时不可用",
+                        message: error.message || "视频生成服务暂时不可用, 积分已自动回滚",
                         title: "服务错误"
                     }
                 },
@@ -182,7 +189,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
         const [task] = await insertAiTask({
             user_id: user.id,
-            status: "pending",
+            status: "running",
             input_params: {
                 prompt,
                 input_urls,

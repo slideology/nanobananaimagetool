@@ -8,19 +8,19 @@ import { BaseError, UserNotAuthenticatedError, RequiredParameterMissingError } f
 
 import { PRODUCTS_LIST } from "~/.server/constants";
 
-export async function action({ request }: Route.ActionArgs) {
+export async function action({ request, context }: Route.ActionArgs) {
   try {
-    const raw = await request.json<{ product_id: string }>();
-    const { product_id } = raw;
-    
+    const raw = await request.json<{ product_id: string; plan_id?: string }>();
+    const { product_id, plan_id } = raw;
+
     if (!product_id) {
       const paramError = new RequiredParameterMissingError("product_id");
       return ErrorHandler.createErrorResponse(paramError);
     }
-    
+
     const product = PRODUCTS_LIST.find((item) => item.product_id === product_id);
     if (!product) {
-      const paramError = new RequiredParameterMissingError("product_id", { 
+      const paramError = new RequiredParameterMissingError("product_id", {
         message: "产品不存在",
         availableProducts: PRODUCTS_LIST.map(p => p.product_id)
       });
@@ -40,19 +40,21 @@ export async function action({ request }: Route.ActionArgs) {
         price: product.price,
         product_id: product.product_id,
         product_name: product.product_name,
-        type: product.type,
+        type: product.type as "once" | "monthly" | "yearly",
+        plan_id: plan_id, // Pass the plan_id from request
       },
-      user
+      user,
+      context.cloudflare.env
     );
 
     return data(result);
   } catch (error) {
     console.error("Create order error:", error);
-    
+
     if (error instanceof BaseError) {
       return ErrorHandler.createErrorResponse(error);
     }
-    
+
     const systemError = new RequiredParameterMissingError(
       "SYSTEM_ERROR",
       { originalError: error instanceof Error ? error.message : "Unknown error" }

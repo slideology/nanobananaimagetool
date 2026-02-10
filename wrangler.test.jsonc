@@ -1,57 +1,33 @@
-/**
- * For more details on how to configure Wrangler, refer to:
- * https://developers.cloudflare.com/workers/wrangler/configuration/
- */
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "nanobanana-test",
-  "main": "./workers/app.ts",
+  "main": "./build/server/index.js",
   "compatibility_date": "2024-09-23",
   "upload_source_maps": true,
-  // "routes": [
-  //   {
-  //     "pattern": "example.com",
-  //     "custom_domain": true
-  //   },
-  //   {
-  //     "pattern": "www.example.com",
-  //     "custom_domain": true
-  //   }
-  // ],
+  "no_bundle": true,
+  "rules": [
+    {
+      "type": "ESModule",
+      "globs": [
+        "**/*.js",
+        "**/*.mjs"
+      ]
+    }
+  ],
+  "assets": {
+    "directory": "./build/client"
+  },
   "vars": {
-    "DOMAIN": "https://nanobananaimage.org", // Keep production domain var or change to receive from request? Usually fine.
+    "DOMAIN": "https://nanobanana-test.slideology0816.workers.dev",
     "CDN_URL": "https://pub-cb92e8dab89d452aadee075624e92b5a.r2.dev",
     "GOOGLE_ADS_ID": "pub-3179065211650247",
     "GOOGLE_ANALYTICS_ID": "G-KJPS3ZZYHC",
     "MICROSOFT_CLARITY_ID": "sun0y1p1i1",
     "INITLIZE_CREDITS": "1",
-    // Turnstile configuration - Replace with your actual keys
-    "TURNSTILE_SITE_KEY": "1x00000000000000000000AA", // Demo key - replace with real site key
-    "TURNSTILE_SECRET_KEY": "1x0000000000000000000000000000000AA" // Demo key - replace with real secret key
-    // "THIRD_PARTY_ADS_ID": "c2e95556903c6f4bc49bfefaac809241" // 临时禁用第三方广告
+    "TURNSTILE_SITE_KEY": "1x00000000000000000000AA",
+    "TURNSTILE_SECRET_KEY": "1x0000000000000000000000000000000AA",
+    "CREEM_TEST_KEY": "creem_test_3ohzoaZ2AnKpyPzueMEcdJ"
   },
-  // Routes removed for test deployment to avoid conflict
-  /*
-  "routes": [
-    {
-      "pattern": "nanobananaimage.org",
-      "custom_domain": true
-    },
-    {
-      "pattern": "www.nanobananaimage.org",
-      "custom_domain": true
-    }
-  ],
-  */
-  "observability": {
-    "enabled": true
-  },
-  /**
-   * Bindings
-   * Bindings allow your Worker to interact with resources on the Cloudflare Developer Platform, including
-   * databases, object storage, AI inference, real-time communication and more.
-   * https://developers.cloudflare.com/workers/runtime-apis/bindings/
-   */
   "d1_databases": [
     {
       "binding": "DB",
@@ -72,5 +48,8 @@
       "binding": "R2",
       "bucket_name": "nanobanan-images-prod"
     }
-  ]
+  ],
+  "observability": {
+    "enabled": true
+  }
 }

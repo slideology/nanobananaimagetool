@@ -14,7 +14,7 @@ import { useErrorHandler, useFileValidation, usePromptValidation } from "~/hooks
 
 import { GoogleOAuth, type GoogleOAuthBtnRef } from "~/features/oauth";
 import { CreditRechargeModal, type CreditRechargeModalRef, TurnstileVerification } from "~/components/ui";
-import { X, ImageIcon, Type, Wand2 } from "lucide-react";
+import { X, ImageIcon, Type, Wand2, ChevronDown, Check } from "lucide-react";
 import { Image } from "~/components/common";
 
 import type { AiImageResult } from "~/routes/_api/create.ai-image/route";
@@ -224,11 +224,11 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
     // 处理图片下载 (解决跨域 CDN 资源下载问题)
     const handleDownloadImage = useCallback(async (imageUrl: string | null, taskNo: string) => {
       try {
-      // 检查 imageUrl 是否有效
-      if (!imageUrl) {
-        console.error('图片 URL 为空');
-        return;
-      }
+        // 检查 imageUrl 是否有效
+        if (!imageUrl) {
+          console.error('图片 URL 为空');
+          return;
+        }
 
         // 1. 使用 fetch 获取图片数据
         const proxyUrl = `/api/download-image?url=${encodeURIComponent(imageUrl)}`;
@@ -624,171 +624,111 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
     // 控件内容组件
     const ControlsContent = () => (
       <>
-        {/* Prompt Engine Header */}
-        <div className="mb-6">
-          <h2 className="text-xl font-bold mb-2">🚀 Prompt Engine</h2>
-          <p className="text-gray-600 text-sm">Transform your photos with AI-powered editing using simple words</p>
-          <div className="w-full h-px bg-gray-200 mt-4"></div>
+        {/* Header */}
+        <div className="flex items-center gap-2 mb-5">
+          <Wand2 size={18} className="text-gray-700" />
+          <h3 className="text-base font-semibold text-gray-900">Create AI Image</h3>
         </div>
 
-        {/* Generation Mode Tabs */}
-        <div className="mb-6">
-          <div className="flex border-b border-gray-200">
-            {generationModes.map((modeOption) => (
-              <button
-                key={modeOption.id}
-                onClick={() => setMode(modeOption.id)}
-                className={clsx(
-                  "px-4 py-3 text-sm font-medium border-b-2 transition-all flex items-center space-x-2",
-                  mode === modeOption.id
-                    ? "border-blue-500 text-blue-600 bg-blue-50/50"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                )}
-              >
-                {modeOption.icon}
-                <span>{modeOption.name}</span>
-              </button>
-            ))}
+        {/* Mode Tabs */}
+        <div className="flex gap-2 mb-5">
+          <button
+            onClick={() => setMode('text-to-image')}
+            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'text-to-image'
+              ? 'bg-purple-50 text-purple-700 border border-purple-200'
+              : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+              }`}
+          >
+            <Type size={16} />
+            <span>Text to Image</span>
+          </button>
+          <button
+            onClick={() => setMode('image-to-image')}
+            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'image-to-image'
+              ? 'bg-purple-50 text-purple-700 border border-purple-200'
+              : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+              }`}
+          >
+            <ImageIcon size={16} />
+            <span>Image to Image</span>
+          </button>
+        </div>
+
+        {/* Model Selector (Simplified Dropdown Look) */}
+        <div className="mb-5 relative">
+          <label className="block text-xs font-medium text-gray-600 mb-2">Model</label>
+          <div className="flex items-center justify-between px-3 py-2.5 bg-gray-50 rounded-lg border border-transparent hover:bg-gray-100 transition-colors cursor-pointer">
+            <span className="text-sm font-medium text-gray-900">Nano Banana AI</span>
+            <ChevronDown size={16} className="text-gray-400" />
           </div>
         </div>
 
-        {/* Reference Image Upload */}
-        {mode === "image-to-image" && (
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <label className="text-sm font-medium text-gray-700">Reference Image</label>
-              <span className="text-xs text-gray-500">0/9</span>
-            </div>
+        {/* Reference Image Upload (img2img only) */}
+        {mode === 'image-to-image' && (
+          <div className="mb-5">
+            <label className="block text-xs font-medium text-gray-600 mb-2">Reference Image</label>
 
-            {/* 未登录用户验证提示 */}
+            {/* Guest Warning */}
             {!user && (
-              <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                    <span className="text-white text-xs">!</span>
-                  </div>
-                  <p className="text-sm text-blue-700">
-                    {turnstileToken ? (
-                      <span className="text-green-700">✓ Verification completed. You can now upload images.</span>
-                    ) : (
-                      "Image upload requires verification for guest users."
-                    )}
-                  </p>
+              <div className="mb-3 p-2.5 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+                <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-white text-[10px] font-bold">!</span>
                 </div>
+                <p className="text-xs text-blue-700">
+                  {turnstileToken ? "Verification completed" : "Verification required for guest upload"}
+                </p>
               </div>
             )}
-            <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:border-gray-300 transition-colors">
+
+            <div className="border-2 border-dashed border-gray-300 rounded-lg py-6 text-center cursor-pointer hover:border-purple-400 hover:bg-purple-50/30 transition-all relative group">
               {fileUrl ? (
-                <div className="relative">
-                  <Image
-                    src={fileUrl}
-                    alt="Reference"
-                    className="max-h-40 mx-auto rounded-lg shadow-sm"
-                  />
+                <div className="relative inline-block">
+                  <img src={fileUrl} alt="Reference" className="h-32 rounded-lg object-contain mx-auto" />
                   <button
-                    onClick={() => setFile(undefined)}
-                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                    onClick={(e) => { e.stopPropagation(); setFile(undefined); }}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shadow-md"
                   >
-                    <X size={12} />
+                    <X size={14} />
                   </button>
                 </div>
               ) : (
-                <>
-                  {/* 将整个占位内容作为可点击区域，指向隐藏的文件输入 */}
-                  <label htmlFor="image-upload" className="block cursor-pointer select-none" aria-label="Upload reference image">
-                    <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-lg flex items-center justify-center">
-                      <ImageIcon size={32} className="text-gray-400" />
-                    </div>
-                    <p className="text-sm text-gray-600 mb-2">Add Image</p>
-                    <p className="text-xs text-gray-400 mb-4">Max 50MB</p>
-                    <span className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-                      Choose File
-                    </span>
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleFileUpload(file);
-                    }}
-                    className="hidden"
-                    id="image-upload"
-                  />
-                </>
+                <div onClick={() => document.getElementById('image-upload-input')?.click()}>
+                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                    <ImageIcon size={20} className="text-gray-400" />
+                  </div>
+                  <p className="text-sm text-gray-700">
+                    Drag & drop or <span className="font-semibold text-purple-600">click to upload</span>
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">PNG, JPG, WebP (Max 10MB)</p>
+                </div>
               )}
+
+              <input
+                id="image-upload-input"
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFileUpload(file);
+                }}
+                className="hidden"
+              />
             </div>
           </div>
         )}
 
-        {/* AI Model Selection */}
-        <div className="mb-6">
-          <label className="text-sm font-medium text-gray-700 mb-3 block">
-            AI 模型选择
-          </label>
-          <div className="grid grid-cols-1 gap-3">
-            {availableModels.map((model) => {
-              const isSelected = selectedModel === model.id;
-              return (
-                <label
-                  key={model.id}
-                  className={clsx(
-                    "flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all",
-                    isSelected
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name="aiModel"
-                    value={model.id}
-                    checked={isSelected}
-                    onChange={(e) => setSelectedModel(e.target.value)}
-                    className="sr-only"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center space-x-2">
-                        <div className={clsx(
-                          "w-4 h-4 rounded-full border-2 transition-colors",
-                          isSelected ? "border-blue-500 bg-blue-500" : "border-gray-300"
-                        )}>
-                          {isSelected && (
-                            <div className="w-2 h-2 bg-white rounded-full mx-auto mt-0.5"></div>
-                          )}
-                        </div>
-                        <span className="font-medium text-gray-900">{model.name}</span>
-                      </div>
-                      <div className="flex items-center space-x-1 text-sm text-gray-500">
-                        <span>{model.credits}</span>
-                        <span>Credits</span>
-                      </div>
-                    </div>
-                    <p className="text-sm text-gray-600 ml-6">{model.description}</p>
-                  </div>
-                </label>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Main Prompt */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <label className="text-sm font-medium text-gray-700">Main Prompt</label>
-            <button className="text-xs text-blue-600 hover:text-blue-700 transition-colors">Copy</button>
-          </div>
-          <div className="relative">
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Describe what you want to create..."
-              className="w-full h-24 p-4 border border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
-            />
-            <div className="absolute bottom-3 right-3 text-xs text-gray-400">
-              {prompt.length}/1000
-            </div>
+        {/* Prompt Input */}
+        <div className="mb-5 relative">
+          <label className="block text-xs font-medium text-gray-600 mb-2">Prompt</label>
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="Describe what you want to create..."
+            className="w-full h-32 px-3 py-3 text-sm text-gray-700 placeholder-gray-400 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all resize-none shadow-sm"
+            maxLength={1000}
+          />
+          <div className="absolute bottom-3 right-3 text-xs text-gray-400 pointer-events-none">
+            {prompt.length}/1000
           </div>
         </div>
 
@@ -796,194 +736,137 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         <button
           onClick={handleSubmit}
           disabled={!canGenerate || submitting}
-          className={clsx(
-            "w-full py-4 px-6 rounded-xl font-semibold text-white transition-all duration-200 flex items-center justify-center space-x-2",
-            canGenerate && !submitting
-              ? "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
-              : "bg-gray-300 cursor-not-allowed"
-          )}
+          className={`w-full py-3 px-4 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2 ${canGenerate && !submitting
+            ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800 shadow-md hover:shadow-lg"
+            : "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
+            }`}
         >
           {submitting ? (
             <>
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
               <span>Generating...</span>
             </>
           ) : (
             <>
-              <Wand2 size={20} />
-              <span>Generate Now</span>
+              <Wand2 size={16} />
+              <span>Generate - 1 Credit</span>
             </>
           )}
         </button>
-
-        {/* 🔧 移除Generate Now按钮下方的结果显示，只在右侧面板显示 */}
       </>
     );
 
     // Inline 模式返回完整的左右布局  
     if (inline) {
       return (
-        <div className="flex flex-col lg:flex-row gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-7xl mx-auto">
           {/* Left Panel - Controls */}
-          <div className="lg:w-1/2">
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <div className="space-y-6">
-                {ControlsContent()}
-              </div>
-            </div>
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 h-full shadow-sm">
+            {ControlsContent()}
           </div>
 
           {/* Right Panel - Output Gallery */}
-          <div className="lg:w-1/2">
-            <div className="bg-gray-50 rounded-xl p-6">
-              <div className="mb-6">
-                <h3 className="text-xl font-semibold mb-2">🎨 Output Gallery</h3>
-                <p className="text-gray-600 text-sm">Your ultra-fast AI creations appear here instantly</p>
-                <div className="w-full h-px bg-gray-200 mt-4"></div>
-              </div>
-
-              {/* 初始状态：等待用户操作 */}
-              {!done && !submitting && (
-                <div className="h-96 bg-white rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-blue-100 to-purple-100 rounded-xl flex items-center justify-center">
-                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    <h4 className="font-medium text-gray-900 mb-2">Ready for instant generation</h4>
-                    <p className="text-sm text-gray-500">Enter your prompt and unleash the power</p>
-                  </div>
-                </div>
-              )}
-
-              {/* 提交中状态：正在调用API */}
-              {submitting && (
-                <div className="h-96 bg-white rounded-xl border border-gray-300 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="loading loading-spinner loading-lg mb-4"></div>
-                    <p className="text-gray-500">Submitting to AI service...</p>
-                  </div>
-                </div>
-              )}
-
-              {/* 任务创建成功过渡状态 */}
-              {!submitting && tasks.length > 0 && !done && (
-                <div className="h-96 bg-white rounded-xl border border-green-300 bg-green-50 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
-                      <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <p className="text-green-700 font-medium mb-2">Task Created Successfully!</p>
-                    <p className="text-green-600 text-sm">Initializing AI generation process...</p>
-                  </div>
-                </div>
-              )}
-
-              {/* 任务创建后状态：显示任务进度和结果 */}
-              {done && tasks.length > 0 && (
-                <div className="space-y-4 max-h-[80vh] overflow-y-auto">
-                  {tasks.map((task) => (
-                    <div key={task.task_no} className="bg-white border rounded-lg p-4 shadow-sm">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="font-medium text-gray-800">Image Generation Task</span>
-                        <span className={clsx(
-                          "px-2 py-1 rounded-full text-xs font-medium",
-                          task.status === "succeeded" && "bg-green-100 text-green-700",
-                          task.status === "failed" && "bg-red-100 text-red-700",
-                          task.status === "running" && "bg-blue-100 text-blue-700",
-                        )}>
-                          {task.status === "succeeded" && "✓ Complete"}
-                          {task.status === "failed" && "✗ Failed"}
-                          {task.status === "running" && "⟳ Generating"}
-                        </span>
-                      </div>
-
-                      {task.status === "running" && (
-                        <div className="mb-4">
-                          <div className="flex items-center gap-2 mb-3">
-                            <div className="loading loading-spinner loading-sm"></div>
-                            <span className="text-sm text-gray-600">
-                              {task.progress === 0 ? "Starting AI generation process..." : "AI is generating image, please wait..."}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span className="text-gray-600">Progress</span>
-                            <span className="font-medium text-blue-600">
-                              {task.progress === 0 ? "Initializing" : `${task.progress}%`}
-                            </span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div
-                              className={`h-2 rounded-full transition-all duration-500 ${task.progress === 0
-                                ? "bg-gradient-to-r from-blue-300 to-blue-400 animate-pulse"
-                                : "bg-gradient-to-r from-blue-500 to-purple-500"
-                                }`}
-                              style={{ width: `${Math.max(task.progress, 5)}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      )}
-
-                      {task.result_url && (
-                        <div className="border rounded-lg overflow-hidden">
-                          <Image
-                            src={task.result_url}
-                            alt="Generated"
-                            className="w-full"
-                          />
-                          <div className="p-3 border-t bg-gray-50 flex justify-end">
-                            <button
-                              onClick={() => handleDownloadImage(task.result_url, task.task_no)}
-                              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors"
-                              aria-label="Download generated image"
-                            >
-                              Download
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      {task.status === "failed" && task.fail_reason && (
-                        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-                          <strong>Error:</strong> {task.fail_reason}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* 功能特性展示 */}
-              {!done && !submitting && (
-                <div className="mt-6">
-                  <h4 className="font-medium mb-3 text-gray-700">✨ Core Features</h4>
-                  <div className="space-y-3">
-                    <div className="flex items-start space-x-3">
-                      <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center mt-0.5">
-                        <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                      </div>
-                      <div>
-                        <h5 className="font-medium text-sm">Natural Language Editing</h5>
-                        <p className="text-xs text-gray-600">Edit images using simple text prompts</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start space-x-3">
-                      <div className="w-5 h-5 bg-purple-100 rounded-full flex items-center justify-center mt-0.5">
-                        <div className="w-2 h-2 bg-purple-600 rounded-full"></div>
-                      </div>
-                      <div>
-                        <h5 className="font-medium text-sm">Character Consistency</h5>
-                        <p className="text-xs text-gray-600">Maintain character appearance across generations</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 h-full shadow-sm">
+            <div className="mb-5">
+              <h3 className="text-base font-semibold text-gray-900">AI Image Result</h3>
             </div>
+
+            {/* Initial State */}
+            {!done && !submitting && (
+              <div className="aspect-video bg-gray-50 rounded-xl border border-gray-100 flex flex-col items-center justify-center text-center p-6">
+                <div className="w-12 h-12 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center mb-3">
+                  <ImageIcon className="text-gray-400" size={24} />
+                </div>
+                <h4 className="text-sm font-medium text-gray-900 mb-1">Ready to Create</h4>
+                <p className="text-xs text-gray-500 max-w-[200px]">
+                  Your generated images will appear here.
+                </p>
+              </div>
+            )}
+
+            {/* Submitting State */}
+            {submitting && (
+              <div className="aspect-video bg-gray-50 rounded-xl border border-gray-100 flex flex-col items-center justify-center text-center p-6">
+                <div className="loading loading-spinner loading-md text-purple-600 mb-3"></div>
+                <p className="text-sm text-gray-600 font-medium">Creating your masterpiece...</p>
+                <p className="text-xs text-gray-400 mt-1">This usually takes 10-20 seconds</p>
+              </div>
+            )}
+
+            {/* Task Succes/Progress/Result */}
+            {tasks.length > 0 && (
+              <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1 custom-scrollbar">
+                {tasks.map((task) => (
+                  <div key={task.task_no} className="group">
+                    {/* Status Badge if running/failed */}
+                    {task.status !== 'succeeded' && (
+                      <div className={`mb-2 text-xs flex items-center gap-2 ${task.status === 'failed' ? 'text-red-600' : 'text-purple-600'
+                        }`}>
+                        {task.status === 'failed' ? (
+                          <>
+                            <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
+                            Generation Failed: {task.fail_reason || 'Unknown error'}
+                          </>
+                        ) : (
+                          <>
+                            <div className="loading loading-spinner loading-xs text-purple-600"></div>
+                            Processing... {task.progress}%
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Result Image */}
+                    {task.result_url ? (
+                      <div className="relative rounded-xl overflow-hidden border border-gray-200 shadow-sm group-hover:shadow-md transition-all bg-gray-50">
+                        <Image
+                          src={task.result_url}
+                          alt="Generated Result"
+                          className="w-full h-auto object-contain max-h-[400px]"
+                        />
+                        {/* Overlay Actions */}
+                        <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex justify-end gap-2">
+                          <button
+                            onClick={() => handleDownloadImage(task.result_url, task.task_no)}
+                            className="p-2 bg-white/90 hover:bg-white text-gray-900 rounded-lg backdrop-blur-sm transition-colors shadow-sm"
+                            title="Download"
+                          >
+                            <Check size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
+          {/* 功能特性展示 */}
+          {!done && !submitting && (
+            <div className="mt-6">
+              <h4 className="font-medium mb-3 text-gray-700">✨ Core Features</h4>
+              <div className="space-y-3">
+                <div className="flex items-start space-x-3">
+                  <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center mt-0.5">
+                    <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                  </div>
+                  <div>
+                    <h5 className="font-medium text-sm">Natural Language Editing</h5>
+                    <p className="text-xs text-gray-600">Edit images using simple text prompts</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="w-5 h-5 bg-purple-100 rounded-full flex items-center justify-center mt-0.5">
+                    <div className="w-2 h-2 bg-purple-600 rounded-full"></div>
+                  </div>
+                  <div>
+                    <h5 className="font-medium text-sm">Character Consistency</h5>
+                    <p className="text-xs text-gray-600">Maintain character appearance across generations</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Hidden OAuth for programmatic login */}
           <div className="hidden">
@@ -991,15 +874,17 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           </div>
 
           {/* 充值弹窗 */}
-          {product && (
-            <CreditRechargeModal
-              ref={rechargeModalRef}
-              product={product}
-              onPurchaseSuccess={handleRechargeSuccess}
-              onCancel={handleRechargeCancel}
-            />
-          )}
-        </div>
+          {
+            product && (
+              <CreditRechargeModal
+                ref={rechargeModalRef}
+                product={product}
+                onPurchaseSuccess={handleRechargeSuccess}
+                onCancel={handleRechargeCancel}
+              />
+            )
+          }
+        </div >
       );
     }
 
