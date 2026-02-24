@@ -15,7 +15,7 @@ import { ThirdPartyAd } from "~/components/common";
 export interface LandingProps {
   howItWorks: HowItWorksSectionProps;
   features: FeaturesGridProps;
-  pricing: PricingCardsProps;
+  pricing?: PricingCardsProps;
   alternatingContent: AlternatingContentSectionProps;
   cta?: CTASectionProps; // 可选，因为已注释掉
   testimonials?: TestimonialsSectionProps; // 可选，因为已注释掉
@@ -38,7 +38,7 @@ export default function Landing({
   return (
     <Fragment>
       <HowItWorksSection {...howItWorks} />
-      
+
       {/* 第三方广告位 - 临时禁用 */}
       {/* {thirdPartyAdsId && (
         <section className="py-4 bg-gray-50/50">
@@ -50,9 +50,9 @@ export default function Landing({
           </div>
         </section>
       )} */}
-      
+
       <FeaturesGrid {...features} />
-      <PricingCards {...pricing} />
+      {pricing && <PricingCards {...pricing} />}
       <AlternatingContentSection {...alternatingContent} />
       {/* CTA 模块 - 已注释掉 */}
       {/* <CTASection {...cta} onButtonClick={onCTAClick} /> */}

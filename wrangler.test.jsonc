@@ -31,8 +31,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "nanobanana",
-      "database_id": "58998e54-6c65-43b5-9ffe-8d659e4514d7",
+      "database_name": "nanobanana-test",
+      "database_id": "8578d595-ff16-4683-be4e-dd9922d0c331",
       "migrations_dir": "./app/.server/drizzle/migrations"
     }
   ],

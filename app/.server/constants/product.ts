@@ -6,31 +6,6 @@ export interface PRODUCT {
   type: "once" | "monthly" | "yearly";
 }
 
-export const CREDITS_PRODUCT: PRODUCT = {
-  price: 9.9,
-  credits: 100,
-  product_id: import.meta.env.PROD
-    ? "prod_tMa1e6wOR5SnpYzLKUVaP" // For Test Env Deployment (PROD=true)
-    : "prod_tMa1e6wOR5SnpYzLKUVaP",
-  product_name: "AI Image Generation Credits",
-  type: "once",
-};
-
-// 新的产品配置适配图片生成
-export const IMAGE_GENERATION_PRODUCTS = [
-  {
-    ...CREDITS_PRODUCT,
-    description: "Generate amazing AI artwork with 100 credits",
-    features: [
-      "100 AI image generations",
-      "Image-to-image transformation",
-      "Text-to-image creation",
-      "Multiple art styles",
-      "High resolution output"
-    ]
-  }
-];
-
 
 // ============ 新定价系统 ============
 
@@ -69,9 +44,9 @@ export const PRICING_TIERS: PricingTier[] = [
   {
     id: "basic",
     name: "Basic",
-    badge: "Perfect for individuals",
+    badge: "Perfect for hobbyists",
     badgeColor: "primary",
-    description: "For individuals and hobbyists",
+    description: "Perfect for hobbyists and beginners",
     pricing: {
       monthly: {
         price: 9.9,
@@ -91,17 +66,18 @@ export const PRICING_TIERS: PricingTier[] = [
         product_id: import.meta.env.PROD ? "prod_9CgN0oI7dzK79zDY4C65X" : "prod_9CgN0oI7dzK79zDY4C65X"
       }
     },
+    // 注意：首条 Credits 文案由 PricingCard 根据 mode 动态渲染
     features: [
-      { text: "100 Credits / Month", included: true },
-      { text: "Basic Image Generation", included: true },
-      { text: "Standard Response Time", included: true },
-      { text: "Email Support", included: true },
-      { text: "Unlimited Upscale", included: true },
-      { text: "Priority Support", included: false },
-      { text: "Batch Generation", included: false },
-      { text: "No Captcha/Turnstile", included: false }
+      { text: "High quality AI image generation", included: true },
+      { text: "Text-to-image & image-to-image", included: true },
+      { text: "All art styles available", included: true },
+      { text: "Standard processing speed", included: true },
+      { text: "Email support", included: true },
+      { text: "Commercial usage rights", included: true },
+      { text: "Priority processing", included: false },
+      { text: "No Captcha verification", included: false }
     ],
-    buttonText: "Purchase"
+    buttonText: "Get Started"
   },
   {
     id: "pro",
@@ -130,16 +106,16 @@ export const PRICING_TIERS: PricingTier[] = [
       }
     },
     features: [
-      { text: "400 Credits / Month", included: true },
       { text: "Everything in Basic, and:", included: true },
-      { text: "Premium Image Generation", included: true },
-      { text: "Unlimited Dimensions", included: true },
-      { text: "Fast Response", included: true },
-      { text: "Priority Support", included: true },
-      { text: "Batch Generation", included: true },
-      { text: "No Captcha/Turnstile", included: false }
+      { text: "Premium AI image generation", included: true },
+      { text: "Unlimited image dimensions", included: true },
+      { text: "Fastest processing speed", included: true },
+      { text: "Priority support", included: true },
+      { text: "Batch generation", included: true },
+      { text: "Commercial usage rights", included: true },
+      { text: "No Captcha verification", included: false }
     ],
-    buttonText: "Purchase"
+    buttonText: "Get Started"
   },
   {
     id: "ultra",
@@ -147,7 +123,7 @@ export const PRICING_TIERS: PricingTier[] = [
     badge: "Best Value",
     badgeColor: "accent",
     isPopular: false,
-    description: "For teams and enterprises with advanced needs",
+    description: "For power users and teams",
     pricing: {
       monthly: {
         price: 39.9,
@@ -168,14 +144,14 @@ export const PRICING_TIERS: PricingTier[] = [
       }
     },
     features: [
-      { text: "1500 Credits / Month", included: true },
       { text: "Everything in Pro, and:", included: true },
-      { text: "No Captcha/Turnstile Verification", included: true },
-      { text: "Fastest Response Time", included: true },
-      { text: "Premium Priority Support", included: true },
-      { text: "Advanced Batch Generation", included: true }
+      { text: "No Captcha verification", included: true },
+      { text: "Fastest processing & priority queue", included: true },
+      { text: "Advanced batch generation", included: true },
+      { text: "Premium priority support", included: true },
+      { text: "Commercial usage rights", included: true }
     ],
-    buttonText: "Purchase"
+    buttonText: "Get Started"
   }
 ];
 
@@ -232,8 +208,7 @@ function flattenPricingTiers(): PRODUCT[] {
   return products;
 }
 
-// 合并旧产品和新产品，确保向后兼容
+// 新定价系统的所有产品
 export const PRODUCTS_LIST = [
-  ...IMAGE_GENERATION_PRODUCTS, // 保留旧产品 ID，向后兼容
-  ...flattenPricingTiers()      // 添加新定价系统的所有产品
+  ...flattenPricingTiers()
 ];

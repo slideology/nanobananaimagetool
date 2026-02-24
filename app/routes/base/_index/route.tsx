@@ -22,7 +22,7 @@ import { PricingSection } from "~/components/ui";
 
 import { createCanonical } from "~/utils/meta";
 import { imageStyles, promptCategories, styleTypes } from "./config";
-import { CREDITS_PRODUCT, PRICING_TIERS, type PricingTier, type PaymentMode } from "~/.server/constants";
+import { PRICING_TIERS, type PricingTier, type PaymentMode } from "~/.server/constants";
 
 export function meta({ matches }: Route.MetaArgs) {
   const canonical = createCanonical("/", matches[0].data.DOMAIN);
@@ -43,14 +43,13 @@ export function loader({ context }: Route.LoaderArgs) {
     imageStyles,
     promptCategories,
     styleTypes,
-    product: CREDITS_PRODUCT,
     THIRD_PARTY_ADS_ID: context.cloudflare.env.THIRD_PARTY_ADS_ID,
     pricingTiers: PRICING_TIERS
   };
 }
 
 export default function Home({
-  loaderData: { imageStyles, promptCategories, styleTypes, product, THIRD_PARTY_ADS_ID, pricingTiers },
+  loaderData: { imageStyles, promptCategories, styleTypes, THIRD_PARTY_ADS_ID, pricingTiers },
 }: Route.ComponentProps) {
   const [requestPayment, setRequestPayment] = useState(false);
   const user = useUser((state) => state.user);
@@ -78,41 +77,7 @@ export default function Home({
     if (window) window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
-  const handleBuyCredits = useCallback(async () => {
-    if (!window) return;
-    setRequestPayment(true);
 
-    try {
-      const res = await fetch("/api/create-order", {
-        method: "POST",
-        body: JSON.stringify(product),
-      });
-
-      if (!res.ok) {
-        // 解析后端返回的标准化错误响应
-        const errorData = await res.json().catch(() => ({ message: "Unknown error" })) as any;
-        throw {
-          status: res.status,
-          data: errorData,
-          message: errorData.error?.message || errorData.message || errorData.error || `HTTP ${res.status}`,
-          details: errorData
-        };
-      }
-
-      const data = await res.json<{ checkout_url: string }>();
-      location.href = data.checkout_url;
-    } catch (error) {
-      console.error('创建订单失败:', error);
-      handleError(error);
-
-      // 如果是401错误，触发登录
-      if ((error as any)?.status === 401) {
-        document.querySelector<HTMLButtonElement>("#google-oauth-btn")?.click();
-      }
-    } finally {
-      setRequestPayment(false);
-    }
-  }, [user, handleError, product]);
 
   const handlePurchaseTier = useCallback(async (tier: PricingTier, mode: PaymentMode) => {
     if (!window) return;
@@ -228,35 +193,6 @@ export default function Home({
             title: "Money-Back Guarantee",
             description:
               "If you're not satisfied with your photo editing results, we offer a full refund—no questions asked.",
-          },
-        ],
-      },
-
-      pricing: {
-        title: "Start Editing Photos Today",
-        subtitle:
-          "Edit any photo with simple text commands. Start with free trial credits or buy more, no subscription required",
-        plans: [
-          {
-            title: "Try Photo Editing for Free",
-            badge: "Free Trial",
-            badgeColor: "primary",
-            description:
-              "Upload your photo and describe your edits in plain English. New users get 3 free credits, no credit card needed.",
-            buttonText: "Start Editing – Try It Free",
-            footerText: "Includes 1 free credits for new users",
-            onButtonClick: handleUpload,
-          },
-          {
-            title: "Unlock More Photo Edits",
-            badge: "Buy Credits",
-            badgeColor: "secondary",
-            description:
-              "Want to edit more photos? Purchase credits to unlock unlimited photo editing capabilities with our advanced AI technology.",
-            buttonText: `Buy Credits – $${product.price} for ${product.credits} Credits`,
-            footerText: "More contact support@nanobananaimage.org",
-            loading: requestPayment,
-            onButtonClick: handleBuyCredits,
           },
         ],
       },
@@ -379,7 +315,7 @@ export default function Home({
           {
             question: "How many images can I generate?",
             answer:
-              "Each generation uses 1 credit. New users get 1 free credits to start. You can purchase additional credits anytime - we offer packages starting at $9.9 for 100 credits with no subscription required.",
+              "Each generation uses 1 credit. New users get 3 free credits to start. You can purchase additional credits or subscribe to a plan — starting from $9.9/month for 100 credits.",
           },
           {
             question: "Are my images and prompts private?",
@@ -409,7 +345,7 @@ export default function Home({
         ],
       },
     };
-  }, [product, requestPayment, handleUpload, handleBuyCredits]);
+  }, [requestPayment, handleUpload]);
 
   const headings = useMemo(() => {
     return [
@@ -453,7 +389,6 @@ export default function Home({
                 ref={generatorRef}
                 styles={imageStyles}
                 promptCategories={promptCategories}
-                product={product}
                 inline={true}
               />
             </div>

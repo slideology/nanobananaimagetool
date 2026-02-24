@@ -13,8 +13,8 @@ export interface PaymentModeToggleProps {
 }
 
 const MODE_OPTIONS: Array<{ value: PaymentMode; label: string }> = [
-    { value: "yearly", label: "Year (Save 50%)" },
-    { value: "monthly", label: "Subscription" },
+    { value: "yearly", label: "Annually (Save 50%)" },
+    { value: "monthly", label: "Monthly" },
     { value: "once", label: "One-Time" }
 ];
 

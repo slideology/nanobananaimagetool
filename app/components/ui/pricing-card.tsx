@@ -83,6 +83,16 @@ export default function PricingCard({ tier, mode, onPurchase, loading }: Pricing
 
             {/* Features List */}
             <ul className="space-y-3 mb-8 flex-grow">
+                {/* 动态首条：根据付费模式显示不同积分描述 */}
+                <li className="flex items-start gap-2">
+                    <Check size={20} className="text-purple-600 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm font-semibold text-gray-900">
+                        {mode === "once"
+                            ? `${pricing.credits} Credits — Never Expire`
+                            : `${pricing.credits} Credits / Month`
+                        }
+                    </span>
+                </li>
                 {tier.features.map((feature, index) => (
                     <li key={index} className="flex items-start gap-2">
                         {feature.included ? (

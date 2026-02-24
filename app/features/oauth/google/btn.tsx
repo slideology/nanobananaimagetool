@@ -10,25 +10,37 @@ interface GoogleOAuthBtnProps {
   useOneTap?: boolean;
   onSuccess: (value: { access_token?: string; credential?: string }) => void;
 }
+
 export const GoogleOAuthBtn = forwardRef<
   GoogleOAuthBtnRef,
   GoogleOAuthBtnProps
 >(({ loading, onSuccess, useOneTap }, ref) => {
-  // 本地开发环境完全禁用One Tap登录，避免403错误
-  // useGoogleOneTapLogin({
-  //   onSuccess: ({ credential }) => onSuccess({ credential }),
-  //   cancel_on_tap_outside: false,
-  //   disabled: !useOneTap,
-  //   // 本地开发环境禁用FedCM，生产环境启用
-  //   use_fedcm_for_prompt: false,
-  // });
+  // ✅ Google One Tap：页面加载后自动在右上角显示 Google 账号卡片
+  // 用户点卡片即可完成登录，完全不需要离开当前页面
+  useGoogleOneTapLogin({
+    onSuccess: ({ credential }) => {
+      console.log("[OneTap] credential received");
+      onSuccess({ credential });
+    },
+    onError: () => {
+      console.warn("[OneTap] One Tap login failed or was suppressed");
+    },
+    cancel_on_tap_outside: false,
+    disabled: !useOneTap,
+    use_fedcm_for_prompt: false,
+  });
+
+  // ✅ Sign In 按钮：弹出 Google OAuth 小窗口，不打开新标签页
+  // 用户在小窗口里选择账号，选完后窗口自动关闭，停留在当前页
   const login = useGoogleLogin({
-    onSuccess: ({ access_token }) => onSuccess({ access_token }),
-    // 确保使用弹窗模式而不是重定向模式
-    flow: 'implicit',
-    // 添加错误处理
+    onSuccess: ({ access_token }) => {
+      console.log("[Login] access_token received");
+      onSuccess({ access_token });
+    },
+    flow: "implicit",
+    ux_mode: "popup", // 明确指定弹出小窗口模式（非新标签页，非重定向）
     onError: (error) => {
-      console.warn('Google OAuth error:', error);
+      console.warn("[Login] OAuth error:", error);
     },
   });
 
@@ -42,12 +54,7 @@ export const GoogleOAuthBtn = forwardRef<
       className="btn btn-primary max-md:btn-sm data-[loading=true]:cursor-not-allowed"
       onClick={() => {
         if (loading) return;
-        try {
-          login();
-        } catch (error) {
-          // 忽略COOP相关错误，这些通常不影响实际功能
-          console.warn('OAuth popup warning (can be ignored):', error);
-        }
+        login();
       }}
       data-loading={loading}
     >

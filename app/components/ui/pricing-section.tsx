@@ -76,6 +76,16 @@ export default function PricingSection({
 
       <PaymentModeToggle value={paymentMode} onChange={setPaymentMode} />
 
+      {/* 模式提示文案 */}
+      <div className="flex justify-center mb-8 -mt-6">
+        <span className="inline-flex items-center gap-1.5 text-sm text-gray-500 border border-gray-200 rounded-full px-4 py-1.5">
+          {paymentMode === "once"
+            ? "💳 Pay as you go — credits never expire"
+            : "✓ Cancel anytime, no commitment"
+          }
+        </span>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 max-w-7xl mx-auto mb-8">
         {tiers.map((tier) => (
           <PricingCard

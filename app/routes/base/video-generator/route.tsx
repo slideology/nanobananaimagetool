@@ -3,7 +3,6 @@ import { Fragment } from "react";
 import { VideoGenerator } from "~/features/video_generator/index";
 import { VideoResult } from "~/features/video_generator/VideoResult";
 import { useVideoGenerator } from "~/features/video_generator/useVideoGenerator";
-import { CREDITS_PRODUCT } from "~/.server/constants";
 import { createCanonical } from "~/utils/meta";
 
 export function meta({ matches }: Route.MetaArgs) {
@@ -21,14 +20,10 @@ export function meta({ matches }: Route.MetaArgs) {
 }
 
 export function loader({ context }: Route.LoaderArgs) {
-    return {
-        product: CREDITS_PRODUCT,
-    };
+    return {};
 }
 
-export default function VideoGeneratorPage({
-    loaderData: { product },
-}: Route.ComponentProps) {
+export default function VideoGeneratorPage() {
     // 使用状态管理 Hook
     const { currentTask, recentTasks, createTask } = useVideoGenerator();
     return (
@@ -57,7 +52,6 @@ export default function VideoGeneratorPage({
                         {/* 左侧 - 视频生成器 */}
                         <div>
                             <VideoGenerator
-                                product={product}
                                 onTaskCreated={createTask}
                             />
                         </div>
