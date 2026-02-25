@@ -73,8 +73,8 @@ export const BASIC_SUBSCRIPTION_PLAN: PLAN = {
   popular: false,
   price: { monthly: 9.9, yearly: 58.8 },
   product_id: {
-    monthly: import.meta.env.PROD ? "prod_7c1K73uJ8fqnL5eU8L6OQt" : "prod_7c1K73uJ8fqnL5eU8L6OQt",
-    yearly: import.meta.env.PROD ? "prod_1NWDRyPgyVPSFWJfuDp8pS" : "prod_1NWDRyPgyVPSFWJfuDp8pS"
+    monthly: import.meta.env.PROD ? "prod_3mlkgk9ZckjfOsia2nrYn4" : "prod_7c1K73uJ8fqnL5eU8L6OQt",
+    yearly: import.meta.env.PROD ? "prod_6mfspjIbfsLo7wNzWGTrun" : "prod_1NWDRyPgyVPSFWJfuDp8pS"
   },
   name: "Basic Plan",
   description: "For individuals and hobbyists",
@@ -97,8 +97,8 @@ export const PRO_SUBSCRIPTION_PLAN: PLAN = {
   popular: true,
   price: { monthly: 13.9, yearly: 82.8 },
   product_id: {
-    monthly: import.meta.env.PROD ? "prod_o8uTOr8elcWzcaNJPKpxe" : "prod_o8uTOr8elcWzcaNJPKpxe",
-    yearly: import.meta.env.PROD ? "prod_5qwb7z8pqv3aseabp0myF6" : "prod_5qwb7z8pqv3aseabp0myF6"
+    monthly: import.meta.env.PROD ? "prod_d1TVcAaMuggDkGREVqIhG" : "prod_o8uTOr8elcWzcaNJPKpxe",
+    yearly: import.meta.env.PROD ? "prod_7Pbprhm0TqipTa0CFUzfbe" : "prod_5qwb7z8pqv3aseabp0myF6"
   },
   name: "Pro Plan",
   description: "For creators and professionals",
@@ -121,8 +121,8 @@ export const ULTRA_PLAN: PLAN = {
   popular: false,
   price: { monthly: 39.9, yearly: 238.8 },
   product_id: {
-    monthly: import.meta.env.PROD ? "prod_Wa1F8nhQUn1pVTbzxX9yN" : "prod_Wa1F8nhQUn1pVTbzxX9yN",
-    yearly: import.meta.env.PROD ? "prod_YATVzoRcg4Rl3RO74gDV7" : "prod_YATVzoRcg4Rl3RO74gDV7"
+    monthly: import.meta.env.PROD ? "prod_3BUTvTKGHVCkRT9NofrZmP" : "prod_Wa1F8nhQUn1pVTbzxX9yN",
+    yearly: import.meta.env.PROD ? "prod_4yDKGwwqMqUPwzOz33LLTP" : "prod_YATVzoRcg4Rl3RO74gDV7"
   },
   name: "Ultra Plan",
   description: "For teams and enterprises with advanced needs",
