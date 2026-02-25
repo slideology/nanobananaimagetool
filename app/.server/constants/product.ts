@@ -51,19 +51,19 @@ export const PRICING_TIERS: PricingTier[] = [
       monthly: {
         price: 9.9,
         credits: 100,
-        product_id: import.meta.env.PROD ? "prod_7c1K73uJ8fqnL5eU8L6OQt" : "prod_7c1K73uJ8fqnL5eU8L6OQt"
+        product_id: import.meta.env.PROD ? "prod_3mlkgk9ZckjfOsia2nrYn4" : "prod_7c1K73uJ8fqnL5eU8L6OQt"
       },
       yearly: {
         price: 4.9,
         credits: 100,
-        product_id: import.meta.env.PROD ? "prod_1NWDRyPgyVPSFWJfuDp8pS" : "prod_1NWDRyPgyVPSFWJfuDp8pS",
+        product_id: import.meta.env.PROD ? "prod_6mfspjIbfsLo7wNzWGTrun" : "prod_1NWDRyPgyVPSFWJfuDp8pS",
         billedAmount: 58.8,
         savingPercent: 50
       },
       once: {
         price: 17.9,
         credits: 200,
-        product_id: import.meta.env.PROD ? "prod_9CgN0oI7dzK79zDY4C65X" : "prod_9CgN0oI7dzK79zDY4C65X"
+        product_id: import.meta.env.PROD ? "prod_1Zl2095dq4EGjfNpKCepNo" : "prod_9CgN0oI7dzK79zDY4C65X"
       }
     },
     // 注意：首条 Credits 文案由 PricingCard 根据 mode 动态渲染
@@ -90,19 +90,19 @@ export const PRICING_TIERS: PricingTier[] = [
       monthly: {
         price: 13.9,
         credits: 400,
-        product_id: import.meta.env.PROD ? "prod_o8uTOr8elcWzcaNJPKpxe" : "prod_o8uTOr8elcWzcaNJPKpxe"
+        product_id: import.meta.env.PROD ? "prod_d1TVcAaMuggDkGREVqIhG" : "prod_o8uTOr8elcWzcaNJPKpxe"
       },
       yearly: {
         price: 6.9,
         credits: 400,
-        product_id: import.meta.env.PROD ? "prod_5qwb7z8pqv3aseabp0myF6" : "prod_5qwb7z8pqv3aseabp0myF6",
+        product_id: import.meta.env.PROD ? "prod_7Pbprhm0TqipTa0CFUzfbe" : "prod_5qwb7z8pqv3aseabp0myF6",
         billedAmount: 82.8,
         savingPercent: 50
       },
       once: {
         price: 24.9,
         credits: 800,
-        product_id: import.meta.env.PROD ? "prod_7Ue9GgnBYS0HpB4sTOTdEq" : "prod_7Ue9GgnBYS0HpB4sTOTdEq"
+        product_id: import.meta.env.PROD ? "prod_67A1jDLQeXMgg5TRRmdfBM" : "prod_7Ue9GgnBYS0HpB4sTOTdEq"
       }
     },
     features: [
@@ -128,19 +128,19 @@ export const PRICING_TIERS: PricingTier[] = [
       monthly: {
         price: 39.9,
         credits: 1500,
-        product_id: import.meta.env.PROD ? "prod_Wa1F8nhQUn1pVTbzxX9yN" : "prod_Wa1F8nhQUn1pVTbzxX9yN"
+        product_id: import.meta.env.PROD ? "prod_3BUTvTKGHVCkRT9NofrZmP" : "prod_Wa1F8nhQUn1pVTbzxX9yN"
       },
       yearly: {
         price: 19.9,
         credits: 1500,
-        product_id: import.meta.env.PROD ? "prod_YATVzoRcg4Rl3RO74gDV7" : "prod_YATVzoRcg4Rl3RO74gDV7",
+        product_id: import.meta.env.PROD ? "prod_4yDKGwwqMqUPwzOz33LLTP" : "prod_YATVzoRcg4Rl3RO74gDV7",
         billedAmount: 238.8,
         savingPercent: 50
       },
       once: {
         price: 69.9,
         credits: 3000,
-        product_id: import.meta.env.PROD ? "prod_67pU5p7n8uwvw3IXdAVZaw" : "prod_67pU5p7n8uwvw3IXdAVZaw"
+        product_id: import.meta.env.PROD ? "prod_5KEqomw5RDaHLxpCPEQtq5" : "prod_67pU5p7n8uwvw3IXdAVZaw"
       }
     },
     features: [
