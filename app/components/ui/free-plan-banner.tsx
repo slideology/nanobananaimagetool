@@ -27,7 +27,7 @@ export default function FreePlanBanner({ onStartFree }: FreePlanBannerProps) {
                         <ul className="space-y-2">
                             <li className="flex items-center gap-2 text-sm text-gray-700">
                                 <Check size={16} className="text-purple-600" />
-                                <span>3 Free Trial Credits</span>
+                                <span>60 Free Credits on Sign Up</span>
                             </li>
                             <li className="flex items-center gap-2 text-sm text-gray-700">
                                 <Check size={16} className="text-purple-600" />

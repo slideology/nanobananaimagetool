@@ -315,7 +315,7 @@ export default function Home({
           {
             question: "How many images can I generate?",
             answer:
-              "Each generation uses 1 credit. New users get 3 free credits to start. You can purchase additional credits or subscribe to a plan — starting from $9.9/month for 100 credits.",
+              "Each generation uses 30 credits. New users get 60 free credits on sign up. You can purchase additional credits or subscribe to a plan — starting from $9.99/month for 4,000 credits.",
           },
           {
             question: "Are my images and prompts private?",

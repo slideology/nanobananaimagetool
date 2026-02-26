@@ -146,11 +146,14 @@ export const handleOrderComplete = async (checkoutId: string) => {
         last_payment_at: new Date(),
       });
 
-      if (plan.limit.credits) {
+      // 优先使用下单时传入的精确积分数（区分月付/年付）
+      // fallback 到 pricing.ts 的 plan.limit.credits
+      const creditsToGive = credits || plan.limit.credits;
+      if (creditsToGive) {
         await insertCreditRecord({
           user_id: order.user_id,
-          credits: plan.limit.credits,
-          remaining_credits: plan.limit.credits,
+          credits: creditsToGive,
+          remaining_credits: creditsToGive,
           trans_type: "subscription",
           source_type: "order",
           source_id: order.order_no,
