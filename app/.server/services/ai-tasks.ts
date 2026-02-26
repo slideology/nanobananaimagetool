@@ -392,8 +392,8 @@ export const createAiImage = async (
   });
   const { mode, image, prompt, type, width, height } = value;
 
-  // 图片生成固定消耗1个积分（Nano Banana模型）
-  const taskCredits = 1;
+  // 图片生成固定消耗30个积分（Nano Banana模型）
+  const taskCredits = 30;
 
   // 🔥 重要优化：提前验证积分但不扣除，避免API失败后积分已被消耗
   BusinessLogicLogger.logCreditValidation(requestId, {

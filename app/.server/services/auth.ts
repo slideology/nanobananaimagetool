@@ -22,18 +22,18 @@ export const createUser = async (newUser: InsertUser, hasUsedGuestCredit: boolea
     ...newUser,
     has_received_login_bonus: 1, // 新用户创建时就标记已获得奖励
   };
-  
+
   const [createdUser] = await insertUser(userWithBonusFlag);
-  
+
   if (env.INITLIZE_CREDITS) {
     // 智能积分分配逻辑：
-    // - 如果用户已使用过临时积分，只给1积分（登录奖励）
-    // - 如果用户未使用过临时积分，给2积分（1积分初始 + 1积分登录奖励）
-    const creditsToGive = hasUsedGuestCredit ? 1 : 2;
-    const note = hasUsedGuestCredit 
-      ? "登录奖励积分" 
+    // - 如果用户已使用过临时积分，给30积分（登录奖励）
+    // - 如果用户未使用过临时积分，给60积分（初始积分 + 登录奖励）
+    const creditsToGive = hasUsedGuestCredit ? 30 : 60;
+    const note = hasUsedGuestCredit
+      ? "登录奖励积分"
       : "新用户初始积分 + 登录奖励积分";
-    
+
     await insertCreditRecord({
       user_id: createdUser.id,
       credits: creditsToGive,
@@ -73,38 +73,38 @@ export const googleOAuthLogin = async (params: {
     user = await createUser(newUser, hasUsedGuestCredit);
   } else {
     user = result;
-    
+
     // 🔒 并发安全：使用事务确保登录奖励的原子性，防止重复奖励
     if (user && !user.has_received_login_bonus && !hasUsedGuestCredit && env.INITLIZE_CREDITS) {
       const db = connectDB();
       const userId = user.id;
       const userEmail = user.email;
-      
+
       try {
         await db.transaction(async (tx) => {
           // 在事务中再次检查用户状态，防止竞态条件
           const latestUser = await tx.query.users.findFirst({
             where: eq(schema.users.id, userId),
           });
-          
+
           if (latestUser && !latestUser.has_received_login_bonus) {
             // 插入积分记录
             await tx.insert(schema.credit_records).values({
               user_id: userId,
-              credits: 1,
-              remaining_credits: 1,
+              credits: 30,
+              remaining_credits: 30,
               trans_type: "initilize",
               note: "登录奖励积分",
             });
-            
+
             // 标记用户已获得登录奖励
             await tx.update(schema.users)
-              .set({ 
+              .set({
                 has_received_login_bonus: 1,
                 updated_at: new Date()
               })
               .where(eq(schema.users.id, userId));
-              
+
             console.log(`✅ 用户 ${userEmail} 获得登录奖励积分`);
           } else {
             console.log(`ℹ️ 用户 ${userEmail} 已获得过登录奖励，跳过`);
