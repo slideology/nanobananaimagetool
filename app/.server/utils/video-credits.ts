@@ -26,9 +26,9 @@ export interface VideoCreditsParams {
 export function calculateVideoCredits(params: VideoCreditsParams): number {
     // 基础积分(根据分辨率)
     const baseCredits: Record<VideoCreditsParams['resolution'], number> = {
-        '480p': 10,
-        '720p': 20,
-        '1080p': 30
+        '480p': 60,
+        '720p': 120,
+        '1080p': 180
     };
 
     // 时长系数
@@ -61,9 +61,9 @@ export function getVideoCreditsBreakdown(params: VideoCreditsParams): {
     description: string;
 } {
     const baseCredits: Record<VideoCreditsParams['resolution'], number> = {
-        '480p': 10,
-        '720p': 20,
-        '1080p': 30
+        '480p': 60,
+        '720p': 120,
+        '1080p': 180
     };
 
     const durationMultiplierMap: Record<VideoCreditsParams['duration'], number> = {
