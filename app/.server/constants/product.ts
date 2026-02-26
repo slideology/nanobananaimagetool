@@ -49,20 +49,20 @@ export const PRICING_TIERS: PricingTier[] = [
     description: "Perfect for hobbyists and beginners",
     pricing: {
       monthly: {
-        price: 9.9,
-        credits: 100,
+        price: 9.99,
+        credits: 4000,
         product_id: import.meta.env.PROD ? "prod_3mlkgk9ZckjfOsia2nrYn4" : "prod_7c1K73uJ8fqnL5eU8L6OQt"
       },
       yearly: {
-        price: 4.9,
-        credits: 100,
+        price: 8.99,
+        credits: 4000,
         product_id: import.meta.env.PROD ? "prod_6mfspjIbfsLo7wNzWGTrun" : "prod_1NWDRyPgyVPSFWJfuDp8pS",
-        billedAmount: 58.8,
-        savingPercent: 50
+        billedAmount: 107.88,
+        savingPercent: 10
       },
       once: {
-        price: 17.9,
-        credits: 200,
+        price: 9.99,
+        credits: 3000,
         product_id: import.meta.env.PROD ? "prod_1Zl2095dq4EGjfNpKCepNo" : "prod_9CgN0oI7dzK79zDY4C65X"
       }
     },
@@ -88,20 +88,20 @@ export const PRICING_TIERS: PricingTier[] = [
     description: "For creators and professionals",
     pricing: {
       monthly: {
-        price: 13.9,
-        credits: 400,
+        price: 19.99,
+        credits: 9000,
         product_id: import.meta.env.PROD ? "prod_d1TVcAaMuggDkGREVqIhG" : "prod_o8uTOr8elcWzcaNJPKpxe"
       },
       yearly: {
-        price: 6.9,
-        credits: 400,
+        price: 14.99,
+        credits: 8000,
         product_id: import.meta.env.PROD ? "prod_7Pbprhm0TqipTa0CFUzfbe" : "prod_5qwb7z8pqv3aseabp0myF6",
-        billedAmount: 82.8,
-        savingPercent: 50
+        billedAmount: 179.88,
+        savingPercent: 25
       },
       once: {
-        price: 24.9,
-        credits: 800,
+        price: 39.99,
+        credits: 14000,
         product_id: import.meta.env.PROD ? "prod_67A1jDLQeXMgg5TRRmdfBM" : "prod_7Ue9GgnBYS0HpB4sTOTdEq"
       }
     },
@@ -126,20 +126,20 @@ export const PRICING_TIERS: PricingTier[] = [
     description: "For power users and teams",
     pricing: {
       monthly: {
-        price: 39.9,
-        credits: 1500,
+        price: 39.99,
+        credits: 16000,
         product_id: import.meta.env.PROD ? "prod_3BUTvTKGHVCkRT9NofrZmP" : "prod_Wa1F8nhQUn1pVTbzxX9yN"
       },
       yearly: {
-        price: 19.9,
-        credits: 1500,
+        price: 29.99,
+        credits: 15000,
         product_id: import.meta.env.PROD ? "prod_4yDKGwwqMqUPwzOz33LLTP" : "prod_YATVzoRcg4Rl3RO74gDV7",
-        billedAmount: 238.8,
-        savingPercent: 50
+        billedAmount: 359.88,
+        savingPercent: 25
       },
       once: {
-        price: 69.9,
-        credits: 3000,
+        price: 99.99,
+        credits: 40000,
         product_id: import.meta.env.PROD ? "prod_5KEqomw5RDaHLxpCPEQtq5" : "prod_67pU5p7n8uwvw3IXdAVZaw"
       }
     },

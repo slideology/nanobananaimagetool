@@ -71,7 +71,7 @@ export const BASIC_PLAN: PLAN = {
 export const BASIC_SUBSCRIPTION_PLAN: PLAN = {
   id: "basic",
   popular: false,
-  price: { monthly: 9.9, yearly: 58.8 },
+  price: { monthly: 9.99, yearly: 107.88 },
   product_id: {
     monthly: import.meta.env.PROD ? "prod_3mlkgk9ZckjfOsia2nrYn4" : "prod_7c1K73uJ8fqnL5eU8L6OQt",
     yearly: import.meta.env.PROD ? "prod_6mfspjIbfsLo7wNzWGTrun" : "prod_1NWDRyPgyVPSFWJfuDp8pS"
@@ -83,7 +83,7 @@ export const BASIC_SUBSCRIPTION_PLAN: PLAN = {
     watermarks: false,
     highResolution: true,
     fullStyles: true,
-    credits: 100,
+    credits: 4000,
     private: false,
     features: false,
     imageToImage: true,
@@ -95,7 +95,7 @@ export const BASIC_SUBSCRIPTION_PLAN: PLAN = {
 export const PRO_SUBSCRIPTION_PLAN: PLAN = {
   id: "pro",
   popular: true,
-  price: { monthly: 13.9, yearly: 82.8 },
+  price: { monthly: 19.99, yearly: 179.88 },
   product_id: {
     monthly: import.meta.env.PROD ? "prod_d1TVcAaMuggDkGREVqIhG" : "prod_o8uTOr8elcWzcaNJPKpxe",
     yearly: import.meta.env.PROD ? "prod_7Pbprhm0TqipTa0CFUzfbe" : "prod_5qwb7z8pqv3aseabp0myF6"
@@ -107,7 +107,7 @@ export const PRO_SUBSCRIPTION_PLAN: PLAN = {
     watermarks: false,
     highResolution: true,
     fullStyles: true,
-    credits: 400,
+    credits: 9000,
     private: true,
     features: true,
     imageToImage: true,
@@ -119,19 +119,19 @@ export const PRO_SUBSCRIPTION_PLAN: PLAN = {
 export const ULTRA_PLAN: PLAN = {
   id: "ultra",
   popular: false,
-  price: { monthly: 39.9, yearly: 238.8 },
+  price: { monthly: 39.99, yearly: 359.88 },
   product_id: {
     monthly: import.meta.env.PROD ? "prod_3BUTvTKGHVCkRT9NofrZmP" : "prod_Wa1F8nhQUn1pVTbzxX9yN",
     yearly: import.meta.env.PROD ? "prod_4yDKGwwqMqUPwzOz33LLTP" : "prod_YATVzoRcg4Rl3RO74gDV7"
   },
   name: "Ultra Plan",
-  description: "For teams and enterprises with advanced needs",
+  description: "For power users and teams",
   limit: {
     adblock: true,
     watermarks: false,
     highResolution: true,
     fullStyles: true,
-    credits: 1500,
+    credits: 16000,
     private: true,
     features: true,
     imageToImage: true,
