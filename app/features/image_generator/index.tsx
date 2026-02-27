@@ -119,6 +119,8 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
 
     // AI模型选择
     const [selectedModel, setSelectedModel] = useState<string>("nano-banana");
+    // 模型下拉菜单开关状态
+    const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
 
     // 生成状态
     const [submitting, setSubmitting] = useState(false);
@@ -654,13 +656,39 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           </button>
         </div>
 
-        {/* Model Selector (Simplified Dropdown Look) */}
+        {/* Model Selector — 可展开下拉，Nano Banana 2 标注 Coming Soon */}
         <div className="mb-5 relative">
           <label className="block text-xs font-medium text-gray-600 mb-2">Model</label>
-          <div className="flex items-center justify-between px-3 py-2.5 bg-gray-50 rounded-lg border border-transparent hover:bg-gray-100 transition-colors cursor-pointer">
+          {/* 触发器 */}
+          <div
+            onClick={() => setIsModelMenuOpen(!isModelMenuOpen)}
+            className="flex items-center justify-between px-3 py-2.5 bg-gray-50 rounded-lg border border-transparent hover:bg-gray-100 transition-colors cursor-pointer"
+          >
             <span className="text-sm font-medium text-gray-900">Nano Banana</span>
-            <ChevronDown size={16} className="text-gray-400" />
+            <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${isModelMenuOpen ? 'rotate-180' : ''}`} />
           </div>
+
+          {/* 下拉菜单 */}
+          {isModelMenuOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setIsModelMenuOpen(false)} />
+              <div className="absolute top-full left-0 w-full mt-1 bg-white border border-gray-100 rounded-xl shadow-xl z-20 p-1.5">
+                {/* 选项 1: Nano Banana（当前选中） */}
+                <div
+                  onClick={() => setIsModelMenuOpen(false)}
+                  className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                >
+                  <span className="text-sm font-medium text-gray-900">Nano Banana</span>
+                  <Check size={16} className="text-purple-600" />
+                </div>
+                {/* 选项 2: Nano Banana 2（即将推出，置灰不可点击） */}
+                <div className="flex items-center justify-between px-3 py-2.5 rounded-lg opacity-50 cursor-not-allowed bg-gray-50/50">
+                  <span className="text-sm font-medium text-gray-500">Nano Banana 2</span>
+                  <span className="text-xs text-gray-400">Coming Soon</span>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Reference Image Upload (img2img only) */}

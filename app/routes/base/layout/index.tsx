@@ -20,6 +20,7 @@ export const loader = ({ }: Route.LoaderArgs) => {
         label: "Tools",
         list: [
           { to: "/", label: "AI Photo Editor" },
+          { to: "/nano-banana-2", label: "Nano Banana 2" },
           { to: "/seedance-2-0", label: "Seedance 2.0" },
         ],
       },
