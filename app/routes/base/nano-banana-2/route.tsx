@@ -8,11 +8,16 @@ export function meta({ matches }: Route.MetaArgs) {
     const canonical = createCanonical("/nano-banana-2", matches[0].data.DOMAIN);
 
     return [
-        { title: "Nano Banana 2 | Next-Gen AI Image Editor — Coming Soon" },
+        { title: "Nano Banana 2: Fast 4K AI Image Generator" },
         {
             name: "description",
             content:
-                "Nano Banana 2 is the next generation AI photo editor. Transform your images with enhanced intelligence, faster generation, and even better creative control. Coming Soon.",
+                "Discover Google Nano Banana 2 (Gemini 3.1 Flash Image). Generate 4K AI images in seconds with perfect character consistency and 50% lower API costs.",
+        },
+        {
+            name: "keywords",
+            content:
+                "Nano Banana 2, Gemini 3.1 Flash Image, AI image generator, consistent AI characters, fast AI image generation, 4K AI art, Google AI image model",
         },
         canonical,
     ];
@@ -122,35 +127,39 @@ export default function NanoBanana2Page({ loaderData: { pricingTiers } }: Route.
                         </h2>
                         <div className="space-y-6">
                             <div className="bg-white p-6 rounded-xl shadow-md">
-                                <h3 className="text-lg font-bold mb-2">
-                                    When will Nano Banana 2 be available?
-                                </h3>
+                                <h3 className="text-lg font-bold mb-2">What is Nano Banana 2?</h3>
                                 <p className="text-gray-600">
-                                    We're actively developing Nano Banana 2 and plan to release it soon. In the meantime, you can use the current Nano Banana model which already produces stunning results.
+                                    Nano Banana 2 (officially known as <strong>Gemini 3.1 Flash Image</strong>) is Google's latest high-speed AI image generation model, released in February 2026. It is designed to deliver Pro-level image quality at Flash-level speeds, striking an optimal balance between high resolution, fast generation, and low operational costs.
                                 </p>
                             </div>
                             <div className="bg-white p-6 rounded-xl shadow-md">
-                                <h3 className="text-lg font-bold mb-2">
-                                    How many credits does image generation cost?
-                                </h3>
+                                <h3 className="text-lg font-bold mb-2">How fast can Nano Banana 2 generate images?</h3>
                                 <p className="text-gray-600">
-                                    Each image generation (text-to-image or image-to-image) costs 30 credits. New users receive 60 free credits upon sign-up to get started right away.
+                                    Extremely fast. It produces standard-resolution images in <strong>under 2 seconds</strong> (p50 latency of just 0.86 seconds). For native <strong>4K (3840×2160)</strong> outputs, generation completes within 10 seconds.
                                 </p>
                             </div>
                             <div className="bg-white p-6 rounded-xl shadow-md">
-                                <h3 className="text-lg font-bold mb-2">
-                                    Will Nano Banana 2 cost more credits?
-                                </h3>
+                                <h3 className="text-lg font-bold mb-2">Can it maintain character consistency across multiple images?</h3>
                                 <p className="text-gray-600">
-                                    We haven't finalized pricing for Nano Banana 2 yet. Our goal is to keep it accessible while reflecting the improved quality. We'll announce pricing closer to launch.
+                                    Yes — a major breakthrough for comic creation and storyboards. Nano Banana 2 maintains up to <strong>95% visual consistency</strong> across up to 5 distinct characters and 14 specific objects within a single workflow.
                                 </p>
                             </div>
                             <div className="bg-white p-6 rounded-xl shadow-md">
-                                <h3 className="text-lg font-bold mb-2">
-                                    Can I use both Nano Banana and Nano Banana 2?
-                                </h3>
+                                <h3 className="text-lg font-bold mb-2">How does the model handle text rendering and multiple languages?</h3>
                                 <p className="text-gray-600">
-                                    Yes! Once Nano Banana 2 launches, you'll be able to choose between both models directly from the image generator dropdown.
+                                    It features highly accurate text rendering — including complex scripts like Chinese — directly onto images. Built-in localization lets you render translated text into various languages, perfect for global marketing materials.
+                                </p>
+                            </div>
+                            <div className="bg-white p-6 rounded-xl shadow-md">
+                                <h3 className="text-lg font-bold mb-2">Is it cost-effective for high-volume SaaS applications?</h3>
+                                <p className="text-gray-600">
+                                    Absolutely. Nano Banana 2 reduces generation costs by approximately <strong>50%</strong> compared to the previous Pro model. Combined with lightning-fast speed, it is ideal for platforms requiring high-frequency API calls with healthy profit margins.
+                                </p>
+                            </div>
+                            <div className="bg-white p-6 rounded-xl shadow-md">
+                                <h3 className="text-lg font-bold mb-2">Can the model generate real-time, factually accurate content?</h3>
+                                <p className="text-gray-600">
+                                    Yes. Integrated with Gemini's real-world knowledge base and real-time web image search, it can generate images based on live data — such as rendering a window view reflecting the current weather of a specific location.
                                 </p>
                             </div>
                         </div>
