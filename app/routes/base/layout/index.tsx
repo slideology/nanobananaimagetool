@@ -7,7 +7,7 @@ export const loader = ({ }: Route.LoaderArgs) => {
   const header: BaseLayoutProps["header"] = {
     navLinks: [
       { label: "AI Photo Editor", to: "/" },
-      { label: "Seedance 2.0", to: "/video-generator" },
+      { label: "Seedance 2.0", to: "/seedance-2-0" },
       { label: "How it Works", to: "/#how-it-works" },
       { label: "Pricing", to: "/#pricing" },
       { label: "FAQs", to: "/#faqs" },
@@ -20,7 +20,7 @@ export const loader = ({ }: Route.LoaderArgs) => {
         label: "Tools",
         list: [
           { to: "/", label: "AI Photo Editor" },
-          { to: "/video-generator", label: "Seedance 2.0" },
+          { to: "/seedance-2-0", label: "Seedance 2.0" },
         ],
       },
       {

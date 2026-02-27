@@ -76,9 +76,6 @@ export default function PricingCard({ tier, mode, onPurchase, loading }: Pricing
                 {getBillingNote() && (
                     <p className="text-sm text-gray-500 mt-1">{getBillingNote()}</p>
                 )}
-                <p className="text-sm text-gray-600 mt-2">
-                    {pricing.credits} Credits {mode !== "once" && "/ Month"}
-                </p>
             </div>
 
             {/* Features List */}

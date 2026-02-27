@@ -6,7 +6,7 @@ import { useVideoGenerator } from "~/features/video_generator/useVideoGenerator"
 import { createCanonical } from "~/utils/meta";
 
 export function meta({ matches }: Route.MetaArgs) {
-    const canonical = createCanonical("/video-generator", matches[0].data.DOMAIN);
+    const canonical = createCanonical("/seedance-2-0", matches[0].data.DOMAIN);
 
     return [
         { title: "AI Video Generator | Seedance 2.0 - Create Amazing Videos" },
