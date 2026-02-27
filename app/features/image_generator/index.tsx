@@ -169,7 +169,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           id: "nano-banana",
           name: "Nano Banana",
           description: "🍌 Fast Generation | Affordable",
-          credits: 1
+          credits: 30
         }
       ],
       "image-to-image": [
@@ -177,7 +177,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           id: "nano-banana-edit",
           name: "Nano Banana Edit",
           description: "🍌 Fast Editing | Affordable",
-          credits: 1
+          credits: 30
         }
       ]
     };
@@ -407,8 +407,8 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         } catch { }
       }
 
-      // 检查总积分是否足够
-      if (totalCredits < 1) {
+      // 检查总积分是否足够（图片生成消耗 30 积分/张）
+      if (totalCredits < 30) {
         if (product && rechargeModalRef.current) {
           rechargeModalRef.current.open(user ? credits : 0);
         }
@@ -749,7 +749,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           ) : (
             <>
               <Wand2 size={16} />
-              <span>Generate - 1 Credit</span>
+              <span>Generate - 30 Credits</span>
             </>
           )}
         </button>

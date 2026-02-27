@@ -28,25 +28,24 @@ export function VideoGenerator({ product, onTaskCreated }: VideoGeneratorProps) 
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // 计算积分消耗
+    // 计算积分消耗（与后端 video-credits.ts 保持一致）
+    // 公式：基础积分 × 时长系数 × 音频系数
     const calculateCredits = useCallback(() => {
         const baseCredits: Record<SeedanceResolution, number> = {
-            '480p': 2,
-            '720p': 5,
-            '1080p': 10
+            '480p': 60,
+            '720p': 120,
+            '1080p': 180
         };
 
         const durationMultiplier: Record<SeedanceDuration, number> = {
             '4': 1.0,
-            '8': 1.5,
-            '12': 2.0
+            '8': 2.0,
+            '12': 3.0
         };
 
-        const audioExtra = generateAudio ? 2 : 0;
+        const audioMultiplier = generateAudio ? 2.0 : 1.0;
 
-        return Math.ceil(
-            baseCredits[resolution] * durationMultiplier[duration] + audioExtra
-        );
+        return baseCredits[resolution] * durationMultiplier[duration] * audioMultiplier;
     }, [resolution, duration, generateAudio]);
 
     // 处理图片上传
