@@ -7,6 +7,7 @@ export const loader = ({ }: Route.LoaderArgs) => {
   const header: BaseLayoutProps["header"] = {
     navLinks: [
       { label: "AI Photo Editor", to: "/" },
+      { label: "Nano Banana 2", to: "/nano-banana-2" },
       { label: "Seedance 2.0", to: "/seedance-2-0" },
       { label: "How it Works", to: "/#how-it-works" },
       { label: "Pricing", to: "/#pricing" },

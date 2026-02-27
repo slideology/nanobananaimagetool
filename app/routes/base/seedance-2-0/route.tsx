@@ -122,7 +122,7 @@ export default function VideoGeneratorPage() {
                                     How many credits does video generation cost?
                                 </h3>
                                 <p className="text-gray-600">
-                                    Credits vary based on resolution and duration: 480p costs 2-4 credits, 720p costs 5-10 credits, and 1080p costs 10-20 credits. Adding audio generation costs an additional 2 credits.
+                                    Credits are calculated as: base credits × duration multiplier × audio multiplier. Base credits by resolution: 480p = 60, 720p = 120, 1080p = 180. Duration multipliers: 4s = ×1, 8s = ×2, 12s = ×3. Enabling audio doubles the total (×2).
                                 </p>
                             </div>
                             <div className="bg-white p-6 rounded-xl shadow-md">
