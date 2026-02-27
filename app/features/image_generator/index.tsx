@@ -658,7 +658,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         <div className="mb-5 relative">
           <label className="block text-xs font-medium text-gray-600 mb-2">Model</label>
           <div className="flex items-center justify-between px-3 py-2.5 bg-gray-50 rounded-lg border border-transparent hover:bg-gray-100 transition-colors cursor-pointer">
-            <span className="text-sm font-medium text-gray-900">Nano Banana AI</span>
+            <span className="text-sm font-medium text-gray-900">Nano Banana</span>
             <ChevronDown size={16} className="text-gray-400" />
           </div>
         </div>
@@ -900,7 +900,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
             <div className="modal-box max-w-7xl w-full max-h-[90vh] p-0">
               {/* Header */}
               <div className="flex items-center justify-between p-6 border-b">
-                <h2 className="text-2xl font-bold">Nano Banana AI Generator</h2>
+                <h2 className="text-2xl font-bold">Nano Banana Generator</h2>
                 <button
                   className="btn btn-ghost btn-sm"
                   onClick={() => modalRef.current?.close()}
