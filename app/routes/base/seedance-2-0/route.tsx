@@ -9,11 +9,16 @@ export function meta({ matches }: Route.MetaArgs) {
     const canonical = createCanonical("/seedance-2-0", matches[0].data.DOMAIN);
 
     return [
-        { title: "AI Video Generator | Seedance 2.0 - Create Amazing Videos" },
+        { title: "Seedance 2.0: AI Video with Perfect Character Consistency" },
         {
             name: "description",
             content:
-                "Generate stunning AI videos with Seedance 2.0. Transform your ideas into professional videos with text prompts or reference images. Supports 1080p, native audio, and multi-shot narratives.",
+                "Master your video workflow with Seedance 2.0. Features 12 multimodal inputs, native lip-sync, AI storyboarding, and perfect cross-shot character consistency.",
+        },
+        {
+            name: "keywords",
+            content:
+                "Seedance 2.0, AI video generator, multimodal AI video, native lip-sync, AI storyboarding, character consistency AI, AI director tool, continuous AI video",
         },
         canonical,
     ];
@@ -110,35 +115,33 @@ export default function VideoGeneratorPage() {
                         </h2>
                         <div className="space-y-6">
                             <div className="bg-white p-6 rounded-xl shadow-md">
-                                <h3 className="text-lg font-bold mb-2">
-                                    What is Seedance 2.0?
-                                </h3>
+                                <h3 className="text-lg font-bold mb-2">How does the Seedance 2.0 multimodal reference system work?</h3>
                                 <p className="text-gray-600">
-                                    Seedance 2.0 is ByteDance's advanced AI video model designed for creating coherent multi-shot videos with native audio support and high-definition output up to 1080p.
+                                    Seedance 2.0 replaces random generation with a highly controllable workflow. It supports mixing up to <strong>12 references</strong> (text, images, video, and audio). Using intuitive "@" tags (e.g., "@Image1 for character design"), creators can precisely assign each element to guide the final output.
                                 </p>
                             </div>
                             <div className="bg-white p-6 rounded-xl shadow-md">
-                                <h3 className="text-lg font-bold mb-2">
-                                    How many credits does video generation cost?
-                                </h3>
+                                <h3 className="text-lg font-bold mb-2">Can Seedance 2.0 generate videos with native lip-sync and audio?</h3>
                                 <p className="text-gray-600">
-                                    Credits are calculated as: base credits × duration multiplier × audio multiplier. Base credits by resolution: 480p = 60, 720p = 120, 1080p = 180. Duration multipliers: 4s = ×1, 8s = ×2, 12s = ×3. Enabling audio doubles the total (×2).
+                                    Yes. Built on a dual-branch diffusion transformer architecture, the model natively synchronizes audio and visual signals from the ground up — ensuring precise lip-syncing for dialogue and perfectly aligned sound effects down to the millisecond.
                                 </p>
                             </div>
                             <div className="bg-white p-6 rounded-xl shadow-md">
-                                <h3 className="text-lg font-bold mb-2">
-                                    Can I use reference images?
-                                </h3>
+                                <h3 className="text-lg font-bold mb-2">Is it suitable for storyboarding and directing narrative series?</h3>
                                 <p className="text-gray-600">
-                                    Yes! You can upload up to 2 reference images (max 10MB each) to guide the video generation. The AI will use these images to maintain visual consistency.
+                                    Absolutely. Seedance 2.0 acts as an AI director assistant. From a single text prompt, it automatically plans camera language — from wide shots to close-ups — and generates seamless montage sequences, making it ideal for continuous drama production.
                                 </p>
                             </div>
                             <div className="bg-white p-6 rounded-xl shadow-md">
-                                <h3 className="text-lg font-bold mb-2">
-                                    How long does it take to generate a video?
-                                </h3>
+                                <h3 className="text-lg font-bold mb-2">How well does it maintain character consistency across different shots?</h3>
                                 <p className="text-gray-600">
-                                    Video generation typically takes 1-5 minutes depending on the complexity, resolution, and duration. You'll receive real-time progress updates.
+                                    Exceptionally well. Using proprietary character-environment perception technology, Seedance 2.0 locks onto facial features, clothing textures, and lighting across scene transitions — pushing cross-shot usability rates <strong>above 90%</strong> and eliminating the common "face-changing" issue.
+                                </p>
+                            </div>
+                            <div className="bg-white p-6 rounded-xl shadow-md">
+                                <h3 className="text-lg font-bold mb-2">How realistic are the physics and complex movements?</h3>
+                                <p className="text-gray-600">
+                                    Highly realistic. The model accurately reproduces complex physical rules — such as human interactions, collision inertia, and the natural gravity of clothing in the wind — resulting in <strong>live-action-level realism</strong>.
                                 </p>
                             </div>
                         </div>
