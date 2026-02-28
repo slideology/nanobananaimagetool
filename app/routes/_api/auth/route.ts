@@ -47,21 +47,18 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
       credits = balance;
     }
 
+    // ✨ 优化：只有当 Session 真正发生变化时才调用 commitSession
+    // 默认情况下 loader 只是读取用户信息，不应该触发 KV 写入（节省 1000次/天 的配额）
     return Response.json(
-      { profile: user_info, credits },
-      {
-        headers: {
-          "Set-Cookie": await commitSession(session),
-        },
-      }
+      { profile: user_info, credits }
     );
   } catch (error) {
     console.error("Auth loader error:", error);
-    
+
     if (error instanceof BaseError) {
       return ErrorHandler.createErrorResponse(error);
     }
-    
+
     const systemError = new EnvironmentVariableMissingError(
       "USER_SESSION",
       { originalError: error instanceof Error ? error.message : "Unknown error" }
@@ -73,14 +70,14 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
 export const action = async ({ request, context }: Route.ActionArgs) => {
   try {
     const method = request.method.toLowerCase();
-    
+
     // 处理退出登录请求
     if (method === "delete") {
       const [session, { commitSession, destroySession }] = await getSessionHandler(request);
-      
+
       // 清除session中的用户信息
       session.unset("user");
-      
+
       return Response.json(
         { success: true, message: "Logged out successfully" },
         {
@@ -90,7 +87,7 @@ export const action = async ({ request, context }: Route.ActionArgs) => {
         }
       );
     }
-    
+
     if (method !== "post") {
       throw new Response("Method Not Allowed", { status: 405 });
     }
@@ -137,11 +134,11 @@ export const action = async ({ request, context }: Route.ActionArgs) => {
     );
   } catch (error) {
     console.error("Auth action error:", error);
-    
+
     if (error instanceof BaseError) {
       return ErrorHandler.createErrorResponse(error);
     }
-    
+
     const authError = new UserNotAuthenticatedError(
       { originalError: error instanceof Error ? error.message : "Unknown error" }
     );

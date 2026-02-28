@@ -8,16 +8,6 @@
 	"main": "./workers/app.ts",
 	"compatibility_date": "2024-09-23",
 	"upload_source_maps": true,
-	// "routes": [
-	//   {
-	//     "pattern": "example.com",
-	//     "custom_domain": true
-	//   },
-	//   {
-	//     "pattern": "www.example.com",
-	//     "custom_domain": true
-	//   }
-	// ],
 	"vars": {
 		"DOMAIN": "https://nanobananaimage.org",
 		"CDN_URL": "https://pub-cb92e8dab89d452aadee075624e92b5a.r2.dev",
