@@ -14,6 +14,7 @@ import { useErrorHandler, useFileValidation, usePromptValidation } from "~/hooks
 
 import { GoogleOAuth, type GoogleOAuthBtnRef } from "~/features/oauth";
 import { CreditRechargeModal, type CreditRechargeModalRef, TurnstileVerification } from "~/components/ui";
+import { AuthPromptModal, type AuthPromptModalRef } from "~/components/ui/auth-prompt-modal";
 import { X, ImageIcon, Type, Wand2, ChevronDown, Check } from "lucide-react";
 import { Image } from "~/components/common";
 
@@ -66,17 +67,15 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
     const loginRef = useRef<GoogleOAuthBtnRef>(null);
     const modalRef = useRef<HTMLDialogElement>(null);
     const rechargeModalRef = useRef<CreditRechargeModalRef>(null);
+    const authPromptModalRef = useRef<AuthPromptModalRef>(null);
 
     const [visible, setVisible] = useState(false);
     const user = useUser((state) => state.user);
     const credits = useUser((state) => state.credits);
     const setCredits = useUser((state) => state.setCredits);
 
-    // 临时积分相关状态
+    // 总积分相关状态
     const getTotalCredits = useUser((state) => state.getTotalCredits);
-    const useGuestCredit = useUser((state) => state.useGuestCredit);
-    const rollbackGuestCredit = useUser((state) => state.rollbackGuestCredit);
-    const getGuestCreditStatus = useUser((state) => state.getGuestCreditStatus);
 
     // 监听充值弹窗状态
     // 分开选择，避免返回新对象导致的无意义渲染
@@ -369,32 +368,17 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         return;
       }
 
-      // 获取当前总积分（包括临时积分）
+      // 获取当前总积分
       const totalCredits = getTotalCredits();
-      const guestStatus = getGuestCreditStatus();
 
-      // 如果用户未登录且没有临时积分，提示登录
-      if (!user && !guestStatus.hasCredits) {
-        if (loginRef.current) {
-          FrontendLogger.logDataCollectionError({
-            type: 'authentication_error',
-            message: 'User not authenticated and no guest credits',
-            code: 'UNAUTHORIZED'
-          });
-          loginRef.current.login();
-        }
-        return;
-      }
-
-      // 如果用户未登录且使用image-to-image模式，需要Turnstile验证
-      if (!user && mode === "image-to-image" && !turnstileToken) {
-        setShowVerification(true);
-        setVerificationError("");
+      // 如果用户未登录，弹出登录提示框
+      if (!user) {
         FrontendLogger.logDataCollectionError({
-          type: 'verification_required',
-          message: 'Turnstile verification required for guest image upload',
-          code: 'VERIFICATION_REQUIRED'
+          type: 'authentication_error',
+          message: 'User not authenticated',
+          code: 'UNAUTHORIZED'
         });
+        authPromptModalRef.current?.open();
         return;
       }
 
@@ -409,22 +393,11 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         } catch { }
       }
 
-      // 检查总积分是否足够（图片生成消耗 30 积分/张）
       if (totalCredits < 30) {
         if (product && rechargeModalRef.current) {
-          rechargeModalRef.current.open(user ? credits : 0);
+          rechargeModalRef.current.open(credits);
         }
         return;
-      }
-
-      // 🔒 时序优化：预扣积分，API失败时回滚
-      let guestCreditUsed = false;
-      if (!user && guestStatus.hasCredits) {
-        guestCreditUsed = useGuestCredit();
-        if (!guestCreditUsed) {
-          console.error("Failed to use guest credit");
-          return;
-        }
       }
 
       setSubmitting(true);
@@ -515,8 +488,6 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           prompt,
           type: selectedModel,
           ...(imageUrl && { image: imageUrl }),
-          // 如果用户未登录，传递临时积分状态
-          ...(!user && { hasGuestCredit: guestStatus.hasCredits })
         };
 
         const res = await fetch("/api/create/ai-image", {
@@ -557,11 +528,10 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           success: true
         });
 
-        // 处理积分扣除：如果用户已登录，更新持久积分；临时积分已预扣，无需再次扣除
+        // 处理积分扣除：如果用户已登录，更新持久积分
         if (user) {
           setCredits(consumptionCredits.remainingBalance);
         }
-        // 注意：未登录用户的临时积分已在API调用前预扣，这里无需再次处理
 
         // 🔧 修复状态设置时序：先设置任务，再设置done状态
         const tasksWithProgress = tasks.map((item: AiImageResult["tasks"][number]) => ({
@@ -584,12 +554,6 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         clearError();
 
       } catch (error: any) {
-        // 🔒 时序优化：API失败时回滚临时积分
-        if (guestCreditUsed && !user) {
-          const rollbackSuccess = rollbackGuestCredit();
-          console.log("Guest credit rollback:", rollbackSuccess ? "success" : "failed");
-        }
-
         // 记录API请求失败
         const apiEndTime = performance.now();
         FrontendLogger.logApiRequestComplete({
@@ -606,8 +570,6 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           selectedModel,
           hasFile: !!file,
           promptLength: prompt.length,
-          guestCreditUsed,
-          rollbackAttempted: guestCreditUsed && !user
         });
 
         handleError(error, "Image generation");
@@ -759,7 +721,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
             {prompt.length}/1000
           </div>
         </div>
-
+        <AuthPromptModal ref={authPromptModalRef} />
         {/* Generate Button */}
         <button
           onClick={handleSubmit}
@@ -1058,6 +1020,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                   )}
                 </div>
               </div>
+              <AuthPromptModal ref={authPromptModalRef} />
             </div>
           )}
         </dialog>

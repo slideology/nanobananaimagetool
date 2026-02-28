@@ -7,6 +7,9 @@ import type {
     SeedanceResolution,
     SeedanceDuration
 } from './types';
+import { useUser } from '~/store';
+import { AuthPromptModal, type AuthPromptModalRef } from '~/components/ui/auth-prompt-modal';
+import { CreditRechargeModal, type CreditRechargeModalRef } from '~/components/ui/credit-recharge-modal';
 
 /**
  * Seedance 2.0 AI 视频生成器组件
@@ -27,6 +30,11 @@ export function VideoGenerator({ product, onTaskCreated }: VideoGeneratorProps) 
     const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const authPromptModalRef = useRef<AuthPromptModalRef>(null);
+    const rechargeModalRef = useRef<CreditRechargeModalRef>(null);
+
+    const user = useUser(state => state.user);
+    const credits = useUser(state => state.credits);
 
     // 计算积分消耗（与后端 video-credits.ts 保持一致）
     // 公式：基础积分 × 时长系数 × 音频系数
@@ -76,6 +84,17 @@ export function VideoGenerator({ product, onTaskCreated }: VideoGeneratorProps) 
     const handleSubmit = useCallback(async () => {
         if (!prompt || prompt.length < 3 || prompt.length > 2500) {
             setError('提示词长度必须在 3-2500 字符之间');
+            return;
+        }
+
+        if (!user) {
+            authPromptModalRef.current?.open();
+            return;
+        }
+
+        const estimatedCredits = calculateCredits();
+        if (credits < estimatedCredits) {
+            rechargeModalRef.current?.open(credits);
             return;
         }
 
@@ -406,6 +425,9 @@ export function VideoGenerator({ product, onTaskCreated }: VideoGeneratorProps) 
                     `Generate - ${estimatedCredits} Credits`
                 )}
             </button>
+
+            <AuthPromptModal ref={authPromptModalRef} />
+            {product && <CreditRechargeModal ref={rechargeModalRef} product={product} />}
         </div>
     );
 }

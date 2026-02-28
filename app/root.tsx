@@ -63,7 +63,6 @@ export default function App({ }: Route.ComponentProps) {
   const setUser = useUser((state) => state.setUser);
   const setCredits = useUser((state) => state.setCredits);
   const credits = useUser((state) => state.credits);
-  const initGuestCredits = useUser((state) => state.initGuestCredits);
   const [toastLocked, setToastLocked] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -83,9 +82,6 @@ export default function App({ }: Route.ComponentProps) {
   });
 
   useEffect(() => {
-    // 初始化临时积分状态
-    initGuestCredits();
-
     const initializeAuth = async () => {
       try {
         const res = await fetch("/api/auth");
@@ -122,7 +118,7 @@ export default function App({ }: Route.ComponentProps) {
     };
 
     initializeAuth();
-  }, [handleError, setUser, setCredits, initGuestCredits]);
+  }, [handleError, setUser, setCredits]);
 
   return (
     <>

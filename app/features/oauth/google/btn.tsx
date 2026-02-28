@@ -27,7 +27,7 @@ export const GoogleOAuthBtn = forwardRef<
     },
     cancel_on_tap_outside: false,
     disabled: !useOneTap,
-    use_fedcm_for_prompt: false,
+    use_fedcm_for_prompt: true,
   });
 
   // ✅ Sign In 按钮：弹出 Google OAuth 小窗口，不打开新标签页

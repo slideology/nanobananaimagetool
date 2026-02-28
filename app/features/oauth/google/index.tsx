@@ -44,7 +44,7 @@ export const GoogleOAuth = forwardRef<GoogleOAuthBtnRef, GoogleOAuthProps>(
     }) => {
       // 获取临时积分使用状态
       const guestStatus = getGuestCreditStatus();
-      
+
       const values = {
         type: "google",
         data: {
@@ -95,7 +95,7 @@ export const GoogleOAuth = forwardRef<GoogleOAuthBtnRef, GoogleOAuthProps>(
           ref={ref}
           loading={signing}
           onSuccess={handleSuccess}
-          useOneTap={false}
+          useOneTap={useOneTap}
         />
       </GoogleOAuthProvider>
     );
