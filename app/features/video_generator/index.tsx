@@ -15,7 +15,7 @@ import { CreditRechargeModal, type CreditRechargeModalRef } from '~/components/u
  * Seedance 2.0 AI 视频生成器组件
  * 精确复原参考设计
  */
-export function VideoGenerator({ product, onTaskCreated }: VideoGeneratorProps) {
+export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
     // 状态管理
     const [mode, setMode] = useState<VideoMode>('text-to-video');
     const [prompt, setPrompt] = useState('');
@@ -427,7 +427,7 @@ export function VideoGenerator({ product, onTaskCreated }: VideoGeneratorProps) 
             </button>
 
             <AuthPromptModal ref={authPromptModalRef} />
-            {product && <CreditRechargeModal ref={rechargeModalRef} product={product} />}
+            <CreditRechargeModal ref={rechargeModalRef} />
         </div>
     );
 }

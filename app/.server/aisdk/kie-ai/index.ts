@@ -10,6 +10,7 @@ import type {
   KontextTask,
   CreateNanoBananaTaskOptions,
   CreateNanoBananaEditTaskOptions,
+  CreateNanoBanana2TaskOptions,
   CreateNanoBananaUnifiedOptions,
   NanoBananaTaskDetail,
   CreateSeedanceTaskOptions,
@@ -26,6 +27,7 @@ export type { CreateKontextOptions, KontextTask };
 export type {
   CreateNanoBananaTaskOptions,
   CreateNanoBananaEditTaskOptions,
+  CreateNanoBanana2TaskOptions,
   CreateNanoBananaUnifiedOptions,
   NanoBananaTaskDetail,
 };
@@ -267,9 +269,7 @@ export class KieAI {
   }
 
   /**
-   * 创建 Nano Banana 图像编辑任务
-   * 使用 google/nano-banana-edit 模型，支持 Image-to-Image
-   * 注意：参数验证已移动到业务层进行
+   * 创建 Nano Banana 编辑图像任务
    */
   async createNanoBananaEditTask(payload: CreateNanoBananaEditTaskOptions) {
     const result = await this.fetch<CreateTaskResult>(
@@ -294,6 +294,32 @@ export class KieAI {
   }
 
   /**
+   * 创建 Nano Banana 2 图像生成任务 (支持高级功能和多图)
+   */
+  async createNanoBanana2Task(payload: CreateNanoBanana2TaskOptions) {
+    const result = await this.fetch<CreateTaskResult>(
+      "/api/v1/jobs/createTask",
+      {
+        model: "nano-banana-2",
+        callBackUrl: payload.callBackUrl,
+        input: {
+          prompt: payload.prompt,
+          ...(payload.image_input ? { image_input: payload.image_input } : {}),
+          ...(payload.aspect_ratio ? { aspect_ratio: payload.aspect_ratio } : { aspect_ratio: "auto" }),
+          ...(payload.google_search !== undefined ? { google_search: payload.google_search } : { google_search: false }),
+          ...(payload.resolution ? { resolution: payload.resolution } : { resolution: "1K" }),
+          ...(payload.output_format ? { output_format: payload.output_format } : { output_format: "jpg" })
+        }
+      },
+      {
+        method: "post",
+      }
+    );
+
+    return result.data;
+  }
+
+  /**
    * 统一的 Nano Banana 任务创建接口
    * 根据模式自动选择正确的API调用
    */
@@ -303,6 +329,8 @@ export class KieAI {
         return this.createNanoBananaTask(request.options);
       case "image-to-image":
         return this.createNanoBananaEditTask(request.options);
+      case "nano-banana-2":
+        return this.createNanoBanana2Task(request.options);
       default:
         throw new Error(`Unsupported Nano Banana mode: ${(request as any).mode}`);
     }

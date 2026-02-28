@@ -9,13 +9,6 @@ export type SeedanceResolution = '480p' | '720p' | '1080p';
 export type SeedanceDuration = '4' | '8' | '12';
 
 export interface VideoGeneratorProps {
-    product?: {
-        price: number;
-        credits: number;
-        product_id: string;
-        product_name: string;
-        type: "once" | "monthly" | "yearly";
-    };
     onTaskCreated?: (taskData: {
         task_no: string;
         prompt: string;

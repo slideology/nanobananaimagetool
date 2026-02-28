@@ -6,7 +6,7 @@ import { createOrder } from "~/.server/services/order";
 import { ErrorHandler } from "~/.server/utils/error-handler";
 import { BaseError, UserNotAuthenticatedError, RequiredParameterMissingError } from "~/.server/types/errors";
 
-import { PRODUCTS_LIST } from "~/.server/constants";
+import { PRODUCTS_LIST } from "~/constants/product";
 
 export async function action({ request, context }: Route.ActionArgs) {
   try {
@@ -18,7 +18,9 @@ export async function action({ request, context }: Route.ActionArgs) {
       return ErrorHandler.createErrorResponse(paramError);
     }
 
-    const product = PRODUCTS_LIST.find((item) => item.product_id === product_id);
+    const product = PRODUCTS_LIST.find((item) =>
+      item.product_id === product_id || item.test_product_id === product_id
+    );
     if (!product) {
       const paramError = new RequiredParameterMissingError("product_id", {
         message: "产品不存在",
@@ -34,17 +36,21 @@ export async function action({ request, context }: Route.ActionArgs) {
       return ErrorHandler.createErrorResponse(authError);
     }
 
+    const isTestProvider = !!context.cloudflare.env.CREEM_TEST_KEY;
+    const resolvedProductId = isTestProvider ? (product.test_product_id || product.product_id) : product.product_id;
+
     const result = await createOrder(
       {
         credits: product.credits,
         price: product.price,
-        product_id: product.product_id,
+        product_id: resolvedProductId,
         product_name: product.product_name,
         type: product.type as "once" | "monthly" | "yearly",
         plan_id: plan_id, // Pass the plan_id from request
       },
       user,
-      context.cloudflare.env
+      context.cloudflare.env,
+      new URL(request.url).origin
     );
 
     return data(result);

@@ -41,6 +41,7 @@ export interface PricingSectionProps {
   onPurchase: (tier: PricingTier, mode: PaymentMode) => void;
   onStartFree?: () => void;
   loading?: boolean;
+  isModal?: boolean;
 }
 
 export default function PricingSection({
@@ -49,7 +50,8 @@ export default function PricingSection({
   tiers,
   onPurchase,
   onStartFree,
-  loading
+  loading,
+  isModal
 }: PricingSectionProps) {
   const [paymentMode, setPaymentMode] = useState<PaymentMode>("yearly");
 
@@ -62,17 +64,23 @@ export default function PricingSection({
   }, [onStartFree]);
 
   return (
-    <div className="container mx-auto px-4 py-12 md:py-18 lg:py-24 relative">
-      <div id="pricing" className="absolute -top-24" />
+    <div className={`container mx-auto px-4 relative ${isModal ? 'py-6 md:py-8 lg:py-10' : 'py-12 md:py-18 lg:py-24'}`}>
+      {!isModal && <div id="pricing" className="absolute -top-24" />}
 
-      <div className="text-center mb-8 md:mb-12">
-        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
-          {title}
-        </h2>
-        <p className="text-base md:text-lg text-gray-600 max-w-3xl mx-auto">
-          {subtitle}
-        </p>
-      </div>
+      {(title || subtitle) && (
+        <div className="text-center mb-8 md:mb-12">
+          {title && (
+            <h2 className={`font-bold text-gray-900 mb-4 ${isModal ? 'text-2xl md:text-3xl' : 'text-3xl md:text-4xl lg:text-5xl'}`}>
+              {title}
+            </h2>
+          )}
+          {subtitle && (
+            <p className="text-base md:text-lg text-gray-600 max-w-3xl mx-auto">
+              {subtitle}
+            </p>
+          )}
+        </div>
+      )}
 
       <PaymentModeToggle value={paymentMode} onChange={setPaymentMode} />
 
@@ -98,7 +106,7 @@ export default function PricingSection({
         ))}
       </div>
 
-      <FreePlanBanner onStartFree={handleStartFree} />
+      {!isModal && <FreePlanBanner onStartFree={handleStartFree} />}
     </div>
   );
 }

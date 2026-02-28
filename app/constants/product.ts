@@ -2,6 +2,7 @@ export interface PRODUCT {
   price: number;
   credits: number;
   product_id: string;
+  test_product_id?: string;
   product_name: string;
   type: "once" | "monthly" | "yearly";
 }
@@ -15,6 +16,7 @@ export interface PricingMode {
   price: number; // 显示价格（月付显示月价，年付显示月均价）
   credits: number; // 积分数量
   product_id: string; // Stripe 产品 ID
+  test_product_id?: string; // 测试环境专用的产品 ID
   billedAmount?: number; // 实际账单金额（年付时使用）
   savingPercent?: number; // 节省百分比
 }
@@ -51,19 +53,22 @@ export const PRICING_TIERS: PricingTier[] = [
       monthly: {
         price: 9.99,
         credits: 4000,
-        product_id: import.meta.env.PROD ? "prod_3mlkgk9ZckjfOsia2nrYn4" : "prod_7c1K73uJ8fqnL5eU8L6OQt"
+        product_id: "prod_3mlkgk9ZckjfOsia2nrYn4",
+        test_product_id: "prod_7c1K73uJ8fqnL5eU8L6OQt"
       },
       yearly: {
         price: 8.99,
         credits: 4000,
-        product_id: import.meta.env.PROD ? "prod_6mfspjIbfsLo7wNzWGTrun" : "prod_1NWDRyPgyVPSFWJfuDp8pS",
+        product_id: "prod_6mfspjIbfsLo7wNzWGTrun",
+        test_product_id: "prod_1NWDRyPgyVPSFWJfuDp8pS",
         billedAmount: 107.88,
         savingPercent: 10
       },
       once: {
         price: 9.99,
         credits: 3000,
-        product_id: import.meta.env.PROD ? "prod_1Zl2095dq4EGjfNpKCepNo" : "prod_9CgN0oI7dzK79zDY4C65X"
+        product_id: "prod_1Zl2095dq4EGjfNpKCepNo",
+        test_product_id: "prod_9CgN0oI7dzK79zDY4C65X"
       }
     },
     // 注意：首条 Credits 文案由 PricingCard 根据 mode 动态渲染
@@ -90,19 +95,22 @@ export const PRICING_TIERS: PricingTier[] = [
       monthly: {
         price: 19.99,
         credits: 9000,
-        product_id: import.meta.env.PROD ? "prod_d1TVcAaMuggDkGREVqIhG" : "prod_o8uTOr8elcWzcaNJPKpxe"
+        product_id: "prod_d1TVcAaMuggDkGREVqIhG",
+        test_product_id: "prod_o8uTOr8elcWzcaNJPKpxe"
       },
       yearly: {
         price: 14.99,
         credits: 8000,
-        product_id: import.meta.env.PROD ? "prod_7Pbprhm0TqipTa0CFUzfbe" : "prod_5qwb7z8pqv3aseabp0myF6",
+        product_id: "prod_7Pbprhm0TqipTa0CFUzfbe",
+        test_product_id: "prod_5qwb7z8pqv3aseabp0myF6",
         billedAmount: 179.88,
         savingPercent: 25
       },
       once: {
         price: 39.99,
         credits: 14000,
-        product_id: import.meta.env.PROD ? "prod_67A1jDLQeXMgg5TRRmdfBM" : "prod_7Ue9GgnBYS0HpB4sTOTdEq"
+        product_id: "prod_67A1jDLQeXMgg5TRRmdfBM",
+        test_product_id: "prod_7Ue9GgnBYS0HpB4sTOTdEq"
       }
     },
     features: [
@@ -128,19 +136,22 @@ export const PRICING_TIERS: PricingTier[] = [
       monthly: {
         price: 39.99,
         credits: 16000,
-        product_id: import.meta.env.PROD ? "prod_3BUTvTKGHVCkRT9NofrZmP" : "prod_Wa1F8nhQUn1pVTbzxX9yN"
+        product_id: "prod_3BUTvTKGHVCkRT9NofrZmP",
+        test_product_id: "prod_Wa1F8nhQUn1pVTbzxX9yN"
       },
       yearly: {
         price: 29.99,
         credits: 15000,
-        product_id: import.meta.env.PROD ? "prod_4yDKGwwqMqUPwzOz33LLTP" : "prod_YATVzoRcg4Rl3RO74gDV7",
+        product_id: "prod_4yDKGwwqMqUPwzOz33LLTP",
+        test_product_id: "prod_YATVzoRcg4Rl3RO74gDV7",
         billedAmount: 359.88,
         savingPercent: 25
       },
       once: {
         price: 99.99,
         credits: 40000,
-        product_id: import.meta.env.PROD ? "prod_5KEqomw5RDaHLxpCPEQtq5" : "prod_67pU5p7n8uwvw3IXdAVZaw"
+        product_id: "prod_5KEqomw5RDaHLxpCPEQtq5",
+        test_product_id: "prod_67pU5p7n8uwvw3IXdAVZaw"
       }
     },
     features: [
@@ -182,6 +193,7 @@ function flattenPricingTiers(): PRODUCT[] {
       price: tier.pricing.monthly.price,
       credits: tier.pricing.monthly.credits,
       product_id: tier.pricing.monthly.product_id,
+      test_product_id: tier.pricing.monthly.test_product_id,
       product_name: `${tier.name} Plan - Monthly Subscription`,
       type: "monthly"
     });
@@ -191,6 +203,7 @@ function flattenPricingTiers(): PRODUCT[] {
       price: tier.pricing.yearly.billedAmount || tier.pricing.yearly.price * 12,
       credits: tier.pricing.yearly.credits,
       product_id: tier.pricing.yearly.product_id,
+      test_product_id: tier.pricing.yearly.test_product_id,
       product_name: `${tier.name} Plan - Yearly Subscription`,
       type: "yearly"
     });
@@ -200,6 +213,7 @@ function flattenPricingTiers(): PRODUCT[] {
       price: tier.pricing.once.price,
       credits: tier.pricing.once.credits,
       product_id: tier.pricing.once.product_id,
+      test_product_id: tier.pricing.once.test_product_id,
       product_name: `${tier.name} Plan - One-Time Purchase`,
       type: "once"
     });

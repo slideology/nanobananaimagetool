@@ -10,7 +10,8 @@ import {
   getAiTaskByTaskId,
 } from "~/.server/model/ai_tasks";
 import type { InsertAiTask, AiTask, User } from "~/.server/libs/db";
-import { consumptionsCredits } from "./credits";
+import { consumptionsCredits, rollbackCredits } from "./credits";
+import { listConsumptionsBySourceId } from "~/.server/model/credit_consumptions";
 import { uploadFiles, downloadFilesToBucket } from "./r2-bucket";
 import {
   KieAI,
@@ -215,6 +216,12 @@ export const updateTaskStatus = async (env: Env, taskNo: AiTask["task_no"] | AiT
           fail_reason: "Result URL not found in response",
         });
         newTask = aiTask;
+
+        // 积分回滚
+        if (task.task_id) {
+          const consumptions = await listConsumptionsBySourceId(task.task_id);
+          if (consumptions.length > 0) await rollbackCredits(consumptions, `Task Failed (URL Not Found): ${task.task_no}`);
+        }
       } else {
         // 生产环境下下载到本地存储
         if (import.meta.env.PROD) {
@@ -248,6 +255,12 @@ export const updateTaskStatus = async (env: Env, taskNo: AiTask["task_no"] | AiT
         fail_reason: result.failMsg || "Nano Banana generation failed",
         result_data: result,
       });
+
+      // 积分回滚
+      if (task.task_id) {
+        const consumptions = await listConsumptionsBySourceId(task.task_id);
+        if (consumptions.length > 0) await rollbackCredits(consumptions, `Task Failed: ${task.task_no}`);
+      }
 
       return { task: transformResult(newTask), progress: 100 };
     }
@@ -285,6 +298,12 @@ export const updateTaskStatus = async (env: Env, taskNo: AiTask["task_no"] | AiT
           fail_reason: "Video URL not found in response",
         });
         newTask = aiTask;
+
+        // 积分回滚
+        if (task.task_id) {
+          const consumptions = await listConsumptionsBySourceId(task.task_id);
+          if (consumptions.length > 0) await rollbackCredits(consumptions, `Task Failed (Video URL Not Found): ${task.task_no}`);
+        }
       } else {
         // 生产环境下下载到本地R2存储 (result/ai-video)
         if (import.meta.env.PROD) {
@@ -327,6 +346,12 @@ export const updateTaskStatus = async (env: Env, taskNo: AiTask["task_no"] | AiT
         fail_reason: result.failMsg || "Seedance video generation failed",
         result_data: result,
       });
+
+      // 积分回滚
+      if (task.task_id) {
+        const consumptions = await listConsumptionsBySourceId(task.task_id);
+        if (consumptions.length > 0) await rollbackCredits(consumptions, `Task Failed: ${task.task_no}`);
+      }
 
       return { task: transformResult(newTask), progress: 100 };
     }
@@ -390,10 +415,15 @@ export const createAiImage = async (
       cdnUrl: env.CDN_URL
     }
   });
-  const { mode, image, prompt, type, width, height } = value;
+  const { mode, image, image_urls, prompt, type, width, height, aspect_ratio, google_search, resolution, output_format } = value;
 
-  // 图片生成固定消耗30个积分（Nano Banana模型）
-  const taskCredits = 30;
+  // 图片生成消耗积分计算
+  let taskCredits = 30;
+  if (type === "nano-banana-2") {
+    if (resolution === "4K") taskCredits = 120;
+    else if (resolution === "2K") taskCredits = 80;
+    else taskCredits = 50; // default 1K
+  }
 
   // 🔥 重要优化：提前验证积分但不扣除，避免API失败后积分已被消耗
   BusinessLogicLogger.logCreditValidation(requestId, {
@@ -416,11 +446,19 @@ export const createAiImage = async (
   });
 
   let fileUrl: string | undefined;
+  let fileUrls: string[] | undefined;
 
-  // 如果是 image-to-image 模式，直接使用传入的图片URL
-  if (mode === "image-to-image" && image) {
-    fileUrl = image; // 现在image是URL字符串
+  // 处理输入图片（支持单图遗留字段或新版多图URL字段）
+  if (image_urls && image_urls.length > 0) {
+    fileUrls = image_urls;
+    fileUrl = image_urls[0]; // 向下兼容旧逻辑使用的首图
+  } else if (image) {
+    fileUrl = image;
+    fileUrls = [image];
+  }
 
+  // 如果是 image-to-image 模式，记录图片URL
+  if ((mode === "image-to-image" || mode === "nano-banana-2") && fileUrls && fileUrls.length > 0) {
     BusinessLogicLogger.logImageUploadToR2(requestId, {
       fileName: "external_image",
       fileSize: 0, // 外部URL无法获取文件大小
@@ -429,13 +467,13 @@ export const createAiImage = async (
     });
   }
 
-  const aspect = "1:1"; // 默认正方形
+  const aspect = aspect_ratio || "1:1"; // 默认正方形
   const callbakUrl = new URL("/webhooks/kie-image", env.DOMAIN).toString();
 
   let insertPayload: InsertAiTask;
   let kieResponse: any; // 存储API调用结果
 
-  if (type === "nano-banana" || type === "nano-banana-edit") {
+  if (type === "nano-banana" || type === "nano-banana-edit" || type === "nano-banana-2") {
     // Nano Banana 模型处理 - 在业务层进行参数验证
     if (type === "nano-banana-edit") {
       // Image-to-Image 模式验证
@@ -479,7 +517,18 @@ export const createAiImage = async (
     const kieAI = new KieAI({ accessKey: env.KIEAI_APIKEY });
 
     try {
-      if (type === "nano-banana") {
+      if (type === "nano-banana-2") {
+        console.log("🌟 调用 Nano Banana 2 API...", { resolution, aspect_ratio });
+        kieResponse = await kieAI.createNanoBanana2Task({
+          prompt: fullPrompt,
+          ...(fileUrls ? { image_input: fileUrls } : {}),
+          ...(aspect_ratio ? { aspect_ratio: aspect_ratio } : {}),
+          ...(google_search !== undefined ? { google_search: google_search } : {}),
+          ...(resolution ? { resolution: resolution as any } : {}),
+          ...(output_format ? { output_format: output_format as any } : {}),
+          callBackUrl: import.meta.env.PROD ? callbakUrl : undefined,
+        });
+      } else if (type === "nano-banana") {
         // Text-to-Image 模式
         console.log("💭 调用 Text-to-Image API...");
         kieResponse = await kieAI.createNanoBananaTask({
@@ -558,15 +607,24 @@ export const createAiImage = async (
     const inputParams = {
       mode,
       image: fileUrl,
+      image_urls: fileUrls,
       prompt,
       width,
       height,
+      aspect_ratio,
+      google_search,
+      resolution,
+      output_format
     };
 
     const ext = {
       mode,
       prompt_preview: (prompt || '').substring(0, 100),
     };
+
+    let modelParam = "google/nano-banana";
+    if (type === "nano-banana-edit") modelParam = "google/nano-banana-edit";
+    else if (type === "nano-banana-2") modelParam = "nano-banana-2";
 
     insertPayload = {
       user_id: user.id,
@@ -578,9 +636,13 @@ export const createAiImage = async (
       provider: "kie_nano_banana",
       task_id: kieResponse.taskId,
       request_param: {
-        model: type === "nano-banana" ? "google/nano-banana" : "google/nano-banana-edit",
+        model: modelParam,
         prompt: fullPrompt,
-        ...(fileUrl ? { image_urls: [fileUrl] } : {}),
+        ...(fileUrls ? { image_input: fileUrls, image_urls: fileUrls } : {}),
+        ...(aspect_ratio ? { aspect_ratio } : {}),
+        ...(google_search !== undefined ? { google_search } : {}),
+        ...(resolution ? { resolution } : {}),
+        ...(output_format ? { output_format } : {}),
         callBackUrl: import.meta.env.PROD ? callbakUrl : undefined,
       },
     };
@@ -597,7 +659,7 @@ export const createAiImage = async (
   }
 
   // 如果不是nano-banana模型，抛出错误
-  throw new UnsupportedFileFormatError(type, ["nano-banana", "nano-banana-edit"]);
+  throw new UnsupportedFileFormatError(type, ["nano-banana", "nano-banana-edit", "nano-banana-2"]);
 };
 
 /**

@@ -50,6 +50,15 @@ export const listConsumptionsByCreditRecordId = async (
   });
 };
 
+// 根据来源ID获取消耗记录
+export const listConsumptionsBySourceId = async (sourceId: string) => {
+  const db = connectDB();
+  return await db.query.credit_consumptions.findMany({
+    where: eq(schema.credit_consumptions.source_id, sourceId),
+    orderBy: [desc(schema.credit_consumptions.created_at)],
+  });
+};
+
 // 新增积分消耗记录
 export const insertCreditConsumption = async (
   value: InsertCreditConsumption | InsertCreditConsumption[]

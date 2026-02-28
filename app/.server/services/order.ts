@@ -24,7 +24,7 @@ import { createCreem } from "~/.server/libs/creem";
 import type { Customer, Subscription } from "~/.server/libs/creem/types";
 import type { User } from "~/.server/libs/db";
 
-import { PRICING_LIST } from "~/.server/constants/pricing";
+import { PRICING_LIST } from "~/constants/pricing";
 
 function generateUniqueOrderNo(prefix = "ORD") {
   const dateTimePart = dayjs().format("YYYYMMDDHHmmssSSS");
@@ -43,7 +43,7 @@ interface CreateOrderOptions {
   credits?: number; // 订单购买的 Credits 数量（仅 once 订单）
   plan_id?: string; // 订阅计划的编码
 }
-export const createOrder = async (payload: CreateOrderOptions, user: User, contextEnv?: any) => {
+export const createOrder = async (payload: CreateOrderOptions, user: User, contextEnv?: any, origin?: string) => {
   const orderNo = generateUniqueOrderNo();
 
   const [order] = await insertOrder({
@@ -62,7 +62,7 @@ export const createOrder = async (payload: CreateOrderOptions, user: User, conte
     customer: { email: user.email },
     success_url: new URL(
       "/callback/payment",
-      import.meta.env.PROD ? env.DOMAIN : "http://localhost:5173"
+      origin || (import.meta.env.PROD ? contextEnv?.DOMAIN || "https://nanobanana.com" : "http://localhost:5173")
     ).toString(),
   });
 

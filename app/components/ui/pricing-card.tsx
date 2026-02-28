@@ -5,7 +5,7 @@
 
 import { Check, X } from "lucide-react";
 import clsx from "clsx";
-import type { PricingTier, PaymentMode } from "~/.server/constants/product";
+import type { PricingTier, PaymentMode } from "~/constants/product";
 
 export interface PricingCardProps {
     tier: PricingTier;
@@ -36,7 +36,7 @@ export default function PricingCard({ tier, mode, onPurchase, loading }: Pricing
             className={clsx(
                 "rounded-2xl p-6 md:p-8 h-full flex flex-col transition-all duration-200",
                 tier.isPopular
-                    ? "bg-purple-50 border-2 border-purple-200 shadow-lg scale-105"
+                    ? "bg-purple-50 border-2 border-purple-200 shadow-lg scale-105 relative z-10"
                     : "bg-white border border-gray-200 hover:shadow-md"
             )}
         >

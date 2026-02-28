@@ -35,12 +35,24 @@ export async function downloadFilesToBucket(
 ) {
   const results = await Promise.all(
     files.map(async (file) => {
-      const response = await fetch(file.src);
-      const blob = await response.blob();
-      if (!blob) return null;
+      try {
+        const response = await fetch(file.src);
+        if (!response.ok) {
+          console.error(`Failed to fetch image for R2: ${response.status}`);
+          return null;
+        }
 
-      const path = `${type}/${file.fileName}.${file.ext}`;
-      return env.R2.put(path, blob);
+        // Fix binary corruption: use arrayBuffer directly instead of blob
+        const buffer = await response.arrayBuffer();
+
+        const path = `${type}/${file.fileName}.${file.ext}`;
+        return env.R2.put(path, buffer, {
+          httpMetadata: { contentType: response.headers.get('content-type') || 'image/png' }
+        });
+      } catch (err) {
+        console.error(`Error saving to R2 bucket:`, err);
+        return null;
+      }
     })
   );
 
@@ -56,8 +68,8 @@ export async function downloadFilesToBucket(
 export async function getFile(env: Env, key: string) {
   const file = await env.R2.get(key);
   if (!file) return null;
-  const blob = await file.blob();
+  const buffer = await file.arrayBuffer();
   const fileName = file.key.split("/").pop()!;
 
-  return new File([blob], fileName);
+  return new File([buffer], fileName);
 }

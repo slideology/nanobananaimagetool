@@ -5,7 +5,7 @@
 
 import { useState } from "react";
 import clsx from "clsx";
-import type { PaymentMode } from "~/.server/constants/product";
+import type { PaymentMode } from "~/constants/product";
 
 export interface PaymentModeToggleProps {
     value: PaymentMode;

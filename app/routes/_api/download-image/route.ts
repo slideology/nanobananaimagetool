@@ -16,11 +16,8 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
             return new Response('Failed to fetch image', { status: response.status });
         }
 
-        // 获取图片数据
-        const imageBlob = await response.blob();
-
-        // 返回图片,设置下载头
-        return new Response(imageBlob, {
+        // 返回图片,设置下载头，直接透传 body ReadableStream 避免 blob 破坏二进制内容
+        return new Response(response.body, {
             headers: {
                 'Content-Type': response.headers.get('Content-Type') || 'image/png',
                 'Content-Disposition': `attachment; filename="nanobanana-image.png"`,

@@ -52,18 +52,10 @@ interface ImageGeneratorProps {
   styles: ImageStyle[];
   promptCategories: PromptCategory[];
   inline?: boolean;
-  // 新增：产品配置信息，用于充值弹窗
-  product?: {
-    price: number;
-    credits: number;
-    product_id: string;
-    product_name: string;
-    type: "once" | "monthly" | "yearly";
-  };
 }
 
 export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>(
-  ({ styles, promptCategories, inline = false, product }, ref) => {
+  ({ styles, promptCategories, inline = false }, ref) => {
     const loginRef = useRef<GoogleOAuthBtnRef>(null);
     const modalRef = useRef<HTMLDialogElement>(null);
     const rechargeModalRef = useRef<CreditRechargeModalRef>(null);
@@ -104,22 +96,57 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
     const { validatePrompt } = usePromptValidation();
 
     // 生成模式
-    const [mode, setMode] = useState<"image-to-image" | "text-to-image">("image-to-image");
+    const [mode, setMode] = useState<"image-to-image" | "text-to-image">(
+      () => (typeof window !== "undefined" ? sessionStorage.getItem("nb2-mode") as any : null) || "image-to-image"
+    );
 
     // 图片相关
-    const [file, setFile] = useState<File>();
-    const fileUrl = useMemo(() => {
-      if (!file) return null;
-      return URL.createObjectURL(file);
-    }, [file]);
+    const [files, setFiles] = useState<File[]>([]);
+    const fileUrls = useMemo(() => {
+      return files.map(f => URL.createObjectURL(f));
+    }, [files]);
+    // 兼容旧逻辑
+    const file = files[0];
+    const fileUrl = fileUrls[0];
+
+    // Nano Banana 2 高级参数
+    const [resolution, setResolution] = useState<"1K" | "2K" | "4K">(
+      () => (typeof window !== "undefined" ? sessionStorage.getItem("nb2-res") as any : null) || "1K"
+    );
+    const [aspectRatio, setAspectRatio] = useState<string>(
+      () => (typeof window !== "undefined" ? sessionStorage.getItem("nb2-ar") || "1:1" : "1:1")
+    );
+    const [googleSearch, setGoogleSearch] = useState<boolean>(
+      () => (typeof window !== "undefined" ? sessionStorage.getItem("nb2-gs") === "true" : false)
+    );
+    const [outputFormat, setOutputFormat] = useState<"jpg" | "png">(
+      () => (typeof window !== "undefined" ? sessionStorage.getItem("nb2-fmt") as any : null) || "jpg"
+    );
 
     // 提示词
-    const [prompt, setPrompt] = useState("");
+    const [prompt, setPrompt] = useState(
+      () => (typeof window !== "undefined" ? sessionStorage.getItem("nb2-prompt") || "" : "")
+    );
 
     // AI模型选择
-    const [selectedModel, setSelectedModel] = useState<string>("nano-banana");
+    const [selectedModel, setSelectedModel] = useState<string>(
+      () => (typeof window !== "undefined" ? sessionStorage.getItem("nb2-model") || "nano-banana-2" : "nano-banana-2")
+    );
     // 模型下拉菜单开关状态
     const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
+
+    // === 状态持久化缓存 ===
+    useEffect(() => {
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("nb2-mode", mode);
+        sessionStorage.setItem("nb2-res", resolution);
+        sessionStorage.setItem("nb2-ar", aspectRatio);
+        sessionStorage.setItem("nb2-gs", googleSearch ? "true" : "false");
+        sessionStorage.setItem("nb2-fmt", outputFormat);
+        sessionStorage.setItem("nb2-prompt", prompt);
+        sessionStorage.setItem("nb2-model", selectedModel);
+      }
+    }, [mode, resolution, aspectRatio, googleSearch, outputFormat, prompt, selectedModel]);
 
     // 生成状态
     const [submitting, setSubmitting] = useState(false);
@@ -163,7 +190,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
       }
     ];
 
-    // AI模型配置 - 简化版，只保留Nano Banana模型
+    // AI模型配置
     const aiModels = {
       "text-to-image": [
         {
@@ -171,6 +198,12 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           name: "Nano Banana",
           description: "🍌 Fast Generation | Affordable",
           credits: 30
+        },
+        {
+          id: "nano-banana-2",
+          name: "Nano Banana 2",
+          description: "🍌 Advanced Models | Multi-Image",
+          credits: 50 // Base cost
         }
       ],
       "image-to-image": [
@@ -179,9 +212,25 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           name: "Nano Banana Edit",
           description: "🍌 Fast Editing | Affordable",
           credits: 30
+        },
+        {
+          id: "nano-banana-2",
+          name: "Nano Banana 2",
+          description: "🍌 Advanced Models | Multi-Image",
+          credits: 50
         }
       ]
     };
+
+    // 动态计算积分消耗
+    const getTaskCredits = useCallback(() => {
+      if (selectedModel === "nano-banana-2") {
+        if (resolution === "4K") return 120;
+        if (resolution === "2K") return 80;
+        return 50;
+      }
+      return 30; // 默认或者其他模型
+    }, [selectedModel, resolution]);
 
     // 获取当前模式可用的AI模型
     const availableModels = aiModels[mode] || [];
@@ -198,7 +247,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
     // 防抖标记，确保一次显示周期内仅触发一次
     const openedRechargeRef = useRef(false);
     useEffect(() => {
-      if (showRechargeModal && rechargeModalRef.current && product && !openedRechargeRef.current) {
+      if (showRechargeModal && rechargeModalRef.current && !openedRechargeRef.current) {
         openedRechargeRef.current = true;
         rechargeModalRef.current.open(rechargeModalData?.currentCredits || 0);
         // 立即复位store标记，避免其他组件再次触发
@@ -208,7 +257,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         // 当外部标记为false时，允许下次再触发
         openedRechargeRef.current = false;
       }
-    }, [showRechargeModal, product, rechargeModalData, hideRechargeDialog]);
+    }, [showRechargeModal, rechargeModalData, hideRechargeDialog]);
 
     // 处理充值成功回调
     const handleRechargeSuccess = useCallback(() => {
@@ -231,31 +280,14 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           return;
         }
 
-        // 1. 使用 fetch 获取图片数据
+        // 1. 构建下载代理链接
         const proxyUrl = `/api/download-image?url=${encodeURIComponent(imageUrl)}`;
-        const response = await fetch(proxyUrl);
-        if (!response.ok) {
-          throw new Error('Failed to fetch image');
-        }
 
-        // 2. 将响应转换为 blob
-        const blob = await response.blob();
+        // 2. 直接引导浏览器导航至下载接口 (此接口已有 Content-Disposition: attachment 响应头)
+        // 这样可以完全绕过前端弹出窗口拦截器 (Popup Blockers) 和隐式 a 标签安全限制
+        window.location.href = proxyUrl;
 
-        // 3. 创建临时 blob URL
-        const blobUrl = URL.createObjectURL(blob);
-
-        // 4. 创建隐藏的 <a> 标签并触发下载
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = `nanobananaimage.org-${taskNo}.png`;
-        document.body.appendChild(link);
-        link.click();
-
-        // 5. 清理:移除 <a> 标签和释放 blob URL
-        document.body.removeChild(link);
-        URL.revokeObjectURL(blobUrl);
-
-        console.log('图片下载成功:', taskNo);
+        console.log('图片下载指令已发送:', taskNo);
       } catch (error) {
         console.error('图片下载失败:', error);
         handleError({
@@ -275,7 +307,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
     const handleOpen = (initialFile?: File) => {
       if (!modalRef.current) return;
       if (initialFile) {
-        setFile(initialFile);
+        setFiles([initialFile]);
         setMode("image-to-image");
       }
       modalRef.current.showModal();
@@ -284,27 +316,38 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
 
     const handleClose = () => {
       setVisible(false);
-      setFile(undefined);
+      setFiles([]);
       setPrompt("");
       setSubmitting(false);
       setDone(false);
       setTasks([]);
     };
 
-    const handleFileUpload = useCallback((uploadedFile: File) => {
-      // 文件验证
-      if (!validateFile(uploadedFile)) {
-        return;
+    const handleFileUpload = useCallback((uploadedInput: File | FileList) => {
+      // 文件验证适配
+      let newFiles: File[] = [];
+      if (uploadedInput instanceof File) {
+        if (validateFile(uploadedInput)) newFiles.push(uploadedInput);
+      } else {
+        newFiles = Array.from(uploadedInput).filter(f => validateFile(f));
       }
 
-      setFile(uploadedFile);
+      if (newFiles.length === 0) return;
+
+      if (selectedModel === "nano-banana-2") {
+        // 最多14张
+        setFiles(prev => [...prev, ...newFiles].slice(0, 14));
+      } else {
+        setFiles([newFiles[0]]); // 旧模型仅保留第一张
+      }
+
       if (mode === "text-to-image") {
         setMode("image-to-image");
       }
 
       // 清除之前的错误
       clearError();
-    }, [mode, validateFile, clearError]);
+    }, [mode, validateFile, clearError, selectedModel]);
 
     // Turnstile验证回调函数
     const handleTurnstileSuccess = useCallback((token: string) => {
@@ -393,8 +436,9 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         } catch { }
       }
 
-      if (totalCredits < 30) {
-        if (product && rechargeModalRef.current) {
+      const reqCredits = getTaskCredits();
+      if (totalCredits < reqCredits) {
+        if (rechargeModalRef.current) {
           rechargeModalRef.current.open(credits);
         }
         return;
@@ -417,77 +461,83 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
       });
 
       try {
-        let imageUrl: string | undefined;
+        let imageUrls: string[] = [];
 
-        // 如果是image-to-image模式，先上传图片获取URL
-        if (file && mode === "image-to-image") {
-          const uploadFormData = new FormData();
-          uploadFormData.set("image", file);
+        // 如果是image-to-image模式或者多图模式，上传所有图片获取URL
+        if (files.length > 0 && (mode === "image-to-image" || selectedModel === "nano-banana-2")) {
+          for (let i = 0; i < files.length; i++) {
+            const uploadFormData = new FormData();
+            uploadFormData.set("image", files[i]);
 
-          // 如果用户未登录，添加Turnstile token
-          if (!user && turnstileToken) {
-            uploadFormData.set("cf-turnstile-response", turnstileToken);
+            // 如果用户未登录，添加Turnstile token
+            if (!user && turnstileToken) {
+              uploadFormData.set("cf-turnstile-response", turnstileToken);
+            }
+
+            const uploadRes = await fetch("/api/upload/image", {
+              method: "POST",
+              body: uploadFormData,
+            });
+
+            if (!uploadRes.ok) {
+              const uploadError = await uploadRes.json().catch(() => ({ error: "Upload failed" })) as { error?: string };
+              throw {
+                status: uploadRes.status,
+                message: uploadError.error || "Image upload failed",
+                details: uploadError
+              };
+            }
+
+            const uploadResult = await uploadRes.json() as { imageUrl: string; fileName: string; fileSize: number; fileType: string };
+            imageUrls.push(uploadResult.imageUrl);
           }
 
-          const uploadRes = await fetch("/api/upload/image", {
-            method: "POST",
-            body: uploadFormData,
-          });
+          // 🔧 时序优化：验证图片URL是否可访问（验证第一张）
+          if (imageUrls.length > 0) {
+            const imageUrl = imageUrls[0];
+            console.log("📋 验证图片URL可访问性:", imageUrl);
+            let imageAccessible = false;
+            const maxRetries = 3;
+            const retryDelays = [1000, 2000, 3000]; // 1秒, 2秒, 3秒
 
-          if (!uploadRes.ok) {
-            const uploadError = await uploadRes.json().catch(() => ({ error: "Upload failed" })) as { error?: string };
-            throw {
-              status: uploadRes.status,
-              message: uploadError.error || "Image upload failed",
-              details: uploadError
-            };
-          }
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+              try {
+                const checkRes = await fetch(imageUrl, {
+                  method: 'HEAD',
+                  cache: 'no-cache' // 确保不使用缓存
+                });
 
-          const uploadResult = await uploadRes.json() as { imageUrl: string; fileName: string; fileSize: number; fileType: string };
-          imageUrl = uploadResult.imageUrl;
-
-          // 🔧 时序优化：验证图片URL是否可访问（增强重试机制）
-          console.log("📋 验证图片URL可访问性:", imageUrl);
-          let imageAccessible = false;
-          const maxRetries = 3;
-          const retryDelays = [1000, 2000, 3000]; // 1秒, 2秒, 3秒
-
-          for (let attempt = 0; attempt < maxRetries; attempt++) {
-            try {
-              const checkRes = await fetch(imageUrl, {
-                method: 'HEAD',
-                cache: 'no-cache' // 确保不使用缓存
-              });
-
-              if (checkRes.ok) {
-                console.log(`✅ 图片URL验证成功 (尝试 ${attempt + 1})`);
-                imageAccessible = true;
-                break;
-              } else {
-                console.warn(`⚠️ 图片URL返回 ${checkRes.status} (尝试 ${attempt + 1}/${maxRetries})`);
+                if (checkRes.ok) {
+                  console.log(`✅ 图片URL验证成功 (尝试 ${attempt + 1})`);
+                  imageAccessible = true;
+                  break;
+                } else {
+                  console.warn(`⚠️ 图片URL返回 ${checkRes.status} (尝试 ${attempt + 1}/${maxRetries})`);
+                }
+              } catch (error) {
+                console.warn(`⚠️ 图片URL检查失败 (尝试 ${attempt + 1}/${maxRetries}):`, error);
               }
-            } catch (error) {
-              console.warn(`⚠️ 图片URL检查失败 (尝试 ${attempt + 1}/${maxRetries}):`, error);
+
+              // 如果不是最后一次尝试，等待后重试
+              if (attempt < maxRetries - 1) {
+                console.log(`⏳ 等待 ${retryDelays[attempt]}ms 后重试...`);
+                await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]));
+              }
             }
 
-            // 如果不是最后一次尝试，等待后重试
-            if (attempt < maxRetries - 1) {
-              console.log(`⏳ 等待 ${retryDelays[attempt]}ms 后重试...`);
-              await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]));
+            if (!imageAccessible) {
+              console.warn("⚠️ 图片URL在多次重试后仍不可访问，但继续处理（可能是CDN延迟）");
             }
-          }
-
-          if (!imageAccessible) {
-            console.warn("⚠️ 图片URL在多次重试后仍不可访问，但继续处理（可能是CDN延迟）");
           }
         }
 
         // 发送JSON格式的请求
         const requestData = {
-          mode,
+          mode: selectedModel === "nano-banana-2" ? "nano-banana-2" : mode,
           prompt,
           type: selectedModel,
-          ...(imageUrl && { image: imageUrl }),
+          ...(imageUrls.length > 0 && { image: imageUrls[0], image_urls: imageUrls }),
+          ...(selectedModel === "nano-banana-2" && { resolution, aspect_ratio: aspectRatio, google_search: googleSearch, output_format: outputFormat }),
         };
 
         const res = await fetch("/api/create/ai-image", {
@@ -510,7 +560,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
 
           // 如果是积分不足错误，弹出充值弹窗
           const code = errorData?.error?.code;
-          if ((res.status === 402 || code === 'INSUFFICIENT_CREDITS' || code === 'BIZ_001') && product && rechargeModalRef.current) {
+          if ((res.status === 402 || code === 'INSUFFICIENT_CREDITS' || code === 'BIZ_001') && rechargeModalRef.current) {
             rechargeModalRef.current.open(credits || 0);
           }
 
@@ -597,16 +647,6 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         {/* Mode Tabs */}
         <div className="flex gap-2 mb-5">
           <button
-            onClick={() => setMode('text-to-image')}
-            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'text-to-image'
-              ? 'bg-purple-50 text-purple-700 border border-purple-200'
-              : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-              }`}
-          >
-            <Type size={16} />
-            <span>Text to Image</span>
-          </button>
-          <button
             onClick={() => setMode('image-to-image')}
             className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'image-to-image'
               ? 'bg-purple-50 text-purple-700 border border-purple-200'
@@ -615,6 +655,16 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           >
             <ImageIcon size={16} />
             <span>Image to Image</span>
+          </button>
+          <button
+            onClick={() => setMode('text-to-image')}
+            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'text-to-image'
+              ? 'bg-purple-50 text-purple-700 border border-purple-200'
+              : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+              }`}
+          >
+            <Type size={16} />
+            <span>Text to Image</span>
           </button>
         </div>
 
@@ -626,7 +676,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
             onClick={() => setIsModelMenuOpen(!isModelMenuOpen)}
             className="flex items-center justify-between px-3 py-2.5 bg-gray-50 rounded-lg border border-transparent hover:bg-gray-100 transition-colors cursor-pointer"
           >
-            <span className="text-sm font-medium text-gray-900">Nano Banana</span>
+            <span className="text-sm font-medium text-gray-900">{availableModels.find(m => m.id === selectedModel)?.name || "Select Model"}</span>
             <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${isModelMenuOpen ? 'rotate-180' : ''}`} />
           </div>
 
@@ -635,19 +685,19 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
             <>
               <div className="fixed inset-0 z-10" onClick={() => setIsModelMenuOpen(false)} />
               <div className="absolute top-full left-0 w-full mt-1 bg-white border border-gray-100 rounded-xl shadow-xl z-20 p-1.5">
-                {/* 选项 1: Nano Banana（当前选中） */}
-                <div
-                  onClick={() => setIsModelMenuOpen(false)}
-                  className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                >
-                  <span className="text-sm font-medium text-gray-900">Nano Banana</span>
-                  <Check size={16} className="text-purple-600" />
-                </div>
-                {/* 选项 2: Nano Banana 2（即将推出，置灰不可点击） */}
-                <div className="flex items-center justify-between px-3 py-2.5 rounded-lg opacity-50 cursor-not-allowed bg-gray-50/50">
-                  <span className="text-sm font-medium text-gray-500">Nano Banana 2</span>
-                  <span className="text-xs text-gray-400">Coming Soon</span>
-                </div>
+                {availableModels.map((item) => (
+                  <div
+                    key={item.id}
+                    onClick={() => { setSelectedModel(item.id); setIsModelMenuOpen(false); }}
+                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                  >
+                    <div>
+                      <span className="text-sm font-medium text-gray-900 block">{item.name}</span>
+                      <span className="text-[10px] text-gray-500">{item.description}</span>
+                    </div>
+                    {selectedModel === item.id && <Check size={16} className="text-purple-600" />}
+                  </div>
+                ))}
               </div>
             </>
           )}
@@ -670,16 +720,25 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
               </div>
             )}
 
-            <div className="border-2 border-dashed border-gray-300 rounded-lg py-6 text-center cursor-pointer hover:border-purple-400 hover:bg-purple-50/30 transition-all relative group">
-              {fileUrl ? (
-                <div className="relative inline-block">
-                  <img src={fileUrl} alt="Reference" className="h-32 rounded-lg object-contain mx-auto" />
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setFile(undefined); }}
-                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shadow-md"
-                  >
-                    <X size={14} />
-                  </button>
+            <div className="border-2 border-dashed border-gray-300 rounded-lg py-6 px-4 text-center cursor-pointer hover:border-purple-400 hover:bg-purple-50/30 transition-all relative group">
+              {files.length > 0 ? (
+                <div className="flex flex-wrap gap-3 justify-center">
+                  {fileUrls.map((url, idx) => (
+                    <div key={idx} className="relative inline-block border border-gray-200 rounded-lg bg-white p-1">
+                      <img src={url} alt={`Reference ${idx + 1}`} className="h-24 w-24 object-cover rounded-md" />
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setFiles(prev => prev.filter((_, i) => i !== idx)); }}
+                        className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shadow-md transition-transform hover:scale-110"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                  {selectedModel === "nano-banana-2" && files.length < 14 && (
+                    <div onClick={(e) => { e.stopPropagation(); document.getElementById('image-upload-input')?.click(); }} className="h-[106px] w-[106px] border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center hover:bg-white/50 transition-colors">
+                      <span className="text-3xl font-light text-gray-400">+</span>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div onClick={() => document.getElementById('image-upload-input')?.click()}>
@@ -690,16 +749,17 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                     Drag & drop or <span className="font-semibold text-purple-600">click to upload</span>
                   </p>
                   <p className="text-xs text-gray-500 mt-1">PNG, JPG, WebP (Max 10MB)</p>
+                  {selectedModel === "nano-banana-2" && <p className="text-xs font-medium text-purple-600 mt-1">✨ Up to 14 reference images supported</p>}
                 </div>
               )}
 
               <input
                 id="image-upload-input"
                 type="file"
+                multiple={selectedModel === "nano-banana-2"}
                 accept="image/*"
                 onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleFileUpload(file);
+                  if (e.target.files) handleFileUpload(e.target.files);
                 }}
                 className="hidden"
               />
@@ -721,6 +781,56 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
             {prompt.length}/1000
           </div>
         </div>
+
+        {/* Advanced Controls for Nano Banana 2 */}
+        {selectedModel === "nano-banana-2" && (
+          <div className="mb-5 space-y-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
+            <div className="flex justify-between items-center">
+              <label className="text-xs font-medium text-gray-700">Resolution</label>
+              <div className="flex bg-white rounded-lg p-0.5 border border-gray-200 h-8">
+                {["1K", "2K", "4K"].map(res => (
+                  <button key={res} onClick={() => setResolution(res as any)} className={`px-4 py-1 text-[11px] font-medium rounded-md transition-colors ${resolution === res ? 'bg-purple-100 text-purple-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>{res}</button>
+                ))}
+              </div>
+            </div>
+            <div className="flex justify-between items-center">
+              <label className="text-xs font-medium text-gray-700">Aspect Ratio</label>
+              <select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value)} className="text-xs border-gray-200 font-medium rounded-md h-8 px-2 pr-6 focus:ring-purple-500 focus:border-purple-500 bg-white border cursor-pointer outline-none shadow-sm">
+                <option value="1:1">1:1 (Square)</option>
+                <option value="1:4">1:4</option>
+                <option value="1:8">1:8</option>
+                <option value="2:3">2:3</option>
+                <option value="3:2">3:2</option>
+                <option value="3:4">3:4</option>
+                <option value="4:1">4:1</option>
+                <option value="4:3">4:3</option>
+                <option value="4:5">4:5</option>
+                <option value="5:4">5:4</option>
+                <option value="8:1">8:1</option>
+                <option value="9:16">9:16 (Portrait)</option>
+                <option value="16:9">16:9 (Landscape)</option>
+                <option value="21:9">21:9</option>
+                <option value="auto">Auto</option>
+              </select>
+            </div>
+            <div className="flex justify-between items-center">
+              <label className="text-xs font-medium text-gray-700">Output Format</label>
+              <div className="flex bg-white rounded-lg p-0.5 border border-gray-200 h-8">
+                {["jpg", "png"].map(fmt => (
+                  <button key={fmt} onClick={() => setOutputFormat(fmt as any)} className={`px-4 py-1 text-[11px] font-medium uppercase rounded-md transition-colors ${outputFormat === fmt ? 'bg-purple-100 text-purple-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>{fmt}</button>
+                ))}
+              </div>
+            </div>
+            <div className="flex justify-between items-center h-8">
+              <label className="text-xs font-medium text-gray-700">Google Search (Grounding)</label>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" className="sr-only peer" checked={googleSearch} onChange={(e) => setGoogleSearch(e.target.checked)} />
+                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
+              </label>
+            </div>
+          </div>
+        )}
+
         <AuthPromptModal ref={authPromptModalRef} />
         {/* Generate Button */}
         <button
@@ -739,7 +849,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           ) : (
             <>
               <Wand2 size={16} />
-              <span>Generate - 30 Credits</span>
+              <span>Generate - {getTaskCredits()} Credits</span>
             </>
           )}
         </button>
@@ -814,14 +924,14 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                           alt="Generated Result"
                           className="w-full h-auto object-contain max-h-[400px]"
                         />
-                        {/* Overlay Actions */}
-                        <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex justify-end gap-2">
+                        {/* Overlay Actions - 始终显示下载按钮以防止被忽略 */}
+                        <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/50 to-transparent flex justify-end gap-2">
                           <button
                             onClick={() => handleDownloadImage(task.result_url, task.task_no)}
-                            className="p-2 bg-white/90 hover:bg-white text-gray-900 rounded-lg backdrop-blur-sm transition-colors shadow-sm"
-                            title="Download"
+                            className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white rounded-lg bg-blue-600/90 hover:bg-blue-600 backdrop-blur-sm transition-colors shadow-sm"
+                            title="Download API Image"
                           >
-                            <Check size={16} />
+                            Download
                           </button>
                         </div>
                       </div>
@@ -864,16 +974,11 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           </div>
 
           {/* 充值弹窗 */}
-          {
-            product && (
-              <CreditRechargeModal
-                ref={rechargeModalRef}
-                product={product}
-                onPurchaseSuccess={handleRechargeSuccess}
-                onCancel={handleRechargeCancel}
-              />
-            )
-          }
+          <CreditRechargeModal
+            ref={rechargeModalRef}
+            onPurchaseSuccess={handleRechargeSuccess}
+            onCancel={handleRechargeCancel}
+          />
         </div >
       );
     }
@@ -1064,14 +1169,11 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         )}
 
         {/* 充值弹窗 */}
-        {product && (
-          <CreditRechargeModal
-            ref={rechargeModalRef}
-            product={product}
-            onPurchaseSuccess={handleRechargeSuccess}
-            onCancel={handleRechargeCancel}
-          />
-        )}
+        <CreditRechargeModal
+          ref={rechargeModalRef}
+          onPurchaseSuccess={handleRechargeSuccess}
+          onCancel={handleRechargeCancel}
+        />
       </>
     );
   }

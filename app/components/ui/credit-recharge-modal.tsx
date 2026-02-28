@@ -4,10 +4,11 @@
  */
 
 import { useState, useCallback, forwardRef, useImperativeHandle, useRef } from "react";
-import { X, CreditCard, Zap, Shield, Sparkles } from "lucide-react";
+import { X, Sparkles } from "lucide-react";
 import clsx from "clsx";
 
-import type { PRODUCT } from "~/.server/constants/product";
+import { PRICING_TIERS, type PricingTier, type PaymentMode } from "~/constants";
+import PricingSection from "./pricing-section";
 import { useErrorHandler } from "~/hooks/use-error-handler";
 
 export interface CreditRechargeModalRef {
@@ -18,8 +19,6 @@ export interface CreditRechargeModalRef {
 }
 
 export interface CreditRechargeModalProps {
-  /** 产品配置信息 */
-  product: PRODUCT;
   /** 购买成功回调 */
   onPurchaseSuccess?: () => void;
   /** 购买取消回调 */
@@ -27,7 +26,7 @@ export interface CreditRechargeModalProps {
 }
 
 export const CreditRechargeModal = forwardRef<CreditRechargeModalRef, CreditRechargeModalProps>(
-  ({ product, onPurchaseSuccess, onCancel }, ref) => {
+  ({ onPurchaseSuccess, onCancel }, ref) => {
     const modalRef = useRef<HTMLDialogElement>(null);
     const [visible, setVisible] = useState(false);
     const [currentCredits, setCurrentCredits] = useState(0);
@@ -74,22 +73,29 @@ export const CreditRechargeModal = forwardRef<CreditRechargeModalRef, CreditRech
     /**
      * 处理立即购买
      */
-    const handlePurchase = useCallback(async () => {
+    const handlePurchase = useCallback(async (tier: PricingTier, mode: PaymentMode) => {
       if (purchasing) return; // 幂等保护：进行中直接返回
       setPurchasing(true);
 
       try {
+        const selectedPricing = tier.pricing[mode];
+
+        // 在前端动态判断是否为测试环境
+        const isTestEnv = typeof window !== "undefined" && (window.location.hostname.includes('test') || window.location.hostname.includes('localhost'));
+        const targetProductId = isTestEnv ? (selectedPricing.test_product_id || selectedPricing.product_id) : selectedPricing.product_id;
+
         const res = await fetch("/api/create-order", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            product_id: product.product_id,
-            price: product.price,
-            credits: product.credits,
-            product_name: product.product_name,
-            type: product.type
+            product_id: targetProductId,
+            price: mode === 'yearly' && selectedPricing.billedAmount ? selectedPricing.billedAmount : selectedPricing.price,
+            credits: selectedPricing.credits,
+            product_name: `${tier.name} Plan - ${mode === 'yearly' ? 'Yearly' : mode === 'monthly' ? 'Monthly' : 'One-Time'}`,
+            type: mode,
+            plan_id: mode !== 'once' ? tier.id : undefined // 订阅类型需要 plan_id
           }),
         });
 
@@ -105,25 +111,25 @@ export const CreditRechargeModal = forwardRef<CreditRechargeModalRef, CreditRech
         }
 
         const data = await res.json<{ checkout_url: string }>();
-        
+
         // 在跳转前记录本地标记，用于回跳后展示成功提示
         try {
           if (typeof window !== "undefined") {
             localStorage.setItem("pendingPurchase", "1");
             localStorage.setItem("creditsBeforePurchase", String(currentCredits || 0));
           }
-        } catch {}
-        
+        } catch { }
+
         // 跳转到支付页面
         window.location.href = data.checkout_url;
-        
+
         // 触发成功回调
         onPurchaseSuccess?.();
-        
+
       } catch (error) {
         console.error('创建订单失败:', error);
         handleError(error);
-        
+
         // 如果是401错误，可能需要重新登录
         if ((error as any)?.status === 401) {
           // 这里可以触发登录逻辑
@@ -138,7 +144,7 @@ export const CreditRechargeModal = forwardRef<CreditRechargeModalRef, CreditRech
       } finally {
         setPurchasing(false);
       }
-    }, [product, handleError, onPurchaseSuccess, purchasing]);
+    }, [handleError, onPurchaseSuccess, purchasing, currentCredits]);
 
     return (
       <dialog
@@ -147,123 +153,36 @@ export const CreditRechargeModal = forwardRef<CreditRechargeModalRef, CreditRech
         onClose={handleClose}
       >
         {visible && (
-          <div className="modal-box max-w-md w-full p-0 overflow-hidden">
+          <div className="modal-box w-11/12 !max-w-5xl p-0 overflow-visible relative">
             {/* Header */}
-            <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white">
-              <button
-                className="absolute top-4 right-4 btn btn-ghost btn-sm btn-circle text-white hover:bg-white/20"
-                onClick={() => modalRef.current?.close()}
-              >
-                <X size={20} />
-              </button>
-              
+            <button
+              className="absolute -top-12 right-0 btn btn-ghost btn-sm btn-circle text-white hover:bg-white/20 z-50"
+              onClick={() => modalRef.current?.close()}
+            >
+              <X size={24} />
+            </button>
+            <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white rounded-t-2xl">
               <div className="text-center">
                 <div className="w-16 h-16 mx-auto mb-4 bg-white/20 rounded-full flex items-center justify-center">
                   <Sparkles size={32} />
                 </div>
                 <h2 className="text-2xl font-bold mb-2">🎨 Credits Required to Continue Creating</h2>
                 <p className="text-blue-100">
-                Current Credits: <span className="font-semibold">{currentCredits}</span>
+                  Current Credits: <span className="font-semibold">{currentCredits}</span>
                 </p>
               </div>
             </div>
 
-            {/* Content */}
-            <div className="p-6">
-              {/* 推荐充值套餐 */}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-4 text-gray-800">💳 Recommended Recharge Package</h3>
-                
-                <div className="border-2 border-blue-200 rounded-xl p-4 bg-gradient-to-br from-blue-50 to-purple-50 relative overflow-hidden">
-                  {/* 推荐标签 */}
-                  <div className="absolute top-0 right-0 bg-gradient-to-r from-orange-400 to-red-400 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
-                  Recommended
-                  </div>
-                  
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h4 className="font-bold text-lg text-gray-800 flex items-center">
-                        🍌 Nano Banana Credits Package
-                      </h4>
-                      <div className="flex items-baseline mt-1">
-                        <span className="text-2xl font-bold text-blue-600">${product.price}</span>
-                        <span className="text-gray-500 ml-2">({product.credits} Credits)</span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm text-gray-600">Average per Credit</div>
-                      <div className="font-semibold text-green-600">
-                        ${(product.price / product.credits).toFixed(3)}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 功能特性 */}
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center text-sm text-gray-700">
-                      <Zap size={16} className="mr-2 text-yellow-500" />
-                      <span>Can generate {product.credits} AI images</span>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-700">
-                      <CreditCard size={16} className="mr-2 text-blue-500" />
-                      <span>Supports text-to-image and image-to-image generation</span>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-700">
-                      <Shield size={16} className="mr-2 text-green-500" />
-                      <span>High-quality output • Never expires</span>
-                    </div>
-                  </div>
-
-                  {/* 购买按钮 */}
-                  <button
-                    onClick={handlePurchase}
-                    disabled={purchasing}
-                    className={clsx(
-                      "w-full py-3 px-4 rounded-lg font-semibold text-white transition-all duration-200 flex items-center justify-center space-x-2",
-                      purchasing
-                        ? "bg-gray-400 cursor-not-allowed"
-                        : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
-                    )}
-                  >
-                    {purchasing ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        <span>Processing...</span>
-                      </>
-                    ) : (
-                      <>
-                        <CreditCard size={20} />
-                        <span>Buy Now ${product.price}</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* 温馨提示 */}
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <div className="flex items-start">
-                  <div className="flex-shrink-0 mr-3">
-                    <div className="w-6 h-6 bg-amber-100 rounded-full flex items-center justify-center">
-                      <span className="text-amber-600 text-sm">💡</span>
-                    </div>
-                  </div>
-                  <div className="text-sm text-amber-800">
-                    <p className="font-medium mb-1">Reminder</p>
-                    <p>After purchase, credits will be automatically added to your account. Credits never expire and are always available.</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* 底部按钮 */}
-              <div className="flex space-x-3 mt-6">
-                <button
-                  onClick={() => modalRef.current?.close()}
-                  className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  Maybe Later
-                </button>
-              </div>
+            {/* Content using PricingSection */}
+            <div className="bg-base-100 rounded-b-2xl pb-6">
+              <PricingSection
+                title="Choose your package to get started"
+                subtitle=""
+                tiers={PRICING_TIERS}
+                onPurchase={handlePurchase}
+                loading={purchasing}
+                isModal={true}
+              />
             </div>
           </div>
         )}

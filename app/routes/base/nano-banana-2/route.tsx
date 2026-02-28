@@ -2,7 +2,7 @@ import type { Route } from "./+types/route";
 import { Fragment } from "react";
 import { ImageGenerator } from "~/features/image_generator";
 import { createCanonical } from "~/utils/meta";
-import { PRICING_TIERS } from "~/.server/constants";
+import { PRICING_TIERS, type PricingTier, type PaymentMode } from "~/constants";
 
 export function meta({ matches }: Route.MetaArgs) {
     const canonical = createCanonical("/nano-banana-2", matches[0].data.DOMAIN);
@@ -77,7 +77,6 @@ export default function NanoBanana2Page({ loaderData: { pricingTiers } }: Route.
                                 styles={[]}
                                 promptCategories={[]}
                                 inline={true}
-                                product={product}
                             />
                         </div>
                     </div>

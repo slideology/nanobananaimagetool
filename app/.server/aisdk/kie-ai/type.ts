@@ -88,12 +88,26 @@ export interface CreateNanoBananaEditTaskOptions {
 }
 
 /**
+ * Nano Banana 2 任务创建选项
+ */
+export interface CreateNanoBanana2TaskOptions {
+  prompt: string;                       // 必需：图像生成描述
+  image_input?: string[];               // 可选：输入图像URL数组，最多14张
+  aspect_ratio?: string;                // 可选：宽高比 (例如 1:1, 16:9, auto)
+  google_search?: boolean;              // 可选：使用谷歌搜索
+  resolution?: "1K" | "2K" | "4K";      // 可选：分辨率
+  output_format?: "jpg" | "png";        // 可选：输出格式
+  callBackUrl?: string;                 // 可选：异步回调地址
+}
+
+/**
  * 通用的 Nano Banana 任务创建接口
  * 根据模型类型自动选择正确的参数结构
  */
 export type CreateNanoBananaUnifiedOptions =
   | { mode: "text-to-image"; options: CreateNanoBananaTaskOptions }
-  | { mode: "image-to-image"; options: CreateNanoBananaEditTaskOptions };
+  | { mode: "image-to-image"; options: CreateNanoBananaEditTaskOptions }
+  | { mode: "nano-banana-2"; options: CreateNanoBanana2TaskOptions };
 
 /**
  * Nano Banana 任务状态查询响应

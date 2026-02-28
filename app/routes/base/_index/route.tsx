@@ -22,7 +22,7 @@ import { PricingSection } from "~/components/ui";
 
 import { createCanonical } from "~/utils/meta";
 import { imageStyles, promptCategories, styleTypes } from "./config";
-import { PRICING_TIERS, type PricingTier, type PaymentMode } from "~/.server/constants";
+import { PRICING_TIERS, type PricingTier, type PaymentMode } from "~/constants";
 
 export function meta({ matches }: Route.MetaArgs) {
   const canonical = createCanonical("/", matches[0].data.DOMAIN);
