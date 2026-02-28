@@ -11,6 +11,7 @@ import {
 import { useEffect, useState } from "react";
 import { useUser } from "~/store";
 import { useErrorHandler } from "~/hooks/use-error-handler";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
 import { Document } from "~/features/document";
 
@@ -55,7 +56,9 @@ export const Layout = ({ children }: React.PropsWithChildren) => {
       MICROSOFT_CLARITY_ID={data?.MICROSOFT_CLARITY_ID}
     // THIRD_PARTY_ADS_ID={data?.THIRD_PARTY_ADS_ID} // 临时禁用第三方广告
     >
-      {children}
+      <GoogleOAuthProvider clientId={data?.GOOGLE_CLIENT_ID || ""}>
+        {children}
+      </GoogleOAuthProvider>
     </Document>
   );
 };

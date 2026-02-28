@@ -3,7 +3,6 @@ import { useMatches } from "react-router";
 import { useUser } from "~/store";
 import { useErrorHandler } from "~/hooks/use-error-handler";
 
-import { GoogleOAuthProvider } from "@react-oauth/google";
 import { GoogleOAuthBtn, type GoogleOAuthBtnRef } from "./btn";
 
 export { type GoogleOAuthBtnRef };
@@ -20,7 +19,6 @@ export const GoogleOAuth = forwardRef<GoogleOAuthBtnRef, GoogleOAuthProps>(
 
     const setUser = useUser((state) => state.setUser);
     const setCredits = useUser((state) => state.setCredits);
-    const getGuestCreditStatus = useUser((state) => state.getGuestCreditStatus);
     const [signing, setSigning] = useState(false);
 
     // 错误处理钩子
@@ -42,14 +40,11 @@ export const GoogleOAuth = forwardRef<GoogleOAuthBtnRef, GoogleOAuthProps>(
       access_token?: string;
       credential?: string;
     }) => {
-      // 获取临时积分使用状态
-      const guestStatus = getGuestCreditStatus();
-
       const values = {
         type: "google",
         data: {
           ...value,
-          hasUsedGuestCredit: guestStatus.hasUsed,
+          hasUsedGuestCredit: false,
         },
       };
 
@@ -90,14 +85,12 @@ export const GoogleOAuth = forwardRef<GoogleOAuthBtnRef, GoogleOAuthProps>(
       }
     };
     return (
-      <GoogleOAuthProvider clientId={clientId}>
-        <GoogleOAuthBtn
-          ref={ref}
-          loading={signing}
-          onSuccess={handleSuccess}
-          useOneTap={useOneTap}
-        />
-      </GoogleOAuthProvider>
+      <GoogleOAuthBtn
+        ref={ref}
+        loading={signing}
+        onSuccess={handleSuccess}
+        useOneTap={useOneTap}
+      />
     );
   }
 );
