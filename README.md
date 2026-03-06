@@ -589,6 +589,13 @@ npm run dev
   - **当前问题**：目前灵感画廊向外的数据传递重度依赖 URL Query 参数和 `sessionStorage`，耦合在各组件初始化逻辑中稍显冗余。
   - **改进方案**：既然当前引入了 Zustand，建议未来将全站通用变量（如 `current_prompt`, `current_reference_image`）下沉抽离到全局 Zustand Store 中。这能让**全部生成器组件（多模态切换）无缝实时读取**而无需依赖浏览器缓存，彻底解耦 UI 层和状态层。
 
+### 🚧 开发交接指南 (Dev Handoff & TODOs)
+*记录时间：2026-03-06*
+如果你正在切换开发设备，当前代码已全部合并至 `main` 分支并保持随时可部署状态。拉取代买后，你可以从以下几个高优待办项继续入手：
+1. **[重构] 全局状态下沉**：彻底移除原来耦合在 `ImageGenerator` / `VideoGenerator` 组件内长长的 `useEffect(window.location.search)` 解析逻辑。把用户选填的 prompt，选择的图片都放进 Zustand Store，实现多页面跨组件零感共享。
+2. **[自动化] 爬虫定时任务**：将项目内的 `scripts/scrape-prompts-more.ts` 与 GitHub Actions CRON 集成，实现每天或者每周自动从原站抓取并解析新的 Prompt 数据填入系统。
+3. **[迭代] 多模型选项接入**：前端虽然保留了模型选择下拉框（比如 Seedance 1.5 Pro / 2.0），但目前部分仍为 Mock 状态，下一步需要和后端 Kie AI SDK 参数进行真正的深度绑定打通。
+
 ### 🔮 后续规划
 - 🔄 **v1.1** 多模型支持（Flux、DALL-E 等）
 - 🔄 **v1.2** 批量处理和工作流功能
