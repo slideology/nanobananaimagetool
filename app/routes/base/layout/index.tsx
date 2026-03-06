@@ -8,6 +8,7 @@ export const loader = ({ }: Route.LoaderArgs) => {
     navLinks: [
       { label: "AI Photo Editor", to: "/" },
       { label: "Nano Banana 2", to: "/nano-banana-2" },
+      { label: "Prompts", to: "/prompts" },
       { label: "Seedance 2.0", to: "/seedance-2-0" },
       { label: "How it Works", to: "/#how-it-works" },
       { label: "Pricing", to: "/#pricing" },

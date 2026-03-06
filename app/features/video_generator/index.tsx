@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Film, Upload, FileText, Image as ImageIcon, ChevronRight, ChevronDown, Check, Info } from 'lucide-react';
 import type {
     VideoGeneratorProps,
@@ -35,6 +35,31 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
 
     const user = useUser(state => state.user);
     const credits = useUser(state => state.credits);
+
+    // === URL 参数读取与消费 ===
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const searchParams = new URLSearchParams(window.location.search);
+            const urlImage = searchParams.get('image');
+
+            if (urlImage) {
+                setMode('image-to-video');
+                fetch(urlImage)
+                    .then((res) => {
+                        if (!res.ok) throw new Error("Network response was not ok");
+                        return res.blob();
+                    })
+                    .then((blob) => {
+                        const filename = urlImage.split("/").pop() || "reference.webp";
+                        const file = new File([blob], filename, { type: blob.type || "image/webp" });
+                        setReferenceImages([file]);
+                    })
+                    .catch((err) => console.error("Failed to load reference image from URL:", err));
+
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
+    }, []);
 
     // 计算积分消耗（与后端 video-credits.ts 保持一致）
     // 公式：基础积分 × 时长系数 × 音频系数

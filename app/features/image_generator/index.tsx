@@ -135,6 +135,49 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
     // 模型下拉菜单开关状态
     const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
 
+    // === URL 参数读取与消费 ===
+    useEffect(() => {
+      if (typeof window !== "undefined") {
+        const searchParams = new URLSearchParams(window.location.search);
+        const urlPrompt = searchParams.get("prompt");
+        const urlMode = searchParams.get("mode");
+        const urlImage = searchParams.get("image");
+
+        let hasChanges = false;
+
+        if (urlPrompt) {
+          setPrompt(urlPrompt);
+          if (!urlMode) setMode("text-to-image"); // 默认如果只传prompt，就切text
+          hasChanges = true;
+        }
+        if (urlMode === "image-to-image" || urlMode === "text-to-image") {
+          setMode(urlMode);
+          hasChanges = true;
+        }
+
+        if (urlImage) {
+          hasChanges = true;
+          // 从远端加载图片转换为 File 对象以适应 upload 逻辑
+          fetch(urlImage)
+            .then((res) => {
+              if (!res.ok) throw new Error("Network response was not ok");
+              return res.blob();
+            })
+            .then((blob) => {
+              const filename = urlImage.split("/").pop() || "reference.webp";
+              const file = new File([blob], filename, { type: blob.type || "image/webp" });
+              setFiles([file]);
+            })
+            .catch((err) => console.error("Failed to load reference image from URL:", err));
+        }
+
+        // 消费完后清理 URL，避免刷新重复触发
+        if (hasChanges) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      }
+    }, []);
+
     // === 状态持久化缓存 ===
     useEffect(() => {
       if (typeof window !== "undefined") {
