@@ -3,6 +3,7 @@ import { PROMPTS_DATA, type PromptItem } from "~/constants/prompts_data";
 import { Copy, CheckCircle2, ArrowLeft, X, Sparkles, ImageIcon, Video } from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router";
+import { useEditorStore } from "~/store";
 
 /* ========== SEO 元信息 ========== */
 export function meta() {
@@ -26,6 +27,7 @@ function PromptDetailModal({
 }) {
     const navigate = useNavigate();
     const [copied, setCopied] = useState(false);
+    const setEditorPayload = useEditorStore(state => state.setEditorPayload);
 
     // 复制提示词到剪贴板
     const handleCopy = useCallback(() => {
@@ -50,23 +52,20 @@ function PromptDetailModal({
 
     // "Try This Prompt" → 跳转到编辑器并自动填入 prompt
     const handleTryPrompt = () => {
-        const params = new URLSearchParams({ prompt: item.alt });
-        navigate(`/?${params.toString()}`);
+        setEditorPayload({ currentPrompt: item.alt, currentMode: "text-to-image" });
+        navigate("/");
     };
 
     // "Remix Image" → 跳转到 image-to-image 模式
     const handleRemixImage = () => {
-        const params = new URLSearchParams({
-            mode: "image-to-image",
-            image: item.src,
-        });
-        navigate(`/?${params.toString()}`);
+        setEditorPayload({ currentReferenceImage: item.src, currentMode: "image-to-image" });
+        navigate("/");
     };
 
     // "Image to Video" → 跳转到视频生成页面
     const handleImageToVideo = () => {
-        const params = new URLSearchParams({ image: item.src });
-        navigate(`/seedance-2-0?${params.toString()}`);
+        setEditorPayload({ currentReferenceImage: item.src, currentMode: "image-to-video" });
+        navigate("/seedance-2-0");
     };
 
     return (

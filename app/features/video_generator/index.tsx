@@ -7,7 +7,8 @@ import type {
     SeedanceResolution,
     SeedanceDuration
 } from './types';
-import { useUser } from '~/store';
+import { useUser, useEditorStore } from '~/store';
+import { useShallow } from "zustand/react/shallow";
 import { AuthPromptModal, type AuthPromptModalRef } from '~/components/ui/auth-prompt-modal';
 import { CreditRechargeModal, type CreditRechargeModalRef } from '~/components/ui/credit-recharge-modal';
 
@@ -36,30 +37,47 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
     const user = useUser(state => state.user);
     const credits = useUser(state => state.credits);
 
-    // === URL 参数读取与消费 ===
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const searchParams = new URLSearchParams(window.location.search);
-            const urlImage = searchParams.get('image');
+    // === Zustand Editor Store 读取与消费 ===
+    const editorPayload = useEditorStore(useShallow((state) => ({
+        prompt: state.currentPrompt,
+        mode: state.currentMode,
+        image: state.currentReferenceImage,
+    })));
+    const clearEditorPayload = useEditorStore((state) => state.clearEditorPayload);
 
-            if (urlImage) {
-                setMode('image-to-video');
-                fetch(urlImage)
+    // === 消费 Payload ===
+    useEffect(() => {
+        const { prompt: incomingPrompt, mode: incomingMode, image: incomingImage } = editorPayload;
+        let hasConsumed = false;
+
+        if (incomingPrompt) {
+            setPrompt(incomingPrompt);
+            hasConsumed = true;
+        }
+
+        if (incomingMode === "image-to-video") {
+            setMode("image-to-video");
+            hasConsumed = true;
+
+            if (incomingImage) {
+                fetch(incomingImage)
                     .then((res) => {
                         if (!res.ok) throw new Error("Network response was not ok");
                         return res.blob();
                     })
                     .then((blob) => {
-                        const filename = urlImage.split("/").pop() || "reference.webp";
+                        const filename = incomingImage.split("/").pop() || "reference.webp";
                         const file = new File([blob], filename, { type: blob.type || "image/webp" });
                         setReferenceImages([file]);
                     })
-                    .catch((err) => console.error("Failed to load reference image from URL:", err));
-
-                window.history.replaceState({}, document.title, window.location.pathname);
+                    .catch((err) => console.error("Failed to load reference image from store:", err));
             }
         }
-    }, []);
+
+        if (hasConsumed) {
+            clearEditorPayload();
+        }
+    }, [editorPayload, clearEditorPayload]);
 
     // 计算积分消耗（与后端 video-credits.ts 保持一致）
     // 公式：基础积分 × 时长系数 × 音频系数

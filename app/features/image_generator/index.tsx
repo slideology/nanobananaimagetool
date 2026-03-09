@@ -8,7 +8,8 @@ import {
   useCallback,
   useEffect,
 } from "react";
-import { useUser } from "~/store";
+import { useUser, useEditorStore } from "~/store"
+import { useShallow } from "zustand/react/shallow";
 import { useTasks } from "~/hooks/data";
 import { useErrorHandler, useFileValidation, usePromptValidation } from "~/hooks/use-error-handler";
 
@@ -135,48 +136,50 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
     // 模型下拉菜单开关状态
     const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
 
-    // === URL 参数读取与消费 ===
+    // === Zustand Editor Store 读取与消费 ===
+    const editorPayload = useEditorStore(useShallow((state) => ({
+      prompt: state.currentPrompt,
+      mode: state.currentMode,
+      image: state.currentReferenceImage,
+    })));
+    const clearEditorPayload = useEditorStore((state) => state.clearEditorPayload);
+
     useEffect(() => {
-      if (typeof window !== "undefined") {
-        const searchParams = new URLSearchParams(window.location.search);
-        const urlPrompt = searchParams.get("prompt");
-        const urlMode = searchParams.get("mode");
-        const urlImage = searchParams.get("image");
+      const { prompt: incomingPrompt, mode: incomingMode, image: incomingImage } = editorPayload;
+      let hasConsumed = false;
 
-        let hasChanges = false;
-
-        if (urlPrompt) {
-          setPrompt(urlPrompt);
-          if (!urlMode) setMode("text-to-image"); // 默认如果只传prompt，就切text
-          hasChanges = true;
-        }
-        if (urlMode === "image-to-image" || urlMode === "text-to-image") {
-          setMode(urlMode);
-          hasChanges = true;
-        }
-
-        if (urlImage) {
-          hasChanges = true;
-          // 从远端加载图片转换为 File 对象以适应 upload 逻辑
-          fetch(urlImage)
-            .then((res) => {
-              if (!res.ok) throw new Error("Network response was not ok");
-              return res.blob();
-            })
-            .then((blob) => {
-              const filename = urlImage.split("/").pop() || "reference.webp";
-              const file = new File([blob], filename, { type: blob.type || "image/webp" });
-              setFiles([file]);
-            })
-            .catch((err) => console.error("Failed to load reference image from URL:", err));
-        }
-
-        // 消费完后清理 URL，避免刷新重复触发
-        if (hasChanges) {
-          window.history.replaceState({}, document.title, window.location.pathname);
-        }
+      if (incomingPrompt) {
+        setPrompt(incomingPrompt);
+        if (!incomingMode) setMode("text-to-image"); // 默认如果只传prompt，就切text
+        hasConsumed = true;
       }
-    }, []);
+
+      if (incomingMode === "image-to-image" || incomingMode === "text-to-image") {
+        setMode(incomingMode);
+        hasConsumed = true;
+      }
+
+      if (incomingImage) {
+        hasConsumed = true;
+        // 从远端加载图片转换为 File 对象以适应 upload 逻辑
+        fetch(incomingImage)
+          .then((res) => {
+            if (!res.ok) throw new Error("Network response was not ok");
+            return res.blob();
+          })
+          .then((blob) => {
+            const filename = incomingImage.split("/").pop() || "reference.webp";
+            const file = new File([blob], filename, { type: blob.type || "image/webp" });
+            setFiles([file]);
+          })
+          .catch((err) => console.error("Failed to load reference image from Store URL:", err));
+      }
+
+      // 如果成功提取了任何指令，立刻清空全局Store以防复用
+      if (hasConsumed) {
+        clearEditorPayload();
+      }
+    }, [editorPayload, clearEditorPayload]);
 
     // === 状态持久化缓存 ===
     useEffect(() => {
