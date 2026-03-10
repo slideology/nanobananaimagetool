@@ -278,6 +278,11 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
                                 <Check size={16} className="text-purple-600" />
                             </div>
 
+                            {/* 选项 2: 2.0 (不可用) */}
+                            <div className="flex items-center justify-between px-3 py-2.5 rounded-lg opacity-50 cursor-not-allowed bg-gray-50/50">
+                                <span className="text-sm font-medium text-gray-500">Seedance 2.0</span>
+                                <span className="text-xs text-gray-400">Coming Soon</span>
+                            </div>
                         </div>
                     </>
                 )}

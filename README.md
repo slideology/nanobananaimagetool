@@ -280,22 +280,41 @@ npm run dev
 
 ## 🚀 部署
 
-### 生产环境
-**🌐 在线访问**: [https://nanobananaimage.org](https://nanobananaimage.org)
+### 环境说明
+
+项目分为三个环境，**每次修改代码后必须先部署到测试环境，确认无误再部署到正式环境。**
+
+| 环境 | 命令 | 访问地址 | 数据库 | 配置文件 |
+|:---|:---|:---|:---|:---|
+| **本地开发** | `npm run dev` | `http://localhost:3004` | 本地 SQLite | `.dev.vars` |
+| **测试环境** | `npm run deploy:test` | `https://nanobanana-test.slideology0816.workers.dev` | `nanobanana-test`（测试库） | `wrangler.test.jsonc` |
+| **正式环境** | `npm run deploy` | `https://nanobananaimage.org` | `nanobanana`（正式库） | `wrangler.jsonc` |
+
+### 标准部署流程
+
+```
+1. 开发 → npm run dev 本地验证
+2. 部署测试 → npm run deploy:test
+3. 在测试地址验证功能是否正常
+4. 确认无误 → npm run deploy 发布正式
+```
+
+### 部署测试环境
+```bash
+npm run deploy:test
+# 部署完成后访问：https://nanobanana-test.slideology0816.workers.dev
+```
+
+### 部署正式环境（需确认测试通过后执行）
+```bash
+npm run deploy
+# 正式访问地址：https://nanobananaimage.org
+```
 
 ### 自动部署
-项目配置了 GitHub Actions 自动部署，推送到 main 分支即可自动部署到生产环境。
+目前暂未配置 GitHub Actions 自动化 CI/CD，所有部署均为手动执行。
 
 详细配置请查看 [部署指南](./DEPLOY_GUIDE.md)
-
-### 手动部署
-```bash
-# 构建项目
-npm run build
-
-# 部署到 Cloudflare Workers
-npx wrangler deploy
-```
 
 ## 🔑 环境变量配置
 
