@@ -46,10 +46,6 @@ export default function NanoBanana2Page({ loaderData: { pricingTiers } }: Route.
             <section className="bg-gradient-to-br from-yellow-400/10 to-orange-500/10 py-16">
                 <div className="container mx-auto px-4">
                     <div className="text-center mb-12">
-                        {/* Coming Soon Badge */}
-                        <span className="inline-block mb-4 px-4 py-1.5 bg-yellow-100 text-yellow-700 text-sm font-semibold rounded-full border border-yellow-200">
-                            🚀 Coming Soon
-                        </span>
                         <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-yellow-500 to-orange-500 bg-clip-text text-transparent">
                             Nano Banana 2
                             <br />
@@ -66,12 +62,6 @@ export default function NanoBanana2Page({ loaderData: { pricingTiers } }: Route.
             <section className="py-16 bg-gray-50">
                 <div className="container mx-auto px-4">
                     <div className="max-w-7xl mx-auto">
-                        {/* Coming Soon Notice */}
-                        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl text-center">
-                            <p className="text-sm text-yellow-700 font-medium">
-                                ⚡ <strong>Nano Banana 2</strong> is under development. Try the current version below — upgrades are coming soon!
-                            </p>
-                        </div>
                         <div className="py-4">
                             <ImageGenerator
                                 styles={[]}
