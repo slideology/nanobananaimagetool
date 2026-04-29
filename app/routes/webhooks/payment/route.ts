@@ -3,9 +3,16 @@ import type { Route } from "./+types/route";
 import {
   handleOrderComplete,
   handleOrderRefund,
+  handleSubscriptionPaid,
+  handleSubscriptionStatusChange,
 } from "~/.server/services/order";
 import { createCreem } from "~/.server/libs/creem";
-import type { WebhookBody, Checkout, Refund } from "~/.server/libs/creem/types";
+import type {
+  WebhookBody,
+  Checkout,
+  Refund,
+  Subscription,
+} from "~/.server/libs/creem/types";
 
 export const action = async ({ request }: Route.ActionArgs) => {
   if (request.method.toLowerCase() !== "post") {
@@ -22,11 +29,21 @@ export const action = async ({ request }: Route.ActionArgs) => {
       throw Error("Unvalid Signature");
     }
 
-    const { eventType, ...rest } = JSON.parse(body) as WebhookBody;
+    const payload = JSON.parse(body) as WebhookBody;
+    const { id: eventId, eventType, ...rest } = payload;
 
     if (eventType === "checkout.completed") {
       const checkout = rest.object as Checkout;
       await handleOrderComplete(checkout.id);
+    } else if (eventType === "subscription.paid") {
+      const subscription = rest.object as Subscription;
+      await handleSubscriptionPaid(subscription, eventId);
+    } else if (eventType === "subscription.canceled") {
+      const subscription = rest.object as Subscription;
+      await handleSubscriptionStatusChange(subscription, "cancelled");
+    } else if (eventType === "subscription.expired") {
+      const subscription = rest.object as Subscription;
+      await handleSubscriptionStatusChange(subscription, "expired");
     } else if (eventType === "refund.created") {
       const v = rest.object as Refund;
       const { checkout } = v;

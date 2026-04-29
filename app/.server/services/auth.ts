@@ -14,7 +14,7 @@ import { insertCreditRecord } from "~/.server/model/credit_record";
 /**
  * 创建新用户并分配初始积分
  * @param newUser 新用户信息
- * @param hasUsedGuestCredit 是否已使用过临时积分
+ * @param hasUsedGuestCredit 是否已使用过历史 guest 试用额度（兼容旧逻辑）
  */
 export const createUser = async (newUser: InsertUser, hasUsedGuestCredit: boolean = false) => {
   // 🔒 安全修复：新用户创建时就标记已获得登录奖励，防止重复获得
@@ -48,7 +48,7 @@ export const createUser = async (newUser: InsertUser, hasUsedGuestCredit: boolea
 /**
  * Google OAuth 登录流程
  * @param profile 从 Google OAuth 获取的用户资料
- * @param hasUsedGuestCredit 是否已使用过临时积分
+ * @param hasUsedGuestCredit 是否已使用过历史 guest 试用额度（兼容旧逻辑）
  */
 export const googleOAuthLogin = async (params: {
   profile: GoogleUserInfo;

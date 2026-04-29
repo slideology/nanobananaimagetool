@@ -38,6 +38,17 @@ export const getSubscriptionById = async (id: Subscription["id"]) => {
   });
 };
 
+export const getSubscriptionByPlatformSubId = async (
+  platformSubId: NonNullable<Subscription["platform_sub_id"]>
+) => {
+  const db = connectDB();
+
+  return await db.query.subscriptions.findFirst({
+    where: eq(schema.subscriptions.platform_sub_id, platformSubId),
+    orderBy: [desc(schema.subscriptions.created_at)],
+  });
+};
+
 // Get subscriptions by user ID
 export const getSubscriptionsByUserId = async (
   userId: Subscription["user_id"]

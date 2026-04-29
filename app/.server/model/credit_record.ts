@@ -75,3 +75,20 @@ export const getCreditRecordBySourceId = async (id: Credit["source_id"]) => {
     where: eq(schema.credit_records.source_id, id),
   });
 };
+
+export const getCreditRecordBySource = async (
+  sourceType: Credit["source_type"],
+  sourceId: Credit["source_id"]
+) => {
+  if (!sourceType || !sourceId) {
+    throw Error("Source type and source ID are required");
+  }
+
+  const db = connectDB();
+  return await db.query.credit_records.findFirst({
+    where: and(
+      eq(schema.credit_records.source_type, sourceType),
+      eq(schema.credit_records.source_id, sourceId)
+    ),
+  });
+};

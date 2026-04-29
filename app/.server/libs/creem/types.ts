@@ -52,7 +52,7 @@ export interface Subscription {
   customer: Customer | string;
   items: any[];
   collection_method: "charge_automatically";
-  status: "active";
+  status: "active" | "canceled" | "expired" | "trialing";
   last_transaction_id?: string;
   last_transaction_date?: string;
   next_transaction_date?: string;

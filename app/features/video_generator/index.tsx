@@ -36,6 +36,7 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
 
     const user = useUser(state => state.user);
     const credits = useUser(state => state.credits);
+    const setCredits = useUser(state => state.setCredits);
 
     // === Zustand Editor Store 读取与消费 ===
     const editorPayload = useEditorStore(useShallow((state) => ({
@@ -190,6 +191,10 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
             const data = await response.json() as any;
             console.log('视频生成任务创建成功:', data);
 
+            if (typeof data?.consumptionCredits?.remainingBalance === 'number') {
+                setCredits(data.consumptionCredits.remainingBalance);
+            }
+
             // 提取任务编号 (兼顾新旧API结构)
             const taskNo = data.task_no || (data.tasks && data.tasks.length > 0 ? data.tasks[0].task_no : null);
 
@@ -209,7 +214,7 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
         } finally {
             setSubmitting(false);
         }
-    }, [prompt, referenceImages, aspectRatio, resolution, duration, fixedLens, generateAudio]);
+    }, [prompt, referenceImages, aspectRatio, resolution, duration, fixedLens, generateAudio, user, calculateCredits, credits, onTaskCreated, setCredits]);
 
     const estimatedCredits = calculateCredits();
 

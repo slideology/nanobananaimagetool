@@ -221,7 +221,7 @@ export async function action({ request, context }: Route.ActionArgs) {
             }],
             consumptionCredits: {
                 consumed: requiredCredits,
-                remainingBalance: 0 // TODO: 从 consumptionResult 获取
+                remainingBalance: consumptionResult.remainingBalance
             }
         };
 

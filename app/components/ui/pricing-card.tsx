@@ -86,7 +86,9 @@ export default function PricingCard({ tier, mode, onPurchase, loading }: Pricing
                     <span className="text-sm font-semibold text-gray-900">
                         {mode === "once"
                             ? `${pricing.credits} Credits — Never Expire`
-                            : `${pricing.credits} Credits / Month`
+                            : mode === "yearly"
+                                ? `${pricing.credits} Credits / Yearly Billing Cycle`
+                                : `${pricing.credits} Credits / Monthly Billing Cycle`
                         }
                     </span>
                 </li>

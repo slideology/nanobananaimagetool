@@ -170,7 +170,7 @@ export const FREE_PLAN = {
   name: "Free",
   description: "For personal use only with limited features and support",
   features: [
-    { text: "3 Free Trial Credits", included: true },
+    { text: "60 Free Credits on Sign Up", included: true },
     { text: "Basic Image Generation", included: true },
     { text: "Standard Response Time", included: true },
     { text: "Community Support", included: true }

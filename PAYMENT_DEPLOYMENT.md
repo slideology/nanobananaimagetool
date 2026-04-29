@@ -69,3 +69,18 @@ npm run build && npx wrangler deploy -c wrangler.test.jsonc
 ```bash
 npm run build && npx wrangler deploy
 ```
+
+---
+
+## 5. 当前已知范围说明
+
+本次计费修正已统一以下规则：
+* 免费试用口径统一为 **登录后赠送 60 Credits**
+* 订阅积分按 **计费周期发放**，并通过 webhook 处理续费、取消、过期
+* 未登录用户不再走图片上传与生成主流程
+
+当前仍未落地的内容：
+* 套餐卡中部分权益（例如 `No Captcha verification`、`priority queue`）仍属于展示层文案
+* 后端尚未实现按 `plan_type` 的完整 entitlement 权限控制
+
+后续若继续扩大付费投放，建议优先补齐 entitlement 系统，或收敛这些未实现权益的对外文案。

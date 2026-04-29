@@ -14,7 +14,7 @@ import { useTasks } from "~/hooks/data";
 import { useErrorHandler, useFileValidation, usePromptValidation } from "~/hooks/use-error-handler";
 
 import { GoogleOAuth, type GoogleOAuthBtnRef } from "~/features/oauth";
-import { CreditRechargeModal, type CreditRechargeModalRef, TurnstileVerification } from "~/components/ui";
+import { CreditRechargeModal, type CreditRechargeModalRef } from "~/components/ui";
 import { AuthPromptModal, type AuthPromptModalRef } from "~/components/ui/auth-prompt-modal";
 import { X, ImageIcon, Type, Wand2, ChevronDown, Check } from "lucide-react";
 import { Image } from "~/components/common";
@@ -197,11 +197,6 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
     // 生成状态
     const [submitting, setSubmitting] = useState(false);
     const [done, setDone] = useState(false);
-
-    // Turnstile验证状态
-    const [showVerification, setShowVerification] = useState(false);
-    const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-    const [verificationError, setVerificationError] = useState<string>("");
 
     const [tasks, setTasks] = useTasks<
       AiImageResult["tasks"][number] & { progress: number }
@@ -395,26 +390,6 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
       clearError();
     }, [mode, validateFile, clearError, selectedModel]);
 
-    // Turnstile验证回调函数
-    const handleTurnstileSuccess = useCallback((token: string) => {
-      setTurnstileToken(token);
-      setVerificationError("");
-      setShowVerification(false);
-      console.log("Turnstile verification successful");
-    }, []);
-
-    const handleTurnstileError = useCallback((error: string) => {
-      setTurnstileToken(null);
-      setVerificationError(error);
-      console.error("Turnstile verification error:", error);
-    }, []);
-
-    const handleTurnstileExpire = useCallback(() => {
-      setTurnstileToken(null);
-      setVerificationError("Verification expired. Please try again.");
-      console.warn("Turnstile verification expired");
-    }, []);
-
     const handleSubmit = async () => {
       // 开始前端数据收集日志监控
       const requestId = FrontendLogger.startImageGeneration({
@@ -514,11 +489,6 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           for (let i = 0; i < files.length; i++) {
             const uploadFormData = new FormData();
             uploadFormData.set("image", files[i]);
-
-            // 如果用户未登录，添加Turnstile token
-            if (!user && turnstileToken) {
-              uploadFormData.set("cf-turnstile-response", turnstileToken);
-            }
 
             const uploadRes = await fetch("/api/upload/image", {
               method: "POST",
@@ -753,18 +723,6 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         {mode === 'image-to-image' && (
           <div className="mb-5">
             <label className="block text-xs font-medium text-gray-600 mb-2">Reference Image</label>
-
-            {/* Guest Warning */}
-            {!user && (
-              <div className="mb-3 p-2.5 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
-                <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-[10px] font-bold">!</span>
-                </div>
-                <p className="text-xs text-blue-700">
-                  {turnstileToken ? "Verification completed" : "Verification required for guest upload"}
-                </p>
-              </div>
-            )}
 
             <div className="border-2 border-dashed border-gray-300 rounded-lg py-6 px-4 text-center cursor-pointer hover:border-purple-400 hover:bg-purple-50/30 transition-all relative group">
               {files.length > 0 ? (
@@ -1175,44 +1133,6 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
             </div>
           )}
         </dialog>
-
-        {/* Turnstile验证弹窗 */}
-        {showVerification && (
-          <dialog className="modal modal-open">
-            <div className="modal-box max-w-md">
-              <h3 className="font-bold text-lg mb-4">Verification Required</h3>
-              <p className="text-gray-600 mb-6">
-                Please complete the verification to upload images. This helps us prevent automated abuse.
-              </p>
-
-              <div className="flex justify-center mb-6">
-                <TurnstileVerification
-                  siteKey="1x00000000000000000000AA" // Demo key - will be replaced with real key in production
-                  onSuccess={handleTurnstileSuccess}
-                  onError={handleTurnstileError}
-                  onExpire={handleTurnstileExpire}
-                  theme="light"
-                  size="normal"
-                />
-              </div>
-
-              {verificationError && (
-                <div className="alert alert-error mb-4">
-                  <span>{verificationError}</span>
-                </div>
-              )}
-
-              <div className="modal-action">
-                <button
-                  className="btn btn-ghost"
-                  onClick={() => setShowVerification(false)}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </dialog>
-        )}
 
         {/* 充值弹窗 */}
         <CreditRechargeModal

@@ -11,6 +11,13 @@ declare namespace Cloudflare {
     CREEM_KEY: string;
     CREEM_WEBHOOK_SECRET: string;
     CREEM_TEST_KEY: string;
+    FEISHU_WEBHOOK_URL?: string;
+    FEISHU_WEBHOOK_SECRET?: string;
+    DAILY_REPORT_SECRET?: string;
+    GA4_PROPERTY_ID?: string;
+    GA4_CLIENT_EMAIL?: string;
+    GA4_PRIVATE_KEY?: string;
+    GA4_SERVICE_ACCOUNT_JSON?: string;
     // 由 wrangler.jsonc vars 设置的公开变量
     INITLIZE_CREDITS: string;
   }

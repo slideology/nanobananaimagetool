@@ -14,7 +14,7 @@ const googleSchema = z.object({
   data: z.object({
     access_token: z.string().optional(),
     credential: z.string().optional(),
-    hasUsedGuestCredit: z.boolean().optional(), // 是否已使用过临时积分
+    hasUsedGuestCredit: z.boolean().optional(), // 兼容旧 guest 试用链路
   }),
 });
 

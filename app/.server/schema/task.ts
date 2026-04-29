@@ -15,7 +15,6 @@ export const createAiImageSchema = z.object({
   google_search: z.boolean().optional(),
   resolution: z.enum(["1K", "2K", "4K"]).optional(),
   output_format: z.enum(["jpg", "png"]).optional(),
-  hasGuestCredit: z.boolean().optional(), // 用于未登录用户的临时积分验证
 }).refine(
   (data) => {
     // If mode is image-to-image, image URL is required

@@ -1,7 +1,7 @@
 /**
  * 图片上传API端点
  * 用于将图片上传到R2存储并返回可访问的URL
- * 支持登录用户和未登录用户（带IP限制）
+ * 当前仅支持已登录用户，免费试用统一为登录后领取积分
  */
 import type { Route } from "./+types/route";
 import { data } from "react-router";
@@ -9,8 +9,6 @@ import { nanoid } from "nanoid";
 
 import { getSessionHandler } from "~/.server/libs/session";
 import { uploadFiles } from "~/.server/services/r2-bucket";
-import { getGuestCreditUsageByIP } from "~/.server/model/guest_credit_usage";
-import { verifyTurnstile } from "~/.server/services/turnstile";
 
 /**
  * 处理图片上传请求
@@ -23,87 +21,24 @@ export const action = async ({ request, context }: Route.ActionArgs) => {
   }
 
   try {
-    // 1. 解析FormData获取图片文件和Turnstile token
+    // 1. 解析FormData获取图片文件
     const formData = await request.formData();
     const image = formData.get("image") as File;
-    const turnstileToken = formData.get("cf-turnstile-response") as string;
 
-    // 2. 用户身份验证和IP限制检查
+    // 2. 统一为登录后试用，未登录用户不能走上传链路
     const [session] = await getSessionHandler(request);
     const user = session.get("user");
-    
-    // 如果用户未登录，检查IP是否已使用过临时积分
     if (!user) {
-      const clientIP = request.headers.get("x-forwarded-for") || 
-                      request.headers.get("x-real-ip") || 
-                      request.headers.get("cf-connecting-ip") ||
-                      "unknown";
-      
-      if (clientIP === "unknown") {
-        throw new Response(
-          JSON.stringify({ error: "Unable to determine client IP address" }),
-          { 
-            status: 400,
-            headers: { "Content-Type": "application/json" }
-          }
-        );
-      }
-      
-       // 检查IP是否已使用过临时积分
-        const hasUsedCredit = await getGuestCreditUsageByIP(clientIP);
-        if (hasUsedCredit) {
-          throw new Response(
-            JSON.stringify({ 
-              error: "This IP has already used the free trial. Please sign in to upload more images." 
-            }),
-            { 
-              status: 403,
-              headers: { "Content-Type": "application/json" }
-            }
-          );
+      throw new Response(
+        JSON.stringify({
+          error: "Please sign in to upload images and start your free credits.",
+        }),
+        {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
         }
-        
-        // 验证 Turnstile token（未登录用户必须通过人机验证）
-        if (!turnstileToken) {
-          throw new Response(
-            JSON.stringify({ 
-              error: "Please complete the verification to upload images." 
-            }),
-            { 
-              status: 400,
-              headers: { "Content-Type": "application/json" }
-            }
-          );
-        }
-        
-        // 验证 Turnstile token 的有效性
-        const turnstileSecret = (context.cloudflare.env as any).TURNSTILE_SECRET_KEY;
-        if (!turnstileSecret) {
-          console.error("TURNSTILE_SECRET_KEY not configured");
-          throw new Response(
-            JSON.stringify({ 
-              error: "Verification service not available. Please try again later." 
-            }),
-            { 
-              status: 500,
-              headers: { "Content-Type": "application/json" }
-            }
-          );
-        }
-        
-        const isValidToken = await verifyTurnstile(turnstileToken, turnstileSecret, clientIP);
-        if (!isValidToken) {
-          throw new Response(
-            JSON.stringify({ 
-              error: "Verification failed. Please try again." 
-            }),
-            { 
-              status: 400,
-              headers: { "Content-Type": "application/json" }
-            }
-          );
-        }
-      }
+      );
+    }
     
     if (!image || !(image instanceof File)) {
       throw new Response(

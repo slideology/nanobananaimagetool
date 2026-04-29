@@ -58,7 +58,7 @@ export const BASIC_PLAN: PLAN = {
     watermarks: true,
     highResolution: false,
     fullStyles: false,
-    credits: 3, // 免费试用积分
+    credits: 60, // 免费试用积分
     private: false,
     features: false,
     imageToImage: true,

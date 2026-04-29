@@ -1,6 +1,5 @@
 import currency from "currency.js";
 import dayjs from "dayjs";
-import { env } from "cloudflare:workers";
 
 import {
   insertOrder,
@@ -11,20 +10,25 @@ import {
   insertSubscription,
   updateSubscription,
   getSubscriptionById,
+  getSubscriptionByPlatformSubId,
 } from "~/.server/model/subscriptions";
 
 import {
   insertCreditRecord,
   updateCreditRecord,
   getCreditRecordBySourceId,
+  getCreditRecordBySource,
 } from "~/.server/model/credit_record";
 import { insertCreditConsumption } from "~/.server/model/credit_consumptions";
 
 import { createCreem } from "~/.server/libs/creem";
-import type { Customer, Subscription } from "~/.server/libs/creem/types";
+import type {
+  Customer,
+  Subscription as CreemSubscription,
+} from "~/.server/libs/creem/types";
 import type { User } from "~/.server/libs/db";
 
-import { PRICING_LIST } from "~/constants/pricing";
+import { PRICING_TIERS } from "~/constants/product";
 
 function generateUniqueOrderNo(prefix = "ORD") {
   const dateTimePart = dayjs().format("YYYYMMDDHHmmssSSS");
@@ -43,6 +47,70 @@ interface CreateOrderOptions {
   credits?: number; // 订单购买的 Credits 数量（仅 once 订单）
   plan_id?: string; // 订阅计划的编码
 }
+
+type BillingInterval = "month" | "year";
+
+const getBillingInterval = (
+  typeOrInterval: CreateOrderOptions["type"] | BillingInterval
+): BillingInterval => {
+  return typeOrInterval === "yearly" || typeOrInterval === "year" ? "year" : "month";
+};
+
+const getSubscriptionTier = (planId?: string) => {
+  if (!planId) return null;
+  return PRICING_TIERS.find((item) => item.id === planId) || null;
+};
+
+const getCycleCredits = (planId: string, interval: BillingInterval) => {
+  const tier = getSubscriptionTier(planId);
+  if (!tier) return null;
+  return interval === "year"
+    ? tier.pricing.yearly.credits
+    : tier.pricing.monthly.credits;
+};
+
+const parseDate = (value?: string | null) => {
+  if (!value) return null;
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.toDate() : null;
+};
+
+const resolveCycleExpiry = (
+  interval: BillingInterval,
+  subscription?: CreemSubscription
+) => {
+  const periodEnd = parseDate(subscription?.current_period_end_date);
+  if (periodEnd) return periodEnd;
+
+  return dayjs()
+    .add(1, interval === "year" ? "year" : "month")
+    .endOf("day")
+    .toDate();
+};
+
+const resolvePaymentAt = (subscription?: CreemSubscription) => {
+  return parseDate(subscription?.last_transaction_date) || new Date();
+};
+
+const resolveCycleSourceId = (
+  subscription: CreemSubscription,
+  eventId?: string
+) => {
+  if (subscription.last_transaction_id) {
+    return `tx:${subscription.last_transaction_id}`;
+  }
+
+  if (subscription.current_period_start_date) {
+    return `period:${subscription.id}:${subscription.current_period_start_date}`;
+  }
+
+  if (eventId) {
+    return `event:${eventId}`;
+  }
+
+  return `subscription:${subscription.id}:${subscription.updated_at}`;
+};
+
 export const createOrder = async (payload: CreateOrderOptions, user: User, contextEnv?: any, origin?: string) => {
   const orderNo = generateUniqueOrderNo();
 
@@ -117,7 +185,7 @@ export const handleOrderComplete = async (checkoutId: string) => {
 
     return result;
   } else {
-    const plan = PRICING_LIST.find((item) => item.id === plan_id);
+    const plan = getSubscriptionTier(plan_id);
     const hasError = !plan;
 
     if (hasError) {
@@ -129,35 +197,37 @@ export const handleOrderComplete = async (checkoutId: string) => {
 
       return result;
     } else {
-      const expiredAt = dayjs()
-        .add(1, orderDetail.type === "yearly" ? "year" : "month")
-        .endOf("day")
-        .toDate();
-      const subscription = checkout.subscription as Subscription;
+      const interval = getBillingInterval(orderDetail.type);
+      const subscription = checkout.subscription as CreemSubscription | string;
+      if (typeof subscription === "string") {
+        throw Error("Missing subscription details");
+      }
+      const expiredAt = resolveCycleExpiry(interval, subscription);
+      const paidAt = resolvePaymentAt(subscription);
       const [sub] = await insertSubscription({
         user_id: order.user_id,
         plan_type: plan.id,
         status: "active",
-        interval: orderDetail.type === "yearly" ? "year" : "month",
+        interval,
         interval_count: 1,
         platform_sub_id: subscription.id,
         start_at: dayjs().startOf("day").toDate(),
         expired_at: expiredAt,
-        last_payment_at: new Date(),
+        last_payment_at: paidAt,
       });
 
-      // 优先使用下单时传入的精确积分数（区分月付/年付）
-      // fallback 到 pricing.ts 的 plan.limit.credits
-      const creditsToGive = credits || plan.limit.credits;
+      // 订阅积分按计费周期发放，首购时发放当前周期积分。
+      const creditsToGive = credits || getCycleCredits(plan.id, interval);
       if (creditsToGive) {
         await insertCreditRecord({
           user_id: order.user_id,
           credits: creditsToGive,
           remaining_credits: creditsToGive,
           trans_type: "subscription",
-          source_type: "order",
-          source_id: order.order_no,
+          source_type: "subscription_cycle",
+          source_id: resolveCycleSourceId(subscription),
           expired_at: expiredAt,
+          note: `${plan.name} ${interval === "year" ? "yearly" : "monthly"} billing cycle credits`,
         });
       }
 
@@ -197,7 +267,15 @@ export const handleOrderRefund = async (checkoutId: string) => {
     }
   }
 
-  const credit = await getCreditRecordBySourceId(order.order_no);
+  let credit = await getCreditRecordBySourceId(order.order_no);
+  if (!credit && order.sub_id) {
+    const checkoutSubscription = checkout.subscription as CreemSubscription | string;
+    if (typeof checkoutSubscription !== "string") {
+      const cycleSourceId = resolveCycleSourceId(checkoutSubscription);
+      credit = await getCreditRecordBySource("subscription_cycle", cycleSourceId);
+    }
+  }
+
   if (credit && credit.remaining_credits > 0) {
     await updateCreditRecord(credit.id, { remaining_credits: 0 });
     await insertCreditConsumption({
@@ -213,4 +291,81 @@ export const handleOrderRefund = async (checkoutId: string) => {
   });
 
   return result;
+};
+
+export const handleSubscriptionPaid = async (
+  subscription: CreemSubscription,
+  eventId?: string
+) => {
+  const localSubscription = await getSubscriptionByPlatformSubId(subscription.id);
+  if (!localSubscription) {
+    throw Error("Invalid subscription");
+  }
+
+  const sourceId = resolveCycleSourceId(subscription, eventId);
+  const existingCredit = await getCreditRecordBySource("subscription_cycle", sourceId);
+  if (existingCredit) {
+    return {
+      subscription: localSubscription,
+      credited: false,
+      creditRecordId: existingCredit.id,
+    };
+  }
+
+  const interval = getBillingInterval(localSubscription.interval || "month");
+  const creditsToGive = getCycleCredits(localSubscription.plan_type, interval);
+  if (!creditsToGive) {
+    throw Error("Invalid subscription plan");
+  }
+
+  const expiredAt = resolveCycleExpiry(interval, subscription);
+  const paidAt = resolvePaymentAt(subscription);
+
+  await updateSubscription(localSubscription.id, {
+    status: "active",
+    last_payment_at: paidAt,
+    expired_at: expiredAt,
+    cancel_at: null,
+  });
+
+  const [creditRecord] = await insertCreditRecord({
+    user_id: localSubscription.user_id,
+    credits: creditsToGive,
+    remaining_credits: creditsToGive,
+    trans_type: "subscription",
+    source_type: "subscription_cycle",
+    source_id: sourceId,
+    expired_at: expiredAt,
+    note: `${localSubscription.plan_type} ${interval === "year" ? "yearly" : "monthly"} billing cycle credits`,
+  });
+
+  return {
+    subscription: localSubscription,
+    credited: true,
+    creditRecordId: creditRecord.id,
+  };
+};
+
+export const handleSubscriptionStatusChange = async (
+  subscription: CreemSubscription,
+  status: "cancelled" | "expired"
+) => {
+  const localSubscription = await getSubscriptionByPlatformSubId(subscription.id);
+  if (!localSubscription) {
+    throw Error("Invalid subscription");
+  }
+
+  const expiredAt =
+    parseDate(subscription.current_period_end_date) ||
+    parseDate(subscription.canceled_at) ||
+    new Date();
+
+  const value = {
+    status,
+    expired_at: expiredAt,
+    cancel_at: status === "cancelled" ? parseDate(subscription.canceled_at) || new Date() : localSubscription.cancel_at,
+  } as const;
+
+  const [updated] = await updateSubscription(localSubscription.id, value);
+  return updated;
 };
