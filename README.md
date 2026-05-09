@@ -11,35 +11,38 @@
 - 🆓 **免费试用**: 新用户注册即获60个免费积分
 - ⚡ **即时生成**: 30-120秒完成高质量图像生成
 
-## 📝 最新进展（2026-03-16）
+## 📝 最新进展（2026-05-09）
 
-### 今天完成的工作
+### 最近完成的工作
 
-- **统一免费试用口径**：项目内对外文案统一为“登录即送 60 Credits”，修正了 README、免费套餐常量和旧定价配置中的历史口径。
-- **修正订阅积分发放规则**：订阅积分统一为按**计费周期**发放，不再用含糊的 “Credits / Month” 误导年付用户。
-- **补齐支付 Webhook 订阅事件**：新增 `subscription.paid`、`subscription.canceled`、`subscription.expired` 处理逻辑，支持续费发积分、取消/过期同步本地状态，并增加幂等保护避免重复发放。
-- **统一免费体验主路径**：图片上传接口改为仅允许已登录用户访问，移除了图片生成页里未登录 guest / Turnstile 试用提示，产品规则收敛为“登录后领取免费积分再使用”。
-- **修正视频积分细节**：更新视频积分注释与示例，接口返回真实 `remainingBalance`，前端在视频创建成功后同步刷新积分余额。
-- **补充最小回归测试**：新增视频积分公式测试和免费积分口径测试，当前新增测试均通过。
+- **图片生成供应商切换到 ApiMart**：新增 ApiMart 图像客户端，`nano-banana` / `nano-banana-edit` / `nano-banana-2` / `nano-banana-pro` 统一走 `https://api.apimart.ai/v1/images/generations` 异步任务接口，旧 `kie_nano_banana` 查询分支保留用于历史任务兼容。
+- **新增 Nano Banana Pro 入口**：前端模型下拉已加入 `Nano Banana Pro`，与 Nano Banana 2 一样支持 1K/2K/4K 和最多 14 张参考图，积分档位统一为 50 / 80 / 120。
+- **保留视频生成在 Kie**：Seedance 视频仍使用 `KIEAI_APIKEY` 与 `kie_seedance` 任务分支，避免本次图片供应商迁移影响视频链路。
+- **完善任务轮询和失败回滚**：ApiMart `pending` / `processing` 映射为 running，`completed` 解析 `result.images[].url` 并在生产环境复制到 R2，`failed` / `cancelled` 会标记失败并回滚已扣积分。
+- **测试与正式环境均已部署验证**：测试 Worker `nanobanana-test` 和正式 Worker `nanobanana` 都已写入 `APIMART_API_KEY`；正式站点 `https://nanobananaimage.org` 已发布版本 `5cb75a41-d240-4371-83f9-19b2a4e851f3` 并返回 200。
+- **测试账号积分已修正**：测试库中 `slideology0816@gmail.com` 是旧规则账号，已手动补齐到 60 Credits；该问题不是生成扣费导致，原账号没有消费流水和 AI 任务记录。
+- **补充最小回归测试**：新增 ApiMart client 与前端模型配置测试，并复跑视频积分和套餐文案测试，当前相关测试通过。
 
 ### 接下来的待办
 
 - **彻底隔离测试环境与正式环境资源**：当前测试环境虽然已切到测试域名、测试数据库和 Creem Test API，但 `KV` / `R2` 仍未完全隔离。
 - **补齐 entitlement 权限系统**：套餐文案里的 `No Captcha verification`、`priority queue`、`private` 等权益目前仍是展示层描述，后端尚未按 `plan_type` 落地能力控制。
-- **补订阅链路测试**：为首购、续费、退款、取消、过期分别增加服务层或 webhook 测试，降低后续改动风险。
-- **清理历史兼容代码**：`guest_credit_usage`、`hasUsedGuestCredit` 仍保留为兼容逻辑，后续可按产品决定继续保留还是彻底移除。
+- **补齐 ApiMart 真实链路监控**：生产已上线 ApiMart，后续需要关注任务失败率、余额/权限错误、图片结果链接复制到 R2 的成功率，并决定是否需要启用 `official_fallback`。
+- **补订阅与生成链路测试**：为首购、续费、退款、取消、过期，以及 ApiMart 创建任务/查询任务/失败回滚继续补服务层或 webhook 测试。
+- **清理历史兼容代码**：`guest_credit_usage`、`hasUsedGuestCredit` 和旧 Kie 图片任务兼容分支仍保留，后续可按线上历史任务消化情况逐步收敛。
 - **修复仓库现存类型检查问题**：当前 `npm run typecheck` 仍会被若干历史问题阻塞，例如 Google OAuth 类型、部分 route typegen 文件和旧别名引用，和本次计费修正无直接关系，但建议单独清理。
 
 ### 当前状态结论
 
-- 当前正式规则已经收敛为：**登录送 60 Credits、上传与生成都要求登录、订阅积分按计费周期发放**。
-- 当前支付环境区分方式为：**测试环境使用 `wrangler.test.jsonc` + `CREEM_TEST_KEY` + 测试数据库**，正式环境使用 `wrangler.jsonc` + 正式 Creem Key + 正式数据库。
+- 当前正式规则已经收敛为：**登录送 60 Credits、上传与生成都要求登录、图片生成走 ApiMart、视频生成走 Kie、订阅积分按计费周期发放**。
+- 当前环境区分方式为：**测试环境使用 `wrangler.test.jsonc` + `CREEM_TEST_KEY` + 测试数据库**，正式环境使用 `wrangler.jsonc` + 正式 Creem Key + 正式数据库。
+- 当前发布策略仍是手动发布：先 `npm run deploy:test` 验证测试环境，再 `npm run deploy` 发布正式环境。
 
 ## ✨ 核心特性
 
 ### 🎨 AI 图像生成能力
 - **双模式生成**：Text-to-Image（文字生图）+ Image-to-Image（图片转图）
-- **高质量模型**：集成 Google Nano Banana 模型，支持高分辨率图像生成
+- **高质量模型**：通过 ApiMart 接入 Nano Banana、Nano Banana 2 与 Nano Banana Pro，支持高分辨率图像生成
 - **智能优化**：自动提示词优化，提升生成质量
 - **批量处理**：支持多张图片同时生成，提升工作效率
 
@@ -282,7 +285,8 @@ npm install
 2. 配置必要的 API 密钥：
    - `GOOGLE_CLIENT_ID` - Google OAuth 客户端 ID
    - `GOOGLE_CLIENT_SECRET` - Google OAuth 客户端密钥
-   - `KIEAI_APIKEY` - Kie AI API 密钥
+   - `APIMART_API_KEY` - ApiMart 图片生成 API 密钥
+   - `KIEAI_APIKEY` - Kie AI API 密钥（Seedance 视频与历史图片任务兼容）
    - `SESSION_SECRET` - 会话加密密钥
    - `CREEM_KEY` - 支付系统密钥
 
@@ -346,11 +350,15 @@ npm run deploy
 ```
 wrangler secret put GOOGLE_CLIENT_ID
 wrangler secret put GOOGLE_CLIENT_SECRET
+wrangler secret put APIMART_API_KEY
 wrangler secret put KIEAI_APIKEY
 wrangler secret put SESSION_SECRET
 wrangler secret put CREEM_KEY
 wrangler secret put CREEM_WEBHOOK_SECRET
 ```
+
+图片生成当前走 ApiMart：`nano-banana` / `nano-banana-edit` 对应 `gemini-2.5-flash-image-preview`，`nano-banana-2` 对应 `gemini-3.1-flash-image-preview`，`nano-banana-pro` 对应 `gemini-3-pro-image-preview`。`KIEAI_APIKEY` 仍用于 Seedance 视频，以及查询切换前已创建的 Kie 图片任务。
+如需覆盖 ApiMart 网关地址，可额外配置 `APIMART_BASE_URL`；默认值为 `https://api.apimart.ai/v1`。
 
 ### 公开变量（在 wrangler.jsonc 中配置）
 - `INITLIZE_CREDITS` - 新用户初始积分

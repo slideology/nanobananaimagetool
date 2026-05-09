@@ -22,6 +22,14 @@ import { Image } from "~/components/common";
 import type { AiImageResult } from "~/routes/_api/create.ai-image/route";
 import type { TaskResult } from "~/routes/_api/task.$task_no/route";
 import { FrontendLogger } from "~/utils/frontend-logger";
+import {
+  getImageAspectRatioOptions,
+  getImageTaskCredits,
+  IMAGE_MODEL_OPTIONS,
+  isAdvancedImageModel,
+  type ImageGenerationMode,
+  type ImageModelId,
+} from "./model-config";
 
 export interface ImageStyle {
   name: string;
@@ -97,7 +105,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
     const { validatePrompt } = usePromptValidation();
 
     // 生成模式
-    const [mode, setMode] = useState<"image-to-image" | "text-to-image">(
+    const [mode, setMode] = useState<ImageGenerationMode>(
       () => (typeof window !== "undefined" ? sessionStorage.getItem("nb2-mode") as any : null) || "image-to-image"
     );
 
@@ -120,18 +128,14 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
     const [googleSearch, setGoogleSearch] = useState<boolean>(
       () => (typeof window !== "undefined" ? sessionStorage.getItem("nb2-gs") === "true" : false)
     );
-    const [outputFormat, setOutputFormat] = useState<"jpg" | "png">(
-      () => (typeof window !== "undefined" ? sessionStorage.getItem("nb2-fmt") as any : null) || "jpg"
-    );
-
     // 提示词
     const [prompt, setPrompt] = useState(
       () => (typeof window !== "undefined" ? sessionStorage.getItem("nb2-prompt") || "" : "")
     );
 
     // AI模型选择
-    const [selectedModel, setSelectedModel] = useState<string>(
-      () => (typeof window !== "undefined" ? sessionStorage.getItem("nb2-model") || "nano-banana-2" : "nano-banana-2")
+    const [selectedModel, setSelectedModel] = useState<ImageModelId>(
+      () => (typeof window !== "undefined" ? sessionStorage.getItem("nb2-model") as ImageModelId || "nano-banana-2" : "nano-banana-2")
     );
     // 模型下拉菜单开关状态
     const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
@@ -188,11 +192,10 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         sessionStorage.setItem("nb2-res", resolution);
         sessionStorage.setItem("nb2-ar", aspectRatio);
         sessionStorage.setItem("nb2-gs", googleSearch ? "true" : "false");
-        sessionStorage.setItem("nb2-fmt", outputFormat);
         sessionStorage.setItem("nb2-prompt", prompt);
         sessionStorage.setItem("nb2-model", selectedModel);
       }
-    }, [mode, resolution, aspectRatio, googleSearch, outputFormat, prompt, selectedModel]);
+    }, [mode, resolution, aspectRatio, googleSearch, prompt, selectedModel]);
 
     // 生成状态
     const [submitting, setSubmitting] = useState(false);
@@ -231,50 +234,17 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
       }
     ];
 
-    // AI模型配置
-    const aiModels = {
-      "text-to-image": [
-        {
-          id: "nano-banana",
-          name: "Nano Banana",
-          description: "🍌 Fast Generation | Affordable",
-          credits: 30
-        },
-        {
-          id: "nano-banana-2",
-          name: "Nano Banana 2",
-          description: "🍌 Advanced Models | Multi-Image",
-          credits: 50 // Base cost
-        }
-      ],
-      "image-to-image": [
-        {
-          id: "nano-banana-edit",
-          name: "Nano Banana Edit",
-          description: "🍌 Fast Editing | Affordable",
-          credits: 30
-        },
-        {
-          id: "nano-banana-2",
-          name: "Nano Banana 2",
-          description: "🍌 Advanced Models | Multi-Image",
-          credits: 50
-        }
-      ]
-    };
-
     // 动态计算积分消耗
     const getTaskCredits = useCallback(() => {
-      if (selectedModel === "nano-banana-2") {
-        if (resolution === "4K") return 120;
-        if (resolution === "2K") return 80;
-        return 50;
-      }
-      return 30; // 默认或者其他模型
+      return getImageTaskCredits(selectedModel, resolution);
     }, [selectedModel, resolution]);
 
     // 获取当前模式可用的AI模型
-    const availableModels = aiModels[mode] || [];
+    const availableModels = IMAGE_MODEL_OPTIONS[mode] || [];
+    const aspectRatioOptions = useMemo(
+      () => getImageAspectRatioOptions(selectedModel),
+      [selectedModel]
+    );
 
     // ✅ 正确：使用useEffect来处理模型验证和更新
     useEffect(() => {
@@ -283,6 +253,12 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         setSelectedModel(availableModels[0].id);
       }
     }, [selectedModel, availableModels, mode]);
+
+    useEffect(() => {
+      if (!aspectRatioOptions.some(option => option.value === aspectRatio)) {
+        setAspectRatio("1:1");
+      }
+    }, [aspectRatio, aspectRatioOptions]);
 
     // 监听充值弹窗状态，自动打开弹窗
     // 防抖标记，确保一次显示周期内仅触发一次
@@ -375,7 +351,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
 
       if (newFiles.length === 0) return;
 
-      if (selectedModel === "nano-banana-2") {
+      if (isAdvancedImageModel(selectedModel)) {
         // 最多14张
         setFiles(prev => [...prev, ...newFiles].slice(0, 14));
       } else {
@@ -485,7 +461,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         let imageUrls: string[] = [];
 
         // 如果是image-to-image模式或者多图模式，上传所有图片获取URL
-        if (files.length > 0 && (mode === "image-to-image" || selectedModel === "nano-banana-2")) {
+        if (files.length > 0 && (mode === "image-to-image" || isAdvancedImageModel(selectedModel))) {
           for (let i = 0; i < files.length; i++) {
             const uploadFormData = new FormData();
             uploadFormData.set("image", files[i]);
@@ -553,7 +529,8 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           prompt,
           type: selectedModel,
           ...(imageUrls.length > 0 && { image: imageUrls[0], image_urls: imageUrls }),
-          ...(selectedModel === "nano-banana-2" && { resolution, aspect_ratio: aspectRatio, google_search: googleSearch, output_format: outputFormat }),
+          ...(isAdvancedImageModel(selectedModel) && { resolution, aspect_ratio: aspectRatio }),
+          ...(selectedModel === "nano-banana-2" && { google_search: googleSearch }),
         };
 
         const res = await fetch("/api/create/ai-image", {
@@ -738,7 +715,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                       </button>
                     </div>
                   ))}
-                  {selectedModel === "nano-banana-2" && files.length < 14 && (
+                  {isAdvancedImageModel(selectedModel) && files.length < 14 && (
                     <div onClick={(e) => { e.stopPropagation(); document.getElementById('image-upload-input')?.click(); }} className="h-[106px] w-[106px] border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center hover:bg-white/50 transition-colors">
                       <span className="text-3xl font-light text-gray-400">+</span>
                     </div>
@@ -753,14 +730,14 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                     Drag & drop or <span className="font-semibold text-purple-600">click to upload</span>
                   </p>
                   <p className="text-xs text-gray-500 mt-1">PNG, JPG, WebP (Max 10MB)</p>
-                  {selectedModel === "nano-banana-2" && <p className="text-xs font-medium text-purple-600 mt-1">✨ Up to 14 reference images supported</p>}
+                  {isAdvancedImageModel(selectedModel) && <p className="text-xs font-medium text-purple-600 mt-1">Up to 14 reference images supported</p>}
                 </div>
               )}
 
               <input
                 id="image-upload-input"
                 type="file"
-                multiple={selectedModel === "nano-banana-2"}
+                multiple={isAdvancedImageModel(selectedModel)}
                 accept="image/*"
                 onChange={(e) => {
                   if (e.target.files) handleFileUpload(e.target.files);
@@ -786,8 +763,8 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           </div>
         </div>
 
-        {/* Advanced Controls for Nano Banana 2 */}
-        {selectedModel === "nano-banana-2" && (
+        {/* Advanced Controls for Nano Banana 2 / Pro */}
+        {isAdvancedImageModel(selectedModel) && (
           <div className="mb-5 space-y-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
             <div className="flex justify-between items-center">
               <label className="text-xs font-medium text-gray-700">Resolution</label>
@@ -800,38 +777,20 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
             <div className="flex justify-between items-center">
               <label className="text-xs font-medium text-gray-700">Aspect Ratio</label>
               <select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value)} className="text-xs border-gray-200 font-medium rounded-md h-8 px-2 pr-6 focus:ring-purple-500 focus:border-purple-500 bg-white border cursor-pointer outline-none shadow-sm">
-                <option value="1:1">1:1 (Square)</option>
-                <option value="1:4">1:4</option>
-                <option value="1:8">1:8</option>
-                <option value="2:3">2:3</option>
-                <option value="3:2">3:2</option>
-                <option value="3:4">3:4</option>
-                <option value="4:1">4:1</option>
-                <option value="4:3">4:3</option>
-                <option value="4:5">4:5</option>
-                <option value="5:4">5:4</option>
-                <option value="8:1">8:1</option>
-                <option value="9:16">9:16 (Portrait)</option>
-                <option value="16:9">16:9 (Landscape)</option>
-                <option value="21:9">21:9</option>
-                <option value="auto">Auto</option>
+                {aspectRatioOptions.map(option => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
               </select>
             </div>
-            <div className="flex justify-between items-center">
-              <label className="text-xs font-medium text-gray-700">Output Format</label>
-              <div className="flex bg-white rounded-lg p-0.5 border border-gray-200 h-8">
-                {["jpg", "png"].map(fmt => (
-                  <button key={fmt} onClick={() => setOutputFormat(fmt as any)} className={`px-4 py-1 text-[11px] font-medium uppercase rounded-md transition-colors ${outputFormat === fmt ? 'bg-purple-100 text-purple-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>{fmt}</button>
-                ))}
+            {selectedModel === "nano-banana-2" && (
+              <div className="flex justify-between items-center h-8">
+                <label className="text-xs font-medium text-gray-700">Google Search (Grounding)</label>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" className="sr-only peer" checked={googleSearch} onChange={(e) => setGoogleSearch(e.target.checked)} />
+                  <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
+                </label>
               </div>
-            </div>
-            <div className="flex justify-between items-center h-8">
-              <label className="text-xs font-medium text-gray-700">Google Search (Grounding)</label>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" className="sr-only peer" checked={googleSearch} onChange={(e) => setGoogleSearch(e.target.checked)} />
-                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
-              </label>
-            </div>
+            )}
           </div>
         )}
 

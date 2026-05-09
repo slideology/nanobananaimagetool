@@ -8,6 +8,8 @@ declare namespace Cloudflare {
     GOOGLE_CLIENT_ID: string;
     GOOGLE_CLIENT_SECRET: string;
     KIEAI_APIKEY: string;
+    APIMART_API_KEY: string;
+    APIMART_BASE_URL?: string;
     CREEM_KEY: string;
     CREEM_WEBHOOK_SECRET: string;
     CREEM_TEST_KEY: string;

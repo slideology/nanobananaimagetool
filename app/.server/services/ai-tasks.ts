@@ -14,6 +14,11 @@ import { consumptionsCredits, rollbackCredits } from "./credits";
 import { listConsumptionsBySourceId } from "~/.server/model/credit_consumptions";
 import { uploadFiles, downloadFilesToBucket } from "./r2-bucket";
 import {
+  ApiMartApiError,
+  ApiMartImage,
+  apiMartTimestampToDate,
+  getApiMartFailReason,
+  getApiMartFirstImageUrl,
   KieAI,
   type CreateKontextOptions,
   type Create4oTaskOptions,
@@ -25,6 +30,8 @@ import {
   CreditInsufficientError,
   R2UploadError,
   KieParameterError,
+  KieRateLimitError,
+  KieServiceUnavailableError,
   RequiredParameterMissingError,
   ParameterTypeError,
   ParameterRangeError,
@@ -32,7 +39,8 @@ import {
   TaskNotFoundError,
   TaskStatusError,
   TaskScheduleError,
-  UnsupportedProviderError
+  UnsupportedProviderError,
+  EnvironmentVariableMissingError
 } from "../types/errors";
 
 // 移除发型相关的提示词导入
@@ -81,6 +89,72 @@ const transformResult = (value: AiTask): AiTaskResult => {
   };
 };
 
+const TASK_PROVIDERS = ["apimart_image", "kie_nano_banana", "kie_seedance"] as const;
+
+const createApiMartImageClient = (env: Env) => {
+  if (!env.APIMART_API_KEY) {
+    throw new EnvironmentVariableMissingError("APIMART_API_KEY");
+  }
+
+  return new ApiMartImage({
+    apiKey: env.APIMART_API_KEY,
+    baseUrl: env.APIMART_BASE_URL,
+  });
+};
+
+const isAdvancedImageModel = (type: CreateAiImageDTO["type"]) =>
+  type === "nano-banana-2" || type === "nano-banana-pro";
+
+const STANDARD_APIMART_ASPECT_RATIOS = [
+  "1:1",
+  "2:3",
+  "3:2",
+  "3:4",
+  "4:3",
+  "4:5",
+  "5:4",
+  "9:16",
+  "16:9",
+  "21:9",
+] as const;
+
+const NANO_BANANA_2_APIMART_ASPECT_RATIOS = [
+  ...STANDARD_APIMART_ASPECT_RATIOS,
+  "1:4",
+  "4:1",
+  "1:8",
+  "8:1",
+] as const;
+
+const getAllowedApiMartAspectRatios = (type: CreateAiImageDTO["type"]) =>
+  type === "nano-banana-2"
+    ? NANO_BANANA_2_APIMART_ASPECT_RATIOS
+    : STANDARD_APIMART_ASPECT_RATIOS;
+
+const mapApiMartError = (error: ApiMartApiError) => {
+  const details = {
+    provider: "apimart",
+    statusCode: error.status,
+    code: error.code,
+    data: error.data,
+    message: error.message,
+  };
+
+  if (error.status === 429) {
+    return new KieRateLimitError(undefined, details);
+  }
+
+  if (error.status >= 500 || error.status === 402) {
+    return new KieServiceUnavailableError(error.status, details);
+  }
+
+  if (error.status === 401 || error.status === 403) {
+    return new KieServiceUnavailableError(error.status, details);
+  }
+
+  return new KieParameterError(`ApiMart: ${error.message}`, details);
+};
+
 export const createAiTask = async (payload: InsertAiTask | InsertAiTask[]) => {
   const values = Array.isArray(payload) ? Array.from(payload) : [payload];
   const results = await insertAiTaskBatch(values);
@@ -107,16 +181,15 @@ export const startTask = async (env: Env, params: AiTask["task_no"] | AiTask) =>
     throw new TaskScheduleError("任务尚未到达预定开始时间");
   }
 
-  const kie = new KieAI({ accessKey: env.KIEAI_APIKEY });
   let newTask: AiTask;
 
   try {
-    if (task.provider === "kie_nano_banana" || task.provider === "kie_seedance") {
-      // 这里的任务已经提交给Kie，直接更新为running
+    if (task.provider && TASK_PROVIDERS.includes(task.provider as any)) {
+      // 外部异步任务已经提交，直接更新为 running
       const [updated] = await updateAiTask(task.task_no, { status: "running" });
       newTask = updated;
     } else {
-      throw new UnsupportedProviderError(task.provider || "unknown", ["kie_nano_banana", "kie_seedance"]);
+      throw new UnsupportedProviderError(task.provider || "unknown", [...TASK_PROVIDERS]);
     }
   } catch (error) {
     // 如果是我们定义的错误类型，直接重新抛出
@@ -172,9 +245,85 @@ export const updateTaskStatus = async (env: Env, taskNo: AiTask["task_no"] | AiT
 
   if (!task.task_id) throw new TaskStatusError("missing_task_id", "valid_task_id", { taskNo: task.task_no ?? "unknown", reason: "任务ID缺失" });
 
-  const kie = new KieAI({ accessKey: env.KIEAI_APIKEY });
+  if (task.provider === "apimart_image") {
+    const apiMart = createApiMartImageClient(env);
+    let result: Awaited<ReturnType<ApiMartImage["queryTask"]>>;
+    try {
+      result = await apiMart.queryTask(task.task_id);
+    } catch (error) {
+      if (error instanceof ApiMartApiError) {
+        throw mapApiMartError(error);
+      }
+      throw error;
+    }
+
+    if (result.status === "pending" || result.status === "processing") {
+      return {
+        task: transformResult(task),
+        progress: result.progress ?? (result.status === "pending" ? 20 : 70),
+      };
+    }
+
+    if (result.status === "completed") {
+      let resultUrl = getApiMartFirstImageUrl(result);
+      let newTask: AiTask;
+
+      if (!resultUrl) {
+        const [aiTask] = await updateAiTask(task.task_no, {
+          status: "failed",
+          completed_at: apiMartTimestampToDate(result.completed),
+          result_data: result,
+          fail_reason: "Result URL not found in ApiMart response",
+        });
+        newTask = aiTask;
+
+        const consumptions = await listConsumptionsBySourceId(task.task_id);
+        if (consumptions.length > 0) {
+          await rollbackCredits(consumptions, `Task Failed (URL Not Found): ${task.task_no}`);
+        }
+      } else {
+        if (import.meta.env.PROD) {
+          try {
+            const [file] = await downloadFilesToBucket(
+              env,
+              [{ src: resultUrl, fileName: task.task_no, ext: "png" }],
+              "result/ai-image"
+            );
+            if (file) resultUrl = new URL(file.key, env.CDN_URL).toString();
+          } catch (e) {
+            console.error("Failed to download ApiMart result to bucket:", e);
+          }
+        }
+
+        const [aiTask] = await updateAiTask(task.task_no, {
+          status: "succeeded",
+          completed_at: apiMartTimestampToDate(result.completed),
+          result_data: result,
+          result_url: resultUrl,
+        });
+        newTask = aiTask;
+      }
+
+      return { task: transformResult(newTask), progress: 100 };
+    }
+
+    const [newTask] = await updateAiTask(task.task_no, {
+      status: "failed",
+      completed_at: apiMartTimestampToDate(result.completed),
+      fail_reason: getApiMartFailReason(result),
+      result_data: result,
+    });
+
+    const consumptions = await listConsumptionsBySourceId(task.task_id);
+    if (consumptions.length > 0) {
+      await rollbackCredits(consumptions, `Task Failed: ${task.task_no}`);
+    }
+
+    return { task: transformResult(newTask), progress: 100 };
+  }
 
   if (task.provider === "kie_nano_banana") {
+    const kie = new KieAI({ accessKey: env.KIEAI_APIKEY });
     if (!task.task_id) {
       throw new Error("Task ID is required for querying Nano Banana task");
     }
@@ -265,6 +414,7 @@ export const updateTaskStatus = async (env: Env, taskNo: AiTask["task_no"] | AiT
       return { task: transformResult(newTask), progress: 100 };
     }
   } else if (task.provider === "kie_seedance") {
+    const kie = new KieAI({ accessKey: env.KIEAI_APIKEY });
     // Seedance 视频任务状态查询
     if (!task.task_id) {
       throw new Error("Task ID is required for querying Seedance task");
@@ -356,7 +506,7 @@ export const updateTaskStatus = async (env: Env, taskNo: AiTask["task_no"] | AiT
       return { task: transformResult(newTask), progress: 100 };
     }
   } else {
-    throw new UnsupportedProviderError(task.provider || "unknown", ["kie_nano_banana", "kie_seedance"]);
+    throw new UnsupportedProviderError(task.provider || "unknown", [...TASK_PROVIDERS]);
   }
 };
 
@@ -409,17 +559,18 @@ export const createAiImage = async (
     },
     environment: import.meta.env.PROD ? 'production' : 'development',
     envConfig: {
+      hasApiMartApiKey: !!env.APIMART_API_KEY,
+      apiMartBaseUrl: env.APIMART_BASE_URL || "https://api.apimart.ai/v1",
       hasKieApiKey: !!env.KIEAI_APIKEY,
-      kieApiKeyPreview: env.KIEAI_APIKEY ? `${env.KIEAI_APIKEY.substring(0, 8)}...` : "未设置",
       domain: env.DOMAIN,
       cdnUrl: env.CDN_URL
     }
   });
-  const { mode, image, image_urls, prompt, type, width, height, aspect_ratio, google_search, resolution, output_format } = value;
+  const { mode, image, image_urls, prompt, type, width, height, aspect_ratio, google_search, resolution } = value;
 
   // 图片生成消耗积分计算
   let taskCredits = 30;
-  if (type === "nano-banana-2") {
+  if (isAdvancedImageModel(type)) {
     if (resolution === "4K") taskCredits = 120;
     else if (resolution === "2K") taskCredits = 80;
     else taskCredits = 50; // default 1K
@@ -467,13 +618,20 @@ export const createAiImage = async (
     });
   }
 
-  const aspect = aspect_ratio || "1:1"; // 默认正方形
-  const callbakUrl = new URL("/webhooks/kie-image", env.DOMAIN).toString();
-
+  const aspect = !aspect_ratio || aspect_ratio === "auto" ? "1:1" : aspect_ratio; // ApiMart 不支持 auto，默认正方形
   let insertPayload: InsertAiTask;
-  let kieResponse: any; // 存储API调用结果
+  let imageResponse: any; // 存储API调用结果
 
-  if (type === "nano-banana" || type === "nano-banana-edit" || type === "nano-banana-2") {
+  if (type === "nano-banana" || type === "nano-banana-edit" || type === "nano-banana-2" || type === "nano-banana-pro") {
+    const allowedAspectRatios = getAllowedApiMartAspectRatios(type);
+    if (!allowedAspectRatios.includes(aspect as any)) {
+      throw new ParameterRangeError(
+        "aspect_ratio",
+        aspect,
+        allowedAspectRatios.join(", ")
+      );
+    }
+
     // Nano Banana 模型处理 - 在业务层进行参数验证
     if (type === "nano-banana-edit") {
       // Image-to-Image 模式验证
@@ -490,19 +648,18 @@ export const createAiImage = async (
     // 使用原始提示词（简化版本不处理样式和负面提示词）
     const fullPrompt = prompt;
 
-    console.log("🚀 开始调用 Kie AI API...");
+    console.log("🚀 开始调用 ApiMart Image API...");
     console.log("📋 API配置:", {
-      baseURL: "https://api.kie.ai",
-      endpoint: "/api/v1/jobs/createTask",
-      model: type === "nano-banana" ? "google/nano-banana" : "google/nano-banana-edit",
-      hasApiKey: !!env.KIEAI_APIKEY,
-      apiKeyPreview: env.KIEAI_APIKEY ? `${env.KIEAI_APIKEY.substring(0, 8)}...` : "未设置"
+      baseURL: env.APIMART_BASE_URL || "https://api.apimart.ai/v1",
+      endpoint: "/images/generations",
+      model: type,
+      hasApiKey: !!env.APIMART_API_KEY,
     });
 
-    // 记录Kie AI API调用开始
+    // 记录 ApiMart API 调用开始
     const apiStartTime = Date.now();
     KieAiApiLogger.logApiCallStart(requestId, {
-      endpoint: "/api/v1/jobs/createTask",
+      endpoint: "/images/generations",
       method: "POST",
       taskType: type
     });
@@ -511,38 +668,38 @@ export const createAiImage = async (
     KieAiApiLogger.logApiParameters(requestId, {
       prompt: fullPrompt,
       hasImageUrls: !!fileUrl,
-      callbackUrl: import.meta.env.PROD ? callbakUrl : "development-mode"
+      callbackUrl: "not-used-for-apimart"
     });
 
-    const kieAI = new KieAI({ accessKey: env.KIEAI_APIKEY });
+    const apiMart = createApiMartImageClient(env);
 
     try {
-      if (type === "nano-banana-2") {
-        console.log("🌟 调用 Nano Banana 2 API...", { resolution, aspect_ratio });
-        kieResponse = await kieAI.createNanoBanana2Task({
+      if (type === "nano-banana-2" || type === "nano-banana-pro") {
+        console.log("🌟 调用 ApiMart Advanced Image API...", { type, resolution, aspect_ratio });
+        imageResponse = await apiMart.createImageTask({
+          productModel: type,
           prompt: fullPrompt,
-          ...(fileUrls ? { image_input: fileUrls } : {}),
-          ...(aspect_ratio ? { aspect_ratio: aspect_ratio } : {}),
-          ...(google_search !== undefined ? { google_search: google_search } : {}),
-          ...(resolution ? { resolution: resolution as any } : {}),
-          ...(output_format ? { output_format: output_format as any } : {}),
-          callBackUrl: import.meta.env.PROD ? callbakUrl : undefined,
+          imageUrls: fileUrls,
+          size: aspect,
+          resolution: resolution || "1K",
+          googleSearch: type === "nano-banana-2" ? google_search : undefined,
         });
       } else if (type === "nano-banana") {
         // Text-to-Image 模式
-        console.log("💭 调用 Text-to-Image API...");
-        kieResponse = await kieAI.createNanoBananaTask({
+        console.log("💭 调用 ApiMart Text-to-Image API...");
+        imageResponse = await apiMart.createImageTask({
+          productModel: "nano-banana",
           prompt: fullPrompt,
-          callBackUrl: import.meta.env.PROD ? callbakUrl : undefined,
+          size: aspect,
         });
       } else {
         // Image-to-Image 模式（参数已在上面验证）
-        console.log("🖼️ 调用 Image-to-Image API...", { imageUrl: fileUrl });
+        console.log("🖼️ 调用 ApiMart Image-to-Image API...", { imageUrl: fileUrl });
         if (!fileUrl) {
           throw new RequiredParameterMissingError("image", "Image is required for nano-banana-edit model");
         }
 
-        // 🔧 时序优化：验证图片URL在Kie AI调用前是否可访问
+        // 🔧 时序优化：验证图片URL在 ApiMart 调用前是否可访问
         console.log("📋 后端验证图片URL可访问性:", fileUrl);
         try {
           const imageCheckResponse = await fetch(fileUrl, {
@@ -552,33 +709,34 @@ export const createAiImage = async (
           });
 
           if (!imageCheckResponse.ok) {
-            console.warn(`⚠️ 图片URL返回状态码 ${imageCheckResponse.status}，但继续尝试调用Kie AI`);
+            console.warn(`⚠️ 图片URL返回状态码 ${imageCheckResponse.status}，但继续尝试调用 ApiMart`);
           } else {
-            console.log("✅ 图片URL验证成功，继续调用Kie AI");
+            console.log("✅ 图片URL验证成功，继续调用 ApiMart");
           }
         } catch (error) {
-          console.warn("⚠️ 图片URL验证失败，但继续尝试调用Kie AI:", error instanceof Error ? error.message : String(error));
+          console.warn("⚠️ 图片URL验证失败，但继续尝试调用 ApiMart:", error instanceof Error ? error.message : String(error));
         }
 
-        kieResponse = await kieAI.createNanoBananaEditTask({
+        imageResponse = await apiMart.createImageTask({
+          productModel: "nano-banana-edit",
           prompt: fullPrompt,
-          image_urls: [fileUrl],
-          callBackUrl: import.meta.env.PROD ? callbakUrl : undefined,
+          imageUrls: [fileUrl],
+          size: aspect,
         });
       }
 
-      console.log("✅ API调用成功:", { taskId: kieResponse.taskId });
+      console.log("✅ API调用成功:", { taskId: imageResponse.taskId });
 
       // 记录API调用成功
       const responseTime = Date.now() - apiStartTime;
       KieAiApiLogger.logApiCallComplete(requestId, {
-        taskId: kieResponse.taskId,
+        taskId: imageResponse.taskId,
         status: "success",
         responseTime: responseTime
       });
 
     } catch (error) {
-      console.error("❌ Kie AI API调用失败:");
+      console.error("❌ ApiMart Image API调用失败:");
       console.error("错误详情:", {
         message: error instanceof Error ? error.message : String(error),
         type: typeof error,
@@ -587,6 +745,10 @@ export const createAiImage = async (
 
       // 记录API调用失败
       KieAiApiLogger.logApiCallError(requestId, error instanceof Error ? error : new Error(String(error)));
+
+      if (error instanceof ApiMartApiError) {
+        throw mapApiMartError(error);
+      }
 
       // 重新抛出错误，让上层处理
       throw new KieParameterError(
@@ -600,7 +762,7 @@ export const createAiImage = async (
     const consumptionResult = await consumptionsCredits(user, {
       credits: taskCredits,
       source_type: "ai_image",
-      source_id: kieResponse.taskId,
+      source_id: imageResponse.taskId,
       reason: `${type} 图像生成`,
     });
 
@@ -614,7 +776,6 @@ export const createAiImage = async (
       aspect_ratio,
       google_search,
       resolution,
-      output_format
     };
 
     const ext = {
@@ -622,28 +783,24 @@ export const createAiImage = async (
       prompt_preview: (prompt || '').substring(0, 100),
     };
 
-    let modelParam = "google/nano-banana";
-    if (type === "nano-banana-edit") modelParam = "google/nano-banana-edit";
-    else if (type === "nano-banana-2") modelParam = "nano-banana-2";
-
     insertPayload = {
       user_id: user.id,
-      status: "running", // 🔧 修复：任务已提交给Kie AI，应该是running状态
+      status: "running",
       estimated_start_at: new Date(),
       input_params: inputParams,
       ext,
       aspect: aspect,
-      provider: "kie_nano_banana",
-      task_id: kieResponse.taskId,
+      provider: "apimart_image",
+      task_id: imageResponse.taskId,
       request_param: {
-        model: modelParam,
+        model: imageResponse.model,
         prompt: fullPrompt,
-        ...(fileUrls ? { image_input: fileUrls, image_urls: fileUrls } : {}),
-        ...(aspect_ratio ? { aspect_ratio } : {}),
-        ...(google_search !== undefined ? { google_search } : {}),
-        ...(resolution ? { resolution } : {}),
-        ...(output_format ? { output_format } : {}),
-        callBackUrl: import.meta.env.PROD ? callbakUrl : undefined,
+        size: aspect,
+        n: 1,
+        official_fallback: false,
+        ...(fileUrls ? { image_urls: fileUrls } : {}),
+        ...(isAdvancedImageModel(type) ? { resolution: resolution || "1K" } : {}),
+        ...(type === "nano-banana-2" && google_search !== undefined ? { google_search } : {}),
       },
     };
 
@@ -651,7 +808,7 @@ export const createAiImage = async (
 
     // 记录业务逻辑处理完成
     BusinessLogicLogger.logProcessingComplete(requestId, {
-      taskId: kieResponse.taskId,
+      taskId: imageResponse.taskId,
       fileUrl: fileUrl
     });
 
@@ -659,7 +816,7 @@ export const createAiImage = async (
   }
 
   // 如果不是nano-banana模型，抛出错误
-  throw new UnsupportedFileFormatError(type, ["nano-banana", "nano-banana-edit", "nano-banana-2"]);
+  throw new UnsupportedFileFormatError(type, ["nano-banana", "nano-banana-edit", "nano-banana-2", "nano-banana-pro"]);
 };
 
 /**

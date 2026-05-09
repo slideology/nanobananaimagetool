@@ -64,6 +64,9 @@ npm run build && npx wrangler deploy -c wrangler.test.jsonc
 在 Cloudflare Dashboard 或 `wrangler.json` (生产配置) 中：
 *   添加 `CREEM_KEY`（填入正式 Key）。
 *   添加 `CREEM_WEBHOOK_SECRET`（正式环境的 Webhook 密钥）。
+*   添加 `APIMART_API_KEY`（图片生成使用的 ApiMart Key）。
+*   可选添加 `APIMART_BASE_URL`（默认 `https://api.apimart.ai/v1`）。
+*   保留 `KIEAI_APIKEY`（Seedance 视频生成和历史 Kie 图片任务查询仍会使用）。
 
 ### Step 4: 部署
 ```bash
