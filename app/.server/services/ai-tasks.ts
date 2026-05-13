@@ -16,9 +16,15 @@ import { uploadFiles, downloadFilesToBucket } from "./r2-bucket";
 import {
   ApiMartApiError,
   ApiMartImage,
+  ApiMartVideo,
+  ApiMartVideoApiError,
   apiMartTimestampToDate,
+  apiMartVideoTimestampToDate,
   getApiMartFailReason,
   getApiMartFirstImageUrl,
+  getApiMartFirstVideoUrl,
+  getApiMartVideoFailReason,
+  getApiMartVideoThumbnailUrl,
   KieAI,
   type CreateKontextOptions,
   type Create4oTaskOptions,
@@ -89,7 +95,13 @@ const transformResult = (value: AiTask): AiTaskResult => {
   };
 };
 
-const TASK_PROVIDERS = ["apimart_image", "kie_nano_banana", "kie_seedance"] as const;
+const TASK_PROVIDERS = [
+  "apimart_image",
+  "apimart_seedance",
+  "apimart_seedance_avatar",
+  "kie_nano_banana",
+  "kie_seedance",
+] as const;
 
 const createApiMartImageClient = (env: Env) => {
   if (!env.APIMART_API_KEY) {
@@ -97,6 +109,17 @@ const createApiMartImageClient = (env: Env) => {
   }
 
   return new ApiMartImage({
+    apiKey: env.APIMART_API_KEY,
+    baseUrl: env.APIMART_BASE_URL,
+  });
+};
+
+const createApiMartVideoClient = (env: Env) => {
+  if (!env.APIMART_API_KEY) {
+    throw new EnvironmentVariableMissingError("APIMART_API_KEY");
+  }
+
+  return new ApiMartVideo({
     apiKey: env.APIMART_API_KEY,
     baseUrl: env.APIMART_BASE_URL,
   });
@@ -132,6 +155,30 @@ const getAllowedApiMartAspectRatios = (type: CreateAiImageDTO["type"]) =>
     : STANDARD_APIMART_ASPECT_RATIOS;
 
 const mapApiMartError = (error: ApiMartApiError) => {
+  const details = {
+    provider: "apimart",
+    statusCode: error.status,
+    code: error.code,
+    data: error.data,
+    message: error.message,
+  };
+
+  if (error.status === 429) {
+    return new KieRateLimitError(undefined, details);
+  }
+
+  if (error.status >= 500 || error.status === 402) {
+    return new KieServiceUnavailableError(error.status, details);
+  }
+
+  if (error.status === 401 || error.status === 403) {
+    return new KieServiceUnavailableError(error.status, details);
+  }
+
+  return new KieParameterError(`ApiMart: ${error.message}`, details);
+};
+
+const mapApiMartVideoError = (error: ApiMartVideoApiError) => {
   const details = {
     provider: "apimart",
     statusCode: error.status,
@@ -318,6 +365,116 @@ export const updateTaskStatus = async (env: Env, taskNo: AiTask["task_no"] | AiT
     if (consumptions.length > 0) {
       await rollbackCredits(consumptions, `Task Failed: ${task.task_no}`);
     }
+
+    return { task: transformResult(newTask), progress: 100 };
+  }
+
+  if (task.provider === "apimart_seedance") {
+    const apiMart = createApiMartVideoClient(env);
+    let result: Awaited<ReturnType<ApiMartVideo["queryTask"]>>;
+    try {
+      result = await apiMart.queryTask(task.task_id);
+    } catch (error) {
+      if (error instanceof ApiMartVideoApiError) {
+        throw mapApiMartVideoError(error);
+      }
+      throw error;
+    }
+
+    if (result.status === "pending" || result.status === "processing") {
+      return {
+        task: transformResult(task),
+        progress: result.progress ?? (result.status === "pending" ? 20 : 70),
+      };
+    }
+
+    if (result.status === "completed") {
+      let resultUrl = getApiMartFirstVideoUrl(result);
+      let newTask: AiTask;
+
+      if (!resultUrl) {
+        const [aiTask] = await updateAiTask(task.task_no, {
+          status: "failed",
+          completed_at: apiMartVideoTimestampToDate(result.completed),
+          result_data: result,
+          fail_reason: "Video URL not found in ApiMart response",
+        });
+        newTask = aiTask;
+
+        const consumptions = await listConsumptionsBySourceId(task.task_id);
+        if (consumptions.length > 0) {
+          await rollbackCredits(consumptions, `Task Failed (Video URL Not Found): ${task.task_no}`);
+        }
+      } else {
+        if (import.meta.env.PROD) {
+          try {
+            const [file] = await downloadFilesToBucket(
+              env,
+              [{ src: resultUrl, fileName: task.task_no, ext: "mp4" }],
+              "result/ai-video"
+            );
+            if (file) resultUrl = new URL(file.key, env.CDN_URL).toString();
+          } catch (e) {
+            console.error("Failed to download ApiMart video result to bucket:", e);
+          }
+        }
+
+        const [aiTask] = await updateAiTask(task.task_no, {
+          status: "succeeded",
+          completed_at: apiMartVideoTimestampToDate(result.completed),
+          result_data: {
+            ...result,
+            thumbnail_url: getApiMartVideoThumbnailUrl(result),
+          },
+          result_url: resultUrl,
+        });
+        newTask = aiTask;
+      }
+
+      return { task: transformResult(newTask), progress: 100 };
+    }
+
+    const [newTask] = await updateAiTask(task.task_no, {
+      status: "failed",
+      completed_at: apiMartVideoTimestampToDate(result.completed),
+      fail_reason: getApiMartVideoFailReason(result),
+      result_data: result,
+    });
+
+    const consumptions = await listConsumptionsBySourceId(task.task_id);
+    if (consumptions.length > 0) {
+      await rollbackCredits(consumptions, `Task Failed: ${task.task_no}`);
+    }
+
+    return { task: transformResult(newTask), progress: 100 };
+  }
+
+  if (task.provider === "apimart_seedance_avatar") {
+    const apiMart = createApiMartVideoClient(env);
+    let result: Awaited<ReturnType<ApiMartVideo["queryTask"]>>;
+    try {
+      result = await apiMart.queryTask(task.task_id);
+    } catch (error) {
+      if (error instanceof ApiMartVideoApiError) {
+        throw mapApiMartVideoError(error);
+      }
+      throw error;
+    }
+
+    if (result.status === "pending" || result.status === "processing") {
+      return {
+        task: transformResult(task),
+        progress: result.progress ?? (result.status === "pending" ? 20 : 70),
+      };
+    }
+
+    const [newTask] = await updateAiTask(task.task_no, {
+      status: result.status === "completed" ? "succeeded" : "failed",
+      completed_at: apiMartVideoTimestampToDate(result.completed),
+      fail_reason:
+        result.status === "completed" ? null : getApiMartVideoFailReason(result),
+      result_data: result,
+    });
 
     return { task: transformResult(newTask), progress: 100 };
   }

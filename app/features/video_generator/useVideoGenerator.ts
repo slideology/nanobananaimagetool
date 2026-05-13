@@ -8,6 +8,7 @@ export interface VideoTask {
     status: 'pending' | 'running' | 'succeeded' | 'failed';
     videoUrl?: string;
     thumbnailUrl?: string;
+    model?: string;
     prompt?: string;
     aspectRatio?: string;
     resolution?: string;
@@ -53,7 +54,11 @@ export function useVideoGenerator() {
                         : data.task.result_data;
 
                     // 如果 result_data 本身就是 Kie 的 result 对象 (包含 resultJson 字符串)
-                    if (resultJson.resultJson) {
+                    if (resultJson.thumbnail_url) {
+                        thumbnailUrl = resultJson.thumbnail_url;
+                    } else if (resultJson.result?.thumbnail_url) {
+                        thumbnailUrl = resultJson.result.thumbnail_url;
+                    } else if (resultJson.resultJson) {
                         const innerResult = JSON.parse(resultJson.resultJson);
                         thumbnailUrl = innerResult.coverUrls?.[0];
                     } else if (resultJson.coverUrls) {
@@ -69,6 +74,7 @@ export function useVideoGenerator() {
                 status: data.task.status,
                 videoUrl: data.task.result_url,
                 thumbnailUrl: thumbnailUrl,
+                model: data.task.input_params?.model || data.task.ext?.model,
                 prompt: data.task.input_params?.prompt,
                 aspectRatio: data.task.input_params?.aspect_ratio,
                 resolution: data.task.input_params?.resolution,
@@ -134,6 +140,7 @@ export function useVideoGenerator() {
     // 创建新任务
     const createTask = useCallback((taskData: {
         task_no: string;
+        model?: string;
         prompt: string;
         aspectRatio: string;
         resolution: string;
@@ -142,6 +149,7 @@ export function useVideoGenerator() {
         const newTask: VideoTask = {
             task_no: taskData.task_no,
             status: 'pending',
+            model: taskData.model,
             prompt: taskData.prompt,
             aspectRatio: taskData.aspectRatio,
             resolution: taskData.resolution,

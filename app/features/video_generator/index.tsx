@@ -1,8 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Film, Upload, FileText, Image as ImageIcon, ChevronRight, ChevronDown, Check, Info } from 'lucide-react';
+import { Film, FileText, Image as ImageIcon, ChevronRight, ChevronDown, Check, Info } from 'lucide-react';
 import type {
     VideoGeneratorProps,
     VideoMode,
+    VideoModel,
     SeedanceAspectRatio,
     SeedanceResolution,
     SeedanceDuration
@@ -11,6 +12,15 @@ import { useUser, useEditorStore } from '~/store';
 import { useShallow } from "zustand/react/shallow";
 import { AuthPromptModal, type AuthPromptModalRef } from '~/components/ui/auth-prompt-modal';
 import { CreditRechargeModal, type CreditRechargeModalRef } from '~/components/ui/credit-recharge-modal';
+import {
+    DEFAULT_VIDEO_MODEL,
+    VIDEO_MODEL_OPTIONS,
+    calculateVideoTaskCredits,
+    getMaxReferenceImages,
+    getVideoPromptMaxLength,
+    isFastSeedance2Model as isFastSeedance2VideoModel,
+    isKieVideoModel,
+} from './model-config';
 
 /**
  * Seedance 2.0 AI 视频生成器组件
@@ -19,6 +29,7 @@ import { CreditRechargeModal, type CreditRechargeModalRef } from '~/components/u
 export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
     // 状态管理
     const [mode, setMode] = useState<VideoMode>('text-to-video');
+    const [model, setModel] = useState<VideoModel>(DEFAULT_VIDEO_MODEL);
     const [prompt, setPrompt] = useState('');
     const [referenceImages, setReferenceImages] = useState<File[]>([]);
     const [aspectRatio, setAspectRatio] = useState<SeedanceAspectRatio>('16:9');
@@ -45,6 +56,13 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
         image: state.currentReferenceImage,
     })));
     const clearEditorPayload = useEditorStore((state) => state.clearEditorPayload);
+
+    const isKieModel = isKieVideoModel(model);
+    const isFastSeedance2Model = isFastSeedance2VideoModel(model);
+    const maxReferenceImages = getMaxReferenceImages(model);
+    const promptMaxLength = getVideoPromptMaxLength(model);
+
+    const selectedModel = VIDEO_MODEL_OPTIONS.find((item) => item.id === model) || VIDEO_MODEL_OPTIONS[0];
 
     // === 消费 Payload ===
     useEffect(() => {
@@ -80,32 +98,29 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
         }
     }, [editorPayload, clearEditorPayload]);
 
+    useEffect(() => {
+        if (isFastSeedance2Model && resolution === '1080p') {
+            setResolution('720p');
+        }
+    }, [isFastSeedance2Model, resolution]);
+
     // 计算积分消耗（与后端 video-credits.ts 保持一致）
     // 公式：基础积分 × 时长系数 × 音频系数
     const calculateCredits = useCallback(() => {
-        const baseCredits: Record<SeedanceResolution, number> = {
-            '480p': 60,
-            '720p': 120,
-            '1080p': 180
-        };
-
-        const durationMultiplier: Record<SeedanceDuration, number> = {
-            '4': 1.0,
-            '8': 2.0,
-            '12': 3.0
-        };
-
-        const audioMultiplier = generateAudio ? 2.0 : 1.0;
-
-        return baseCredits[resolution] * durationMultiplier[duration] * audioMultiplier;
-    }, [resolution, duration, generateAudio]);
+        return calculateVideoTaskCredits({
+            model,
+            resolution,
+            duration,
+            generateAudio,
+        });
+    }, [model, resolution, duration, generateAudio]);
 
     // 处理图片上传
     const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
 
-        if (files.length + referenceImages.length > 2) {
-            setError('最多只能上传 2 张参考图片');
+        if (files.length + referenceImages.length > maxReferenceImages) {
+            setError(`最多只能上传 ${maxReferenceImages} 张参考图片`);
             return;
         }
 
@@ -117,7 +132,7 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
 
         setReferenceImages(prev => [...prev, ...files]);
         setError('');
-    }, [referenceImages]);
+    }, [referenceImages, maxReferenceImages]);
 
     // 移除图片
     const removeImage = useCallback((index: number) => {
@@ -126,8 +141,8 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
 
     // 提交生成请求
     const handleSubmit = useCallback(async () => {
-        if (!prompt || prompt.length < 3 || prompt.length > 2500) {
-            setError('提示词长度必须在 3-2500 字符之间');
+        if (!prompt || prompt.length < 3 || prompt.length > promptMaxLength) {
+            setError(`提示词长度必须在 3-${promptMaxLength} 字符之间`);
             return;
         }
 
@@ -174,6 +189,7 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
                 },
                 body: JSON.stringify({
                     prompt,
+                    model,
                     input_urls,
                     aspect_ratio: aspectRatio,
                     resolution,
@@ -202,6 +218,7 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
             if (onTaskCreated && taskNo) {
                 onTaskCreated({
                     task_no: taskNo,
+                    model,
                     prompt,
                     aspectRatio,
                     resolution,
@@ -214,7 +231,7 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
         } finally {
             setSubmitting(false);
         }
-    }, [prompt, referenceImages, aspectRatio, resolution, duration, fixedLens, generateAudio, user, calculateCredits, credits, onTaskCreated, setCredits]);
+    }, [prompt, promptMaxLength, model, referenceImages, aspectRatio, resolution, duration, fixedLens, generateAudio, user, calculateCredits, credits, onTaskCreated, setCredits]);
 
     const estimatedCredits = calculateCredits();
 
@@ -259,7 +276,7 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
                     onClick={() => setIsModelMenuOpen(!isModelMenuOpen)}
                     className="flex items-center justify-between px-3 py-2.5 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors border border-transparent hover:border-gray-200"
                 >
-                    <span className="text-sm font-medium text-gray-900">Seedance 1.5 Pro</span>
+                    <span className="text-sm font-medium text-gray-900">{selectedModel.name}</span>
                     <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${isModelMenuOpen ? 'rotate-180' : ''}`} />
                 </div>
 
@@ -272,22 +289,23 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
                             onClick={() => setIsModelMenuOpen(false)}
                         ></div>
 
-                        {/* 菜单内容 */}
                         <div className="absolute top-full left-0 w-full mt-1 bg-white border border-gray-100 rounded-xl shadow-xl z-20 p-1.5 animate-in fade-in zoom-in-95 duration-100 overflow-hidden">
-                            {/* 选项 1: 1.5 Pro (选中) */}
-                            <div
-                                onClick={() => setIsModelMenuOpen(false)}
-                                className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                            >
-                                <span className="text-sm font-medium text-gray-900">Seedance 1.5 Pro</span>
-                                <Check size={16} className="text-purple-600" />
-                            </div>
-
-                            {/* 选项 2: 2.0 (不可用) */}
-                            <div className="flex items-center justify-between px-3 py-2.5 rounded-lg opacity-50 cursor-not-allowed bg-gray-50/50">
-                                <span className="text-sm font-medium text-gray-500">Seedance 2.0</span>
-                                <span className="text-xs text-gray-400">Coming Soon</span>
-                            </div>
+                            {VIDEO_MODEL_OPTIONS.map((option) => (
+                                <div
+                                    key={option.id}
+                                    onClick={() => {
+                                        setModel(option.id);
+                                        setIsModelMenuOpen(false);
+                                    }}
+                                    className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                                >
+                                    <div className="min-w-0">
+                                        <div className="text-sm font-medium text-gray-900">{option.name}</div>
+                                        <div className="text-xs text-gray-500 truncate">{option.description}</div>
+                                    </div>
+                                    {model === option.id && <Check size={16} className="text-purple-600 flex-shrink-0" />}
+                                </div>
+                            ))}
                         </div>
                     </>
                 )}
@@ -308,7 +326,7 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
                                 <p className="text-sm text-gray-700">
                                     Drag & drop or <span className="font-semibold">click to upload</span>
                                 </p>
-                                <p className="text-xs text-gray-500 mt-0.5">PNG, JPG, WebP</p>
+                                <p className="text-xs text-gray-500 mt-0.5">PNG, JPG, WebP · up to {maxReferenceImages}</p>
                             </div>
                         </div>
                     </div>
@@ -352,7 +370,7 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
                     placeholder="Describe the scene you imagine, with details."
                     className="w-full px-3 py-3 text-sm text-gray-700 placeholder-gray-400 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all resize-none shadow-sm"
                     rows={4}
-                    maxLength={2500}
+                    maxLength={promptMaxLength}
                 />
             </div>
 
@@ -406,7 +424,7 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
                         >
                             <option value="480p">480p</option>
                             <option value="720p">720p</option>
-                            <option value="1080p">1080p</option>
+                            <option value="1080p" disabled={isFastSeedance2Model}>1080p</option>
                         </select>
                         <ChevronRight size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     </div>
@@ -415,21 +433,23 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
 
             {/* 开关选项 */}
             <div className="space-y-3 mb-5">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-medium text-gray-700">Fixed Lens</span>
-                        <Info size={14} className="text-gray-400" />
+                {isKieModel && (
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-medium text-gray-700">Fixed Lens</span>
+                            <Info size={14} className="text-gray-400" />
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={fixedLens}
+                                onChange={(e) => setFixedLens(e.target.checked)}
+                                className="sr-only peer"
+                            />
+                            <div className="w-10 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                        </label>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                            type="checkbox"
-                            checked={fixedLens}
-                            onChange={(e) => setFixedLens(e.target.checked)}
-                            className="sr-only peer"
-                        />
-                        <div className="w-10 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                    </label>
-                </div>
+                )}
 
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">

@@ -30,6 +30,15 @@ describe("video credits", () => {
         generateAudio: true,
       })
     ).toBe(1080);
+
+    expect(
+      calculateVideoCredits({
+        model: "doubao-seedance-2.0",
+        resolution: "720p",
+        duration: "8",
+        generateAudio: true,
+      })
+    ).toBe(720);
   });
 
   it("returns a consistent breakdown description", () => {
@@ -43,8 +52,26 @@ describe("video credits", () => {
       base: 120,
       durationMultiplier: 2,
       audioMultiplier: 2,
+      modelMultiplier: 1,
       total: 480,
       description: "720p (120 credits) × 8s ×2 × Audio ×2 = 480 credits",
+    });
+
+    expect(
+      getVideoCreditsBreakdown({
+        model: "doubao-seedance-2.0",
+        resolution: "720p",
+        duration: "8",
+        generateAudio: true,
+      })
+    ).toEqual({
+      base: 120,
+      durationMultiplier: 2,
+      audioMultiplier: 2,
+      modelMultiplier: 1.5,
+      total: 720,
+      description:
+        "720p (120 credits) × 8s ×2 × Audio ×2 × Seedance 2.0 ×1.5 = 720 credits",
     });
   });
 });

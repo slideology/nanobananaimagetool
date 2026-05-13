@@ -8,7 +8,20 @@ export interface VideoCreditsParams {
     resolution: '480p' | '720p' | '1080p';
     duration: '4' | '8' | '12';
     generateAudio: boolean;
+    model?: VideoCreditModel;
 }
+
+export type VideoCreditModel =
+    | 'seedance-1.5-pro'
+    | 'doubao-seedance-2.0'
+    | 'doubao-seedance-2.0-fast'
+    | 'doubao-seedance-2.0-face'
+    | 'doubao-seedance-2.0-fast-face';
+
+export const API_MART_SEEDANCE_CREDIT_MULTIPLIER = 1.5;
+
+export const isApiMartSeedanceCreditModel = (model?: VideoCreditModel) =>
+    !!model && model !== 'seedance-1.5-pro';
 
 /**
  * 计算视频生成所需积分
@@ -40,11 +53,15 @@ export function calculateVideoCredits(params: VideoCreditsParams): number {
 
     // 音频系数
     const audioMultiplier = params.generateAudio ? 2.0 : 1.0;
+    const modelMultiplier = isApiMartSeedanceCreditModel(params.model)
+        ? API_MART_SEEDANCE_CREDIT_MULTIPLIER
+        : 1.0;
 
     // 计算总积分（整数，无需向上取整）
     const totalCredits = baseCredits[params.resolution] *
         durationMultiplier[params.duration] *
-        audioMultiplier;
+        audioMultiplier *
+        modelMultiplier;
 
     return totalCredits;
 }
@@ -57,6 +74,7 @@ export function getVideoCreditsBreakdown(params: VideoCreditsParams): {
     base: number;
     durationMultiplier: number;
     audioMultiplier: number;
+    modelMultiplier: number;
     total: number;
     description: string;
 } {
@@ -75,6 +93,9 @@ export function getVideoCreditsBreakdown(params: VideoCreditsParams): {
     const base = baseCredits[params.resolution];
     const durationMultiplier = durationMultiplierMap[params.duration];
     const audioMultiplier = params.generateAudio ? 2.0 : 1.0;
+    const modelMultiplier = isApiMartSeedanceCreditModel(params.model)
+        ? API_MART_SEEDANCE_CREDIT_MULTIPLIER
+        : 1.0;
     const total = calculateVideoCredits(params);
 
     const parts: string[] = [];
@@ -83,11 +104,15 @@ export function getVideoCreditsBreakdown(params: VideoCreditsParams): {
     if (params.generateAudio) {
         parts.push(`Audio ×2`);
     }
+    if (modelMultiplier !== 1) {
+        parts.push(`Seedance 2.0 ×${modelMultiplier}`);
+    }
 
     return {
         base,
         durationMultiplier,
         audioMultiplier,
+        modelMultiplier,
         total,
         description: `${parts.join(' × ')} = ${total} credits`
     };
