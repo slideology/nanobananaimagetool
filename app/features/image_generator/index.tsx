@@ -24,9 +24,11 @@ import type { TaskResult } from "~/routes/_api/task.$task_no/route";
 import { FrontendLogger } from "~/utils/frontend-logger";
 import {
   getImageAspectRatioOptions,
+  getMaxImageReferences,
   getImageTaskCredits,
   IMAGE_MODEL_OPTIONS,
   isAdvancedImageModel,
+  supportsImageResolution,
   type ImageGenerationMode,
   type ImageModelId,
 } from "./model-config";
@@ -61,10 +63,12 @@ interface ImageGeneratorProps {
   styles: ImageStyle[];
   promptCategories: PromptCategory[];
   inline?: boolean;
+  initialModel?: ImageModelId;
+  initialMode?: ImageGenerationMode;
 }
 
 export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>(
-  ({ styles, promptCategories, inline = false }, ref) => {
+  ({ styles, promptCategories, inline = false, initialModel, initialMode }, ref) => {
     const loginRef = useRef<GoogleOAuthBtnRef>(null);
     const modalRef = useRef<HTMLDialogElement>(null);
     const rechargeModalRef = useRef<CreditRechargeModalRef>(null);
@@ -106,7 +110,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
 
     // 生成模式
     const [mode, setMode] = useState<ImageGenerationMode>(
-      () => (typeof window !== "undefined" ? sessionStorage.getItem("nb2-mode") as any : null) || "image-to-image"
+      () => initialMode || (typeof window !== "undefined" ? sessionStorage.getItem("nb2-mode") as any : null) || "image-to-image"
     );
 
     // 图片相关
@@ -135,7 +139,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
 
     // AI模型选择
     const [selectedModel, setSelectedModel] = useState<ImageModelId>(
-      () => (typeof window !== "undefined" ? sessionStorage.getItem("nb2-model") as ImageModelId || "nano-banana-2" : "nano-banana-2")
+      () => initialModel || (typeof window !== "undefined" ? sessionStorage.getItem("nb2-model") as ImageModelId || "nano-banana-2" : "nano-banana-2")
     );
     // 模型下拉菜单开关状态
     const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
@@ -245,6 +249,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
       () => getImageAspectRatioOptions(selectedModel),
       [selectedModel]
     );
+    const maxReferenceImages = getMaxImageReferences(selectedModel);
 
     // ✅ 正确：使用useEffect来处理模型验证和更新
     useEffect(() => {
@@ -259,6 +264,12 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         setAspectRatio("1:1");
       }
     }, [aspectRatio, aspectRatioOptions]);
+
+    useEffect(() => {
+      if (!supportsImageResolution(selectedModel, resolution, aspectRatio)) {
+        setResolution("2K");
+      }
+    }, [selectedModel, resolution, aspectRatio]);
 
     // 监听充值弹窗状态，自动打开弹窗
     // 防抖标记，确保一次显示周期内仅触发一次
@@ -352,8 +363,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
       if (newFiles.length === 0) return;
 
       if (isAdvancedImageModel(selectedModel)) {
-        // 最多14张
-        setFiles(prev => [...prev, ...newFiles].slice(0, 14));
+        setFiles(prev => [...prev, ...newFiles].slice(0, maxReferenceImages));
       } else {
         setFiles([newFiles[0]]); // 旧模型仅保留第一张
       }
@@ -364,7 +374,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
 
       // 清除之前的错误
       clearError();
-    }, [mode, validateFile, clearError, selectedModel]);
+    }, [mode, validateFile, clearError, selectedModel, maxReferenceImages]);
 
     const handleSubmit = async () => {
       // 开始前端数据收集日志监控
@@ -410,6 +420,16 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
 
       // 获取当前总积分
       const totalCredits = getTotalCredits();
+
+      if (!supportsImageResolution(selectedModel, resolution, aspectRatio)) {
+        handleError({
+          title: "Unsupported Resolution",
+          message: "GPT Image 2 4K only supports wide and tall aspect ratios.",
+          severity: "warning",
+          code: "UNSUPPORTED_RESOLUTION"
+        });
+        return;
+      }
 
       // 如果用户未登录，弹出登录提示框
       if (!user) {
@@ -528,6 +548,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           mode: selectedModel === "nano-banana-2" ? "nano-banana-2" : mode,
           prompt,
           type: selectedModel,
+          model: selectedModel,
           ...(imageUrls.length > 0 && { image: imageUrls[0], image_urls: imageUrls }),
           ...(isAdvancedImageModel(selectedModel) && { resolution, aspect_ratio: aspectRatio }),
           ...(selectedModel === "nano-banana-2" && { google_search: googleSearch }),
@@ -715,7 +736,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                       </button>
                     </div>
                   ))}
-                  {isAdvancedImageModel(selectedModel) && files.length < 14 && (
+                  {isAdvancedImageModel(selectedModel) && files.length < maxReferenceImages && (
                     <div onClick={(e) => { e.stopPropagation(); document.getElementById('image-upload-input')?.click(); }} className="h-[106px] w-[106px] border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center hover:bg-white/50 transition-colors">
                       <span className="text-3xl font-light text-gray-400">+</span>
                     </div>
@@ -730,7 +751,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                     Drag & drop or <span className="font-semibold text-purple-600">click to upload</span>
                   </p>
                   <p className="text-xs text-gray-500 mt-1">PNG, JPG, WebP (Max 10MB)</p>
-                  {isAdvancedImageModel(selectedModel) && <p className="text-xs font-medium text-purple-600 mt-1">Up to 14 reference images supported</p>}
+                  {isAdvancedImageModel(selectedModel) && <p className="text-xs font-medium text-purple-600 mt-1">Up to {maxReferenceImages} reference images supported</p>}
                 </div>
               )}
 
@@ -769,9 +790,19 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
             <div className="flex justify-between items-center">
               <label className="text-xs font-medium text-gray-700">Resolution</label>
               <div className="flex bg-white rounded-lg p-0.5 border border-gray-200 h-8">
-                {["1K", "2K", "4K"].map(res => (
-                  <button key={res} onClick={() => setResolution(res as any)} className={`px-4 py-1 text-[11px] font-medium rounded-md transition-colors ${resolution === res ? 'bg-purple-100 text-purple-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>{res}</button>
-                ))}
+                {(["1K", "2K", "4K"] as const).map(res => {
+                  const disabled = !supportsImageResolution(selectedModel, res, aspectRatio);
+                  return (
+                    <button
+                      key={res}
+                      onClick={() => !disabled && setResolution(res)}
+                      disabled={disabled}
+                      className={`px-4 py-1 text-[11px] font-medium rounded-md transition-colors ${resolution === res ? 'bg-purple-100 text-purple-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50'} ${disabled ? 'opacity-40 cursor-not-allowed hover:bg-transparent' : ''}`}
+                    >
+                      {res}
+                    </button>
+                  );
+                })}
               </div>
             </div>
             <div className="flex justify-between items-center">

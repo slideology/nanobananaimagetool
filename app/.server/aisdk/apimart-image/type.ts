@@ -2,14 +2,17 @@ export type ApiMartImageProductModel =
   | "nano-banana"
   | "nano-banana-edit"
   | "nano-banana-2"
-  | "nano-banana-pro";
+  | "nano-banana-pro"
+  | "gpt-image-2";
 
 export type ApiMartImageModel =
   | "gemini-2.5-flash-image-preview"
   | "gemini-3.1-flash-image-preview"
-  | "gemini-3-pro-image-preview";
+  | "gemini-3-pro-image-preview"
+  | "gpt-image-2";
 
 export type ApiMartImageResolution = "1K" | "2K" | "4K";
+export type ApiMartImageProviderResolution = ApiMartImageResolution | "1k" | "2k" | "4k";
 
 export interface CreateApiMartImageTaskOptions {
   productModel: ApiMartImageProductModel;
@@ -31,7 +34,7 @@ export interface ApiMartTaskCreateResult {
     n: number;
     official_fallback: false;
     image_urls?: string[];
-    resolution?: ApiMartImageResolution;
+    resolution?: ApiMartImageProviderResolution;
     google_search?: boolean;
   };
 }

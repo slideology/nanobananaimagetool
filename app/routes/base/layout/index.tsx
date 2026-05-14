@@ -8,8 +8,10 @@ export const loader = ({ }: Route.LoaderArgs) => {
     navLinks: [
       { label: "AI Photo Editor", to: "/" },
       { label: "Nano Banana 2", to: "/nano-banana-2" },
+      { label: "GPT Image 2", to: "/model/gpt-image-2" },
       { label: "Prompts", to: "/prompts" },
       { label: "Seedance 2.0", to: "/seedance-2-0" },
+      { label: "HappyHorse", to: "/model/happyhorse-1-0" },
       { label: "How it Works", to: "/#how-it-works" },
       { label: "Pricing", to: "/#pricing" },
       { label: "FAQs", to: "/#faqs" },
@@ -23,7 +25,9 @@ export const loader = ({ }: Route.LoaderArgs) => {
         list: [
           { to: "/", label: "AI Photo Editor" },
           { to: "/nano-banana-2", label: "Nano Banana 2" },
+          { to: "/model/gpt-image-2", label: "GPT Image 2" },
           { to: "/seedance-2-0", label: "Seedance 2.0" },
+          { to: "/model/happyhorse-1-0", label: "HappyHorse 1.0" },
         ],
       },
       {

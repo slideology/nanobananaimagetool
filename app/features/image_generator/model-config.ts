@@ -1,10 +1,17 @@
+import {
+  GPT_IMAGE_2_ASPECT_RATIOS,
+  GPT_IMAGE_2_FOUR_K_ASPECT_RATIOS,
+  ceilToCreditsStep,
+} from "~/constants";
+
 export type ImageGenerationMode = "image-to-image" | "text-to-image";
 
 export type ImageModelId =
   | "nano-banana"
   | "nano-banana-edit"
   | "nano-banana-2"
-  | "nano-banana-pro";
+  | "nano-banana-pro"
+  | "gpt-image-2";
 
 export type ImageResolution = "1K" | "2K" | "4K";
 
@@ -43,6 +50,12 @@ export const IMAGE_MODEL_OPTIONS: Record<
       description: "Pro Image Quality | Multi-Image",
       credits: 50,
     },
+    {
+      id: "gpt-image-2",
+      name: "GPT Image 2",
+      description: "OpenAI Image | 4K",
+      credits: 15,
+    },
   ],
   "image-to-image": [
     {
@@ -63,12 +76,19 @@ export const IMAGE_MODEL_OPTIONS: Record<
       description: "Pro Image Quality | Multi-Image",
       credits: 50,
     },
+    {
+      id: "gpt-image-2",
+      name: "GPT Image 2",
+      description: "Reference Image | 4K",
+      credits: 15,
+    },
   ],
 };
 
 export const ADVANCED_IMAGE_MODELS: ImageModelId[] = [
   "nano-banana-2",
   "nano-banana-pro",
+  "gpt-image-2",
 ];
 
 const STANDARD_ASPECT_RATIO_OPTIONS: ImageAspectRatioOption[] = [
@@ -98,6 +118,13 @@ export const getImageTaskCredits = (
   model: string,
   resolution: ImageResolution
 ) => {
+  if (model === "gpt-image-2") {
+    const baseCredits = ceilToCreditsStep(30 * (0.006 / 0.0125));
+    if (resolution === "4K") return ceilToCreditsStep(baseCredits * 2.4);
+    if (resolution === "2K") return ceilToCreditsStep(baseCredits * 1.6);
+    return baseCredits;
+  }
+
   if (isAdvancedImageModel(model)) {
     if (resolution === "4K") return 120;
     if (resolution === "2K") return 80;
@@ -110,6 +137,13 @@ export const getImageTaskCredits = (
 export const getImageAspectRatioOptions = (
   model: string
 ): ImageAspectRatioOption[] => {
+  if (model === "gpt-image-2") {
+    return GPT_IMAGE_2_ASPECT_RATIOS.map((value) => ({
+      value,
+      label: value === "auto" ? "Auto" : value,
+    }));
+  }
+
   if (model === "nano-banana-2") {
     return [
       ...STANDARD_ASPECT_RATIO_OPTIONS.slice(0, 1),
@@ -121,4 +155,21 @@ export const getImageAspectRatioOptions = (
   }
 
   return STANDARD_ASPECT_RATIO_OPTIONS;
+};
+
+export const getMaxImageReferences = (model: string) => {
+  if (model === "gpt-image-2") return 16;
+  if (isAdvancedImageModel(model)) return 14;
+  return 1;
+};
+
+export const supportsImageResolution = (
+  model: string,
+  resolution: ImageResolution,
+  aspectRatio: string
+) => {
+  if (model === "gpt-image-2" && resolution === "4K") {
+    return GPT_IMAGE_2_FOUR_K_ASPECT_RATIOS.includes(aspectRatio as any);
+  }
+  return true;
 };

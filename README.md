@@ -8,35 +8,39 @@
 
 - 💡 **Text-to-Image**: 输入文字描述生成精美图像
 - 🖼️ **Image-to-Image**: 上传图片进行AI智能编辑
-- 🎬 **AI Video**: 支持 Seedance 2.0 与 Seedance 1.5 Pro 视频生成
+- 🎬 **AI Video**: 支持 Seedance 2.0、HappyHorse 1.0 与 Seedance 1.5 Pro 视频生成
 - 🆓 **免费试用**: 新用户注册即获60个免费积分
 - ⚡ **即时生成**: 30-120秒完成高质量图像生成
 
-## 📝 最新进展（2026-05-14）
+## 📝 最新进展（2026-05-15）
 
 ### 最近完成的工作
 
 - **图片生成供应商切换到 ApiMart**：新增 ApiMart 图像客户端，`nano-banana` / `nano-banana-edit` / `nano-banana-2` / `nano-banana-pro` 统一走 `https://api.apimart.ai/v1/images/generations` 异步任务接口，旧 `kie_nano_banana` 查询分支保留用于历史任务兼容。
 - **新增 Nano Banana Pro 入口**：前端模型下拉已加入 `Nano Banana Pro`，与 Nano Banana 2 一样支持 1K/2K/4K 和最多 14 张参考图，积分档位统一为 50 / 80 / 120。
+- **新增 GPT Image 2 试点接入**：新增公共模型 catalog 与 `/model/gpt-image-2` 独立内页，`POST /api/create.ai-image` 支持 `type/model: "gpt-image-2"`，走 ApiMart `/v1/images/generations`，支持文生图、图生图、最多 16 张参考图、`auto` 与多种比例、1K/2K/4K 输出和 4K 比例限制。
 - **ApiMart Seedance 2.0 已接入视频生成**：`doubao-seedance-2.0` / `doubao-seedance-2.0-fast` / `doubao-seedance-2.0-face` / `doubao-seedance-2.0-fast-face` 走 ApiMart，`seedance-1.5-pro` 继续走 Kie 兼容路径。
+- **新增 HappyHorse 1.0 试点接入**：新增 `/model/happyhorse-1-0` 独立内页，`POST /api/create/ai-video` 支持 `model: "happyhorse-1.0"`，走 ApiMart `/v1/videos/generations`，支持 Text-to-Video、Image-to-Video、Reference-Image-to-Video、Video Edit 四种模式。
+- **新增视频上传能力**：新增 `/api/upload/media`，登录后可上传 MP4 / MOV 源视频到 R2，最大 100MB，用于 HappyHorse Video Edit。
 - **新增 Seedance 2.0 素材 API**：新增 `/api/seedance2/private-avatar` 与 `/api/seedance2/real-avatar`，先提供后端提交、审核任务入库和状态轮询能力，前台素材管理 UI 后续再补。
 - **完善视频任务轮询和失败回滚**：ApiMart `pending` / `processing` 映射为 running，`completed` 解析 `result.videos` 和 `result.thumbnail_url`，生产环境复制视频到 R2，失败或缺失结果 URL 会回滚已扣积分。
-- **视频积分规则更新**：Seedance 2.0 四个模型按现有视频公式的 `1.5x` 计费；Seedance 1.5 Pro 原价不变。`1080p` 仅允许标准版和 Face 版，fast / fast-face 会被前后端限制。
-- **测试与正式环境均已部署验证**：测试 Worker `nanobanana-test` 已发布版本 `f7317bbf-17c5-49e5-9a46-7edf21870e25`；正式 Worker `nanobanana` 已发布版本 `240278b4-cade-495c-a13f-8ef180af6db1`，正式站点为 `https://nanobananaimage.org`。
-- **补充最小回归测试**：新增 ApiMart video client、视频模型配置与视频积分测试；`npx vitest run test/apimart-video.test.ts test/video-credits.test.ts test/video-model-config.test.ts` 当前通过。
+- **积分规则更新**：GPT Image 2 按 Nano Banana 的 `$0.0125 / 30 credits` 基准换算，1K/2K/4K 为 15 / 25 / 40 credits；HappyHorse 1.0 按 Seedance 2.0 秒价比例换算，原生音频不额外加价；Seedance 2.0 四个模型继续按现有视频公式的 `1.5x` 计费。
+- **Seedance 2.0 已完成测试与正式环境验证**：测试 Worker `nanobanana-test` 已发布版本 `f7317bbf-17c5-49e5-9a46-7edf21870e25`；正式 Worker `nanobanana` 已发布版本 `240278b4-cade-495c-a13f-8ef180af6db1`，正式站点为 `https://nanobananaimage.org`。
+- **补充试点回归测试**：新增模型 catalog、GPT Image 2、HappyHorse 1.0、图片/视频模型配置与积分测试；`npx vitest run test/model-catalog.test.ts test/apimart-image.test.ts test/apimart-video.test.ts test/image-model-config.test.ts test/video-model-config.test.ts test/video-credits.test.ts` 当前通过。
 
 ### 接下来的待办
 
 - **彻底隔离测试环境与正式环境资源**：当前测试环境虽然已切到测试域名、测试数据库和 Creem Test API，但 `KV` / `R2` 仍未完全隔离。
+- **把模型 catalog 扩展为完整模型市场**：当前只试点 `gpt-image-2` 和 `happyhorse-1.0` 两个独立内页，后续批量接入 ApiMart 图片/视频模型时继续沿用 catalog + adapter + model page 模式。
 - **补齐 entitlement 权限系统**：套餐文案里的 `No Captcha verification`、`priority queue`、`private` 等权益目前仍是展示层描述，后端尚未按 `plan_type` 落地能力控制。
-- **补齐 ApiMart 真实链路监控**：生产已上线 ApiMart 图片与 Seedance 2.0 视频，后续需要关注任务失败率、余额/权限错误、结果链接复制到 R2 的成功率，以及素材审核任务状态。
+- **补齐 ApiMart 真实链路监控**：生产已上线 ApiMart 图片与 Seedance 2.0 视频；GPT Image 2 / HappyHorse 1.0 试点代码已完成本地测试，发布后需要继续关注任务失败率、余额/权限错误、结果链接复制到 R2 的成功率，以及素材审核任务状态。
 - **补订阅与生成链路测试**：为首购、续费、退款、取消、过期，以及 ApiMart 图片/视频创建任务、查询任务、失败回滚继续补服务层或 webhook 测试。
 - **清理历史兼容代码**：`guest_credit_usage`、`hasUsedGuestCredit` 和旧 Kie 图片任务兼容分支仍保留，后续可按线上历史任务消化情况逐步收敛。
 - **修复仓库现存类型检查问题**：当前 `npm run typecheck` 仍会被若干历史问题阻塞，例如 Google OAuth 类型、部分 route typegen 文件和旧别名引用，和本次计费修正无直接关系，但建议单独清理。
 
 ### 当前状态结论
 
-- 当前正式规则已经收敛为：**登录送 60 Credits、上传与生成都要求登录、图片生成走 ApiMart、Seedance 2.0 视频走 ApiMart、Seedance 1.5 Pro 走 Kie、订阅积分按计费周期发放**。
+- 当前代码规则已经收敛为：**登录送 60 Credits、上传与生成都要求登录、图片生成走 ApiMart、Seedance 2.0 与 HappyHorse 1.0 视频走 ApiMart、Seedance 1.5 Pro 走 Kie、订阅积分按计费周期发放**。
 - 当前环境区分方式为：**测试环境使用 `wrangler.test.jsonc` + `CREEM_TEST_KEY` + 测试数据库**，正式环境使用 `wrangler.jsonc` + 正式 Creem Key + 正式数据库。
 - 当前发布策略仍是手动发布：先 `npm run deploy:test` 验证测试环境，再 `npm run deploy` 发布正式环境。
 
@@ -44,8 +48,8 @@
 
 ### 🎨 AI 图像生成能力
 - **双模式生成**：Text-to-Image（文字生图）+ Image-to-Image（图片转图）
-- **高质量模型**：通过 ApiMart 接入 Nano Banana、Nano Banana 2 与 Nano Banana Pro，支持高分辨率图像生成
-- **AI 视频生成**：Seedance 2.0 标准版、Fast、Face、Fast Face 走 ApiMart，Seedance 1.5 Pro 保留 Kie 兼容链路
+- **高质量模型**：通过 ApiMart 接入 Nano Banana、Nano Banana 2、Nano Banana Pro 与 GPT Image 2，支持高分辨率图像生成
+- **AI 视频生成**：Seedance 2.0 标准版、Fast、Face、Fast Face 与 HappyHorse 1.0 走 ApiMart，Seedance 1.5 Pro 保留 Kie 兼容链路
 - **智能优化**：自动提示词优化，提升生成质量
 - **批量处理**：支持多张图片同时生成，提升工作效率
 
@@ -148,7 +152,7 @@ graph TB
 - **Drizzle ORM 0.41.0** - 类型安全的数据库 ORM
 
 #### 🤖 AI 和集成
-- **ApiMart API** - Nano Banana 图片模型与 Doubao Seedance 2.0 视频模型
+- **ApiMart API** - Nano Banana / GPT Image 2 图片模型、Doubao Seedance 2.0 与 HappyHorse 1.0 视频模型
 - **Kie AI API** - Seedance 1.5 Pro 与历史任务兼容
 - **Google OAuth 2.0** - 企业级身份认证
 - **Creem 支付平台** - 全球支付解决方案
@@ -181,6 +185,7 @@ nanobananimagecursor/
 │   │   └── ui/                 # UI 基础组件
 │   ├── 🎯 features/             # 功能模块
 │   │   ├── image_generator/    # 图像生成功能
+│   │   ├── video_generator/    # 视频生成功能
 │   │   ├── layout/             # 布局组件
 │   │   └── oauth/              # OAuth 登录
 │   ├── 🛣️ routes/              # 路由定义
@@ -291,7 +296,7 @@ npm install
 2. 配置必要的 API 密钥：
    - `GOOGLE_CLIENT_ID` - Google OAuth 客户端 ID
    - `GOOGLE_CLIENT_SECRET` - Google OAuth 客户端密钥
-   - `APIMART_API_KEY` - ApiMart 图片生成与 Seedance 2.0 视频 API 密钥
+   - `APIMART_API_KEY` - ApiMart 图片生成、Seedance 2.0 视频与 HappyHorse 1.0 视频 API 密钥
    - `KIEAI_APIKEY` - Kie AI API 密钥（Seedance 1.5 Pro 与历史任务兼容）
    - `SESSION_SECRET` - 会话加密密钥
    - `CREEM_KEY` - 支付系统密钥
@@ -363,7 +368,7 @@ wrangler secret put CREEM_KEY
 wrangler secret put CREEM_WEBHOOK_SECRET
 ```
 
-图片生成当前走 ApiMart：`nano-banana` / `nano-banana-edit` 对应 `gemini-2.5-flash-image-preview`，`nano-banana-2` 对应 `gemini-3.1-flash-image-preview`，`nano-banana-pro` 对应 `gemini-3-pro-image-preview`。Seedance 2.0 四个模型走 ApiMart：`doubao-seedance-2.0` / `doubao-seedance-2.0-fast` / `doubao-seedance-2.0-face` / `doubao-seedance-2.0-fast-face`。`KIEAI_APIKEY` 仍用于 Seedance 1.5 Pro，以及查询切换前已创建的 Kie 历史任务。
+图片生成当前走 ApiMart：`nano-banana` / `nano-banana-edit` 对应 `gemini-2.5-flash-image-preview`，`nano-banana-2` 对应 `gemini-3.1-flash-image-preview`，`nano-banana-pro` 对应 `gemini-3-pro-image-preview`，`gpt-image-2` 对应 ApiMart GPT Image 2。Seedance 2.0 四个模型走 ApiMart：`doubao-seedance-2.0` / `doubao-seedance-2.0-fast` / `doubao-seedance-2.0-face` / `doubao-seedance-2.0-fast-face`。HappyHorse 1.0 走 ApiMart：`happyhorse-1.0`。`KIEAI_APIKEY` 仍用于 Seedance 1.5 Pro，以及查询切换前已创建的 Kie 历史任务。
 如需覆盖 ApiMart 网关地址，可额外配置 `APIMART_BASE_URL`；默认值为 `https://api.apimart.ai/v1`。
 
 ### 公开变量（在 wrangler.jsonc 中配置）
@@ -465,19 +470,26 @@ erDiagram
    - 智能提示词优化，提升生成质量
    - 支持多种艺术风格（写实、卡通、艺术等）
    - 自定义图像尺寸（1:1, 16:9, 9:16 等）
-   - 高分辨率输出（最高 2048x2048）
+   - 高分辨率输出，GPT Image 2 支持最高 4K
 
 2. **Image-to-Image（图片转图）**
    - 支持 JPEG/PNG/WEBP 格式上传
    - 基于参考图片生成变体
    - 风格迁移和内容保持
    - 智能背景替换
+   - GPT Image 2 支持最多 16 张参考图
 
 3. **AI Video（视频生成）**
    - 默认使用 ApiMart Seedance 2.0 标准版
    - 支持 Seedance 2.0 Fast / Face / Fast Face 选项
    - Seedance 1.5 Pro 作为 Kie 兼容模型保留
    - 支持参考图、比例、分辨率、时长和音频开关
+   - HappyHorse 1.0 支持 Text-to-Video、Image-to-Video、Reference-Image-to-Video、Video Edit，源视频上传支持 MP4 / MOV，最大 100MB
+
+4. **模型独立内页**
+   - `/model/gpt-image-2` 默认打开 GPT Image 2 的 Text-to-Image
+   - `/model/happyhorse-1-0` 默认打开 HappyHorse 1.0 的 Text-to-Video
+   - 新模型页面通过 `app/constants/model-catalog.ts` 统一维护 SEO、能力、价格和默认模式
 
 ### 👥 用户管理系统
 - **Google OAuth 2.0** 一键安全登录
@@ -527,10 +539,14 @@ POST /api/create.ai-image
 {
   "mode": "text-to-image" | "image-to-image",
   "prompt": "提示词",
-  "type": "nano-banana" | "nano-banana-edit",
+  "type": "nano-banana" | "nano-banana-edit" | "nano-banana-2" | "nano-banana-pro" | "gpt-image-2",
+  "model": "gpt-image-2", // 可选，优先级高于 type
   "width": 1024,
   "height": 1024,
-  "image": File // 仅 image-to-image 模式
+  "aspect_ratio": "auto" | "1:1" | "16:9" | "9:16" | "21:9",
+  "resolution": "1K" | "2K" | "4K",
+  "image": "https://example.com/reference.png", // 兼容旧单图字段
+  "image_urls": ["https://example.com/reference.png"] // GPT Image 2 最多 16 张
 }
 
 // 查询任务状态
@@ -548,7 +564,7 @@ Response: {
 // 创建 Seedance 视频任务
 POST /api/create/ai-video
 {
-  "model": "doubao-seedance-2.0" | "doubao-seedance-2.0-fast" | "doubao-seedance-2.0-face" | "doubao-seedance-2.0-fast-face" | "seedance-1.5-pro",
+  "model": "doubao-seedance-2.0" | "doubao-seedance-2.0-fast" | "doubao-seedance-2.0-face" | "doubao-seedance-2.0-fast-face" | "seedance-1.5-pro" | "happyhorse-1.0",
   "prompt": "视频提示词",
   "input_urls": ["https://example.com/reference.png"],
   "aspect_ratio": "16:9" | "9:16" | "1:1" | "4:3" | "3:4" | "21:9",
@@ -556,6 +572,23 @@ POST /api/create/ai-video
   "duration": "4" | "8" | "12",
   "generate_audio": false
 }
+
+// 创建 HappyHorse 1.0 视频任务
+POST /api/create/ai-video
+{
+  "model": "happyhorse-1.0",
+  "mode": "text-to-video" | "image-to-video" | "reference-image-to-video" | "video-edit",
+  "prompt": "视频提示词",
+  "aspect_ratio": "16:9" | "9:16" | "1:1" | "4:3" | "3:4",
+  "resolution": "720p" | "1080p",
+  "duration": "3" | "4" | "5" | "..." | "15",
+  "first_frame_image": "https://example.com/first-frame.png",
+  "image_urls": ["https://example.com/reference.png"],
+  "video_url": "https://example.com/source.mp4"
+}
+
+// 上传 HappyHorse Video Edit 源视频
+POST /api/upload/media
 
 // Seedance 2.0 虚拟人像素材
 POST /api/seedance2/private-avatar
@@ -646,7 +679,7 @@ npm run dev
 ### 🎯 商业价值
 - **完整 SaaS 架构** 用户管理、支付、积分一体化
 - **全球化支持** 180+ 国家支付，多语言扩展能力
-- **高性能 AI** ApiMart Nano Banana 图片模型与 Seedance 2.0 视频模型，生成质量优异
+- **高性能 AI** ApiMart Nano Banana / GPT Image 2 图片模型与 Seedance 2.0 / HappyHorse 1.0 视频模型，生成质量优异
 - **成本可控** Serverless 架构，按使用量精确计费
 
 ### 📈 可扩展性
@@ -682,7 +715,7 @@ npm run dev
 3. **[迭代] 素材管理 UI**：Seedance 2.0 的虚拟人像素材和真人人像素材接口已具备后端能力，后续需要补完整前台素材上传、审核状态和资产选择界面。
 
 ### 🔮 后续规划
-- 🔄 **v1.1** 多模型支持（Flux、DALL-E 等）
+- 🔄 **v1.1** 批量扩展 ApiMart 模型 catalog 与独立模型内页
 - 🔄 **v1.2** 批量处理和工作流功能
 - 🔄 **v1.3** 社区功能和作品分享
 - 🔄 **v1.4** API 开放平台和开发者工具
@@ -740,4 +773,4 @@ npm run dev
 
 ---
 
-*最后更新：2026年5月14日 | 基于当前 Cloudflare Workers + ApiMart/Kie 集成状态*
+*最后更新：2026年5月15日 | 基于当前 Cloudflare Workers + ApiMart/Kie 集成状态*

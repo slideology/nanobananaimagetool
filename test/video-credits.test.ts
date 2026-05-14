@@ -39,6 +39,15 @@ describe("video credits", () => {
         generateAudio: true,
       })
     ).toBe(720);
+
+    expect(
+      calculateVideoCredits({
+        model: "happyhorse-1.0",
+        resolution: "720p",
+        duration: "5",
+        generateAudio: true,
+      })
+    ).toBe(715);
   });
 
   it("returns a consistent breakdown description", () => {
@@ -73,5 +82,14 @@ describe("video credits", () => {
       description:
         "720p (120 credits) × 8s ×2 × Audio ×2 × Seedance 2.0 ×1.5 = 720 credits",
     });
+
+    expect(
+      getVideoCreditsBreakdown({
+        model: "happyhorse-1.0",
+        resolution: "720p",
+        duration: "5",
+        generateAudio: true,
+      }).total
+    ).toBe(715);
   });
 });

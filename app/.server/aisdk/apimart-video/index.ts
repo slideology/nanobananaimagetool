@@ -4,12 +4,17 @@ import type {
   ApiMartAvatarTaskResult,
   ApiMartRealAvatarAction,
   ApiMartResponse,
+  ApiMartHappyHorseModel,
+  ApiMartHappyHorseResolution,
+  ApiMartHappyHorseSize,
   ApiMartSeedanceAvatarAssetType,
   ApiMartSeedanceImageWithRole,
   ApiMartSeedanceModel,
+  ApiMartVideoGenerationModel,
   ApiMartSeedanceResolution,
   ApiMartSeedanceSize,
   ApiMartVideoTaskStatus,
+  CreateApiMartHappyHorseTaskOptions,
   CreateApiMartPrivateAvatarOptions,
   CreateApiMartRealAvatarOptions,
   CreateApiMartSeedanceTaskOptions,
@@ -21,12 +26,17 @@ export type {
   ApiMartAvatarAsset,
   ApiMartRealAvatarAction,
   ApiMartResponse,
+  ApiMartHappyHorseModel,
+  ApiMartHappyHorseResolution,
+  ApiMartHappyHorseSize,
   ApiMartSeedanceAvatarAssetType,
   ApiMartSeedanceImageWithRole,
   ApiMartSeedanceModel,
+  ApiMartVideoGenerationModel,
   ApiMartSeedanceResolution,
   ApiMartSeedanceSize,
   ApiMartVideoTaskStatus,
+  CreateApiMartHappyHorseTaskOptions,
   CreateApiMartPrivateAvatarOptions,
   CreateApiMartRealAvatarOptions,
   CreateApiMartSeedanceTaskOptions,
@@ -39,6 +49,20 @@ export const APIMART_SEEDANCE_MODELS: ApiMartSeedanceModel[] = [
   "doubao-seedance-2.0-face",
   "doubao-seedance-2.0-fast-face",
 ];
+
+export const APIMART_HAPPYHORSE_MODELS: ApiMartHappyHorseModel[] = [
+  "happyhorse-1.0",
+];
+
+export const isApiMartHappyHorseModel = (
+  model: string
+): model is ApiMartHappyHorseModel =>
+  APIMART_HAPPYHORSE_MODELS.includes(model as ApiMartHappyHorseModel);
+
+export const isApiMartVideoGenerationModel = (
+  model: string
+): model is ApiMartVideoGenerationModel =>
+  isApiMartSeedanceModel(model) || isApiMartHappyHorseModel(model);
 
 export const isApiMartSeedanceModel = (
   model: string
@@ -129,6 +153,49 @@ export class ApiMartVideo {
       ...(options.imageWithRoles?.length ? { image_with_roles: options.imageWithRoles } : {}),
       ...(options.videoUrls?.length ? { video_urls: options.videoUrls } : {}),
       ...(options.audioUrls?.length ? { audio_urls: options.audioUrls } : {}),
+    };
+
+    const data = await this.request<Array<{ status: "submitted"; task_id: string }>>(
+      "/videos/generations",
+      {
+        method: "POST",
+        body: JSON.stringify(request),
+      }
+    );
+
+    const task = data[0];
+    if (!task?.task_id) {
+      throw new ApiMartVideoApiError(
+        "ApiMart did not return a video task_id",
+        502,
+        "missing_task_id",
+        data
+      );
+    }
+
+    return {
+      taskId: task.task_id,
+      status: task.status,
+      model: options.model,
+      request,
+    };
+  }
+
+  async createHappyHorseTask(
+    options: CreateApiMartHappyHorseTaskOptions
+  ): Promise<ApiMartSeedanceTaskCreateResult> {
+    const request = {
+      model: options.model,
+      ...(options.prompt ? { prompt: options.prompt } : {}),
+      ...(options.resolution ? { resolution: options.resolution } : {}),
+      ...(options.size ? { size: options.size } : {}),
+      ...(options.duration ? { duration: options.duration } : {}),
+      ...(options.firstFrameImage ? { first_frame_image: options.firstFrameImage } : {}),
+      ...(options.imageUrls?.length ? { image_urls: options.imageUrls } : {}),
+      ...(options.videoUrl ? { video_url: options.videoUrl } : {}),
+      ...(options.audioSetting ? { audio_setting: options.audioSetting } : {}),
+      ...(options.watermark !== undefined ? { watermark: options.watermark } : {}),
+      ...(options.seed !== undefined ? { seed: options.seed } : {}),
     };
 
     const data = await this.request<Array<{ status: "submitted"; task_id: string }>>(

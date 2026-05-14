@@ -220,6 +220,7 @@ export const ai_tasks = sqliteTable("ai_tasks", {
       "kie_nano_banana",
       "kie_seedance",
       "apimart_image",
+      "apimart_video",
       "apimart_seedance",
       "apimart_seedance_avatar",
     ],

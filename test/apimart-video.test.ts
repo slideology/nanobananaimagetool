@@ -2,11 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   ApiMartVideo,
+  APIMART_HAPPYHORSE_MODELS,
   APIMART_SEEDANCE_MODELS,
   getApiMartFirstVideoUrl,
   getApiMartVideoFailReason,
   getApiMartVideoThumbnailUrl,
+  isApiMartHappyHorseModel,
   isApiMartSeedanceModel,
+  isApiMartVideoGenerationModel,
   supportsApiMartSeedance1080p,
 } from "../app/.server/aisdk/apimart-video";
 
@@ -31,6 +34,9 @@ describe("ApiMart video client", () => {
     ]);
     expect(isApiMartSeedanceModel("doubao-seedance-2.0-fast-face")).toBe(true);
     expect(isApiMartSeedanceModel("seedance-1.5-pro")).toBe(false);
+    expect(APIMART_HAPPYHORSE_MODELS).toEqual(["happyhorse-1.0"]);
+    expect(isApiMartHappyHorseModel("happyhorse-1.0")).toBe(true);
+    expect(isApiMartVideoGenerationModel("happyhorse-1.0")).toBe(true);
     expect(supportsApiMartSeedance1080p("doubao-seedance-2.0")).toBe(true);
     expect(supportsApiMartSeedance1080p("doubao-seedance-2.0-face")).toBe(true);
     expect(supportsApiMartSeedance1080p("doubao-seedance-2.0-fast")).toBe(false);
@@ -82,6 +88,73 @@ describe("ApiMart video client", () => {
       duration: 8,
       generate_audio: true,
       image_urls: ["asset://asset_a"],
+    });
+  });
+
+  it("creates HappyHorse 1.0 tasks with image/video inputs", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        code: 200,
+        data: [{ status: "submitted", task_id: "task_happy" }],
+      }),
+    });
+
+    const client = new ApiMartVideo({
+      apiKey: "test-key",
+      baseUrl: "https://example.test/v1/",
+    });
+
+    const result = await client.createHappyHorseTask({
+      model: "happyhorse-1.0",
+      prompt: "Make the product spin on a clean stage",
+      size: "9:16",
+      resolution: "1080P",
+      duration: 6,
+      firstFrameImage: "https://example.com/first.png",
+    });
+
+    expect(result.taskId).toBe("task_happy");
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body).toEqual({
+      model: "happyhorse-1.0",
+      prompt: "Make the product spin on a clean stage",
+      resolution: "1080P",
+      size: "9:16",
+      duration: 6,
+      first_frame_image: "https://example.com/first.png",
+    });
+  });
+
+  it("creates HappyHorse 1.0 video edit payloads", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        code: 200,
+        data: [{ status: "submitted", task_id: "task_edit" }],
+      }),
+    });
+
+    const client = new ApiMartVideo({ apiKey: "test-key" });
+    await client.createHappyHorseTask({
+      model: "happyhorse-1.0",
+      prompt: "Restyle as a fashion campaign",
+      size: "16:9",
+      resolution: "720P",
+      duration: 5,
+      videoUrl: "https://example.com/source.mp4",
+      imageUrls: ["https://example.com/style.png"],
+    });
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body).toEqual({
+      model: "happyhorse-1.0",
+      prompt: "Restyle as a fashion campaign",
+      resolution: "720P",
+      size: "16:9",
+      duration: 5,
+      image_urls: ["https://example.com/style.png"],
+      video_url: "https://example.com/source.mp4",
     });
   });
 

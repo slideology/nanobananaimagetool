@@ -23,13 +23,20 @@ interface VideoTask {
 export interface VideoResultProps {
     currentTask?: VideoTask | null;
     recentTasks?: VideoTask[];
+    resultTitle?: string;
+    downloadPrefix?: string;
 }
 
 /**
  * Seedance 2.0 AI Video Result 组件
  * 显示当前生成任务的状态和最近的视频历史
  */
-export function VideoResult({ currentTask, recentTasks = [] }: VideoResultProps) {
+export function VideoResult({
+    currentTask,
+    recentTasks = [],
+    resultTitle = 'Seedance 2.0 AI Video Result',
+    downloadPrefix = 'seedance',
+}: VideoResultProps) {
     const [progress, setProgress] = useState(0);
 
     // 模拟进度更新
@@ -52,7 +59,7 @@ export function VideoResult({ currentTask, recentTasks = [] }: VideoResultProps)
     // 下载视频
     const handleDownload = (videoUrl: string, taskNo: string) => {
         // 使用后端代理进行下载，避免跨域问题并强制下载
-        const downloadUrl = `/api/download-video?url=${encodeURIComponent(videoUrl)}&filename=seedance-${taskNo}`;
+        const downloadUrl = `/api/download-video?url=${encodeURIComponent(videoUrl)}&filename=${downloadPrefix}-${taskNo}`;
 
         // 创建隐藏的a标签触发下载
         const a = document.createElement('a');
@@ -67,7 +74,7 @@ export function VideoResult({ currentTask, recentTasks = [] }: VideoResultProps)
         <div className="bg-white rounded-2xl border border-gray-200 p-6 h-full">
             {/* 标题 */}
             <div className="mb-5">
-                <h3 className="text-base font-semibold text-gray-900">Seedance 2.0 AI Video Result</h3>
+                <h3 className="text-base font-semibold text-gray-900">{resultTitle}</h3>
                 {currentTask?.status === 'running' && (
                     <p className="text-xs text-gray-500 mt-1">
                         Generation takes 2~3 min. <span className="text-red-500">Please don't close this tab.</span>

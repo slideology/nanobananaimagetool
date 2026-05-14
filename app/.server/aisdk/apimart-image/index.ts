@@ -25,6 +25,7 @@ export const APIMART_IMAGE_MODEL_MAP: Record<
   "nano-banana-edit": "gemini-2.5-flash-image-preview",
   "nano-banana-2": "gemini-3.1-flash-image-preview",
   "nano-banana-pro": "gemini-3-pro-image-preview",
+  "gpt-image-2": "gpt-image-2",
 };
 
 interface ApiMartImageConfig {
@@ -88,7 +89,11 @@ export class ApiMartImage {
     options: CreateApiMartImageTaskOptions
   ): Promise<ApiMartTaskCreateResult> {
     const model = APIMART_IMAGE_MODEL_MAP[options.productModel];
-    const size = normalizeApiMartSize(options.size);
+    const size = normalizeApiMartSizeForModel(options.productModel, options.size);
+    const resolution = normalizeApiMartResolutionForModel(
+      options.productModel,
+      options.resolution
+    );
     const request = {
       model,
       prompt: options.prompt,
@@ -96,7 +101,7 @@ export class ApiMartImage {
       n: 1,
       official_fallback: false as const,
       ...(options.imageUrls?.length ? { image_urls: options.imageUrls } : {}),
-      ...(options.resolution ? { resolution: options.resolution } : {}),
+      ...(resolution ? { resolution } : {}),
       ...(options.productModel === "nano-banana-2" && options.googleSearch !== undefined
         ? { google_search: options.googleSearch }
         : {}),
@@ -133,6 +138,23 @@ export class ApiMartImage {
 export const normalizeApiMartSize = (size?: string) => {
   if (!size || size === "auto") return "1:1";
   return size;
+};
+
+export const normalizeApiMartSizeForModel = (
+  productModel: ApiMartImageProductModel,
+  size?: string
+) => {
+  if (productModel === "gpt-image-2") return size || "1:1";
+  return normalizeApiMartSize(size);
+};
+
+export const normalizeApiMartResolutionForModel = (
+  productModel: ApiMartImageProductModel,
+  resolution?: string
+) => {
+  if (!resolution) return undefined;
+  if (productModel === "gpt-image-2") return resolution.toLowerCase() as "1k" | "2k" | "4k";
+  return resolution as "1K" | "2K" | "4K";
 };
 
 export const getApiMartFirstImageUrl = (task: ApiMartTaskStatus) => {

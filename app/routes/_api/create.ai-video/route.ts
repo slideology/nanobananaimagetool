@@ -10,9 +10,13 @@ import {
 import {
     ApiMartVideo,
     ApiMartVideoApiError,
+    isApiMartHappyHorseModel,
     isApiMartSeedanceModel,
     KieAI,
     supportsApiMartSeedance1080p,
+    type ApiMartHappyHorseModel,
+    type ApiMartHappyHorseResolution,
+    type ApiMartHappyHorseSize,
     type ApiMartSeedanceModel,
 } from "~/.server/aisdk";
 import { calculateVideoCredits, type VideoCreditModel } from "~/.server/utils/video-credits";
@@ -26,20 +30,33 @@ import type {
     SeedanceDuration
 } from "~/.server/aisdk/kie-ai/type";
 
-type VideoModel = "seedance-1.5-pro" | ApiMartSeedanceModel;
+type VideoModel = "seedance-1.5-pro" | ApiMartSeedanceModel | ApiMartHappyHorseModel;
+type VideoMode =
+    | "text-to-video"
+    | "image-to-video"
+    | "reference-image-to-video"
+    | "video-edit";
 
 const DEFAULT_VIDEO_MODEL: VideoModel = "doubao-seedance-2.0";
 const KIE_SEEDANCE_MODEL: VideoModel = "seedance-1.5-pro";
 const KIE_DURATIONS: SeedanceDuration[] = ["4", "8", "12"];
+const HAPPYHORSE_DURATIONS = Array.from({ length: 13 }, (_, index) => String(index + 3));
+const HAPPYHORSE_RESOLUTIONS = ["720p", "1080p"] as const;
+const HAPPYHORSE_ASPECT_RATIOS = ["16:9", "9:16", "1:1", "4:3", "3:4"] as const;
 
 // 请求参数接口
 interface CreateVideoRequest {
     model?: VideoModel;
+    mode?: VideoMode;
     prompt: string;
     input_urls?: string[];
+    image_urls?: string[];
+    first_frame_image?: string;
+    video_url?: string;
+    audio_setting?: "origin" | "mute" | "generate";
     aspect_ratio: SeedanceAspectRatio;
     resolution?: SeedanceResolution;
-    duration: SeedanceDuration;
+    duration: SeedanceDuration | string;
     fixed_lens?: boolean;
     generate_audio?: boolean;
 }
@@ -84,8 +101,13 @@ export async function action({ request, context }: Route.ActionArgs) {
         const body = await request.json() as CreateVideoRequest;
         const {
             model = DEFAULT_VIDEO_MODEL,
+            mode = "text-to-video",
             prompt,
             input_urls = [],
+            image_urls = [],
+            first_frame_image,
+            video_url,
+            audio_setting,
             aspect_ratio,
             resolution = "720p",
             duration,
@@ -94,11 +116,18 @@ export async function action({ request, context }: Route.ActionArgs) {
         } = body;
 
         const isApiMartModel = isApiMartSeedanceModel(model);
+        const isHappyHorseModel = isApiMartHappyHorseModel(model);
         const isKieModel = model === KIE_SEEDANCE_MODEL;
         const promptMaxLength = isApiMartModel ? 4000 : 2500;
+        const uploadedImageUrls = image_urls.length > 0 ? image_urls : input_urls;
+        const happyHorseReferenceImages =
+            isHappyHorseModel && mode === "image-to-video" ? [] : uploadedImageUrls;
+        const happyHorseFirstFrame =
+            first_frame_image ||
+            (isHappyHorseModel && mode === "image-to-video" ? input_urls[0] : undefined);
 
         // 3. 参数验证
-        if (!isApiMartModel && !isKieModel) {
+        if (!isApiMartModel && !isHappyHorseModel && !isKieModel) {
             return Response.json(
                 {
                     error: {
@@ -124,8 +153,8 @@ export async function action({ request, context }: Route.ActionArgs) {
             );
         }
 
-        const maxInputImages = isApiMartModel ? 9 : 2;
-        if (input_urls.length > maxInputImages) {
+        const maxInputImages = isHappyHorseModel ? 9 : isApiMartModel ? 9 : 2;
+        if (uploadedImageUrls.length > maxInputImages) {
             return Response.json(
                 {
                     error: {
@@ -138,7 +167,7 @@ export async function action({ request, context }: Route.ActionArgs) {
             );
         }
 
-        if (!KIE_DURATIONS.includes(duration)) {
+        if (!isHappyHorseModel && !KIE_DURATIONS.includes(duration as SeedanceDuration)) {
             return Response.json(
                 {
                     error: {
@@ -149,6 +178,142 @@ export async function action({ request, context }: Route.ActionArgs) {
                 },
                 { status: 400 }
             );
+        }
+
+        if (isHappyHorseModel) {
+            if (!HAPPYHORSE_DURATIONS.includes(duration)) {
+                return Response.json(
+                    {
+                        error: {
+                            code: "INVALID_DURATION",
+                            message: "HappyHorse 视频时长必须为 3-15 秒整数",
+                            title: "参数错误"
+                        }
+                    },
+                    { status: 400 }
+                );
+            }
+
+            if (!HAPPYHORSE_RESOLUTIONS.includes(resolution as any)) {
+                return Response.json(
+                    {
+                        error: {
+                            code: "INVALID_RESOLUTION",
+                            message: "HappyHorse 仅支持 720p 或 1080p",
+                            title: "参数错误"
+                        }
+                    },
+                    { status: 400 }
+                );
+            }
+
+            if (!HAPPYHORSE_ASPECT_RATIOS.includes(aspect_ratio as any)) {
+                return Response.json(
+                    {
+                        error: {
+                            code: "INVALID_ASPECT_RATIO",
+                            message: "HappyHorse 仅支持 16:9、9:16、1:1、4:3、3:4",
+                            title: "参数错误"
+                        }
+                    },
+                    { status: 400 }
+                );
+            }
+
+            const hasFirstFrame = Boolean(happyHorseFirstFrame);
+            const hasSourceVideo = Boolean(video_url);
+            const referenceImageCount = happyHorseReferenceImages.length;
+
+            if (mode === "text-to-video" && (hasFirstFrame || hasSourceVideo || referenceImageCount > 0)) {
+                return Response.json(
+                    {
+                        error: {
+                            code: "MIXED_MEDIA_NOT_ALLOWED",
+                            message: "HappyHorse Text-to-Video 只支持 prompt，不支持图片或视频输入",
+                            title: "参数错误"
+                        }
+                    },
+                    { status: 400 }
+                );
+            }
+
+            if (mode === "image-to-video" && !hasFirstFrame) {
+                return Response.json(
+                    {
+                        error: {
+                            code: "MISSING_FIRST_FRAME",
+                            message: "HappyHorse Image-to-Video 需要上传 1 张首帧图",
+                            title: "参数错误"
+                        }
+                    },
+                    { status: 400 }
+                );
+            }
+
+            if (mode === "reference-image-to-video" && referenceImageCount === 0) {
+                return Response.json(
+                    {
+                        error: {
+                            code: "MISSING_REFERENCE_IMAGES",
+                            message: "HappyHorse Reference-Image-to-Video 需要 1-9 张参考图",
+                            title: "参数错误"
+                        }
+                    },
+                    { status: 400 }
+                );
+            }
+
+            if (mode === "video-edit" && !hasSourceVideo) {
+                return Response.json(
+                    {
+                        error: {
+                            code: "MISSING_VIDEO",
+                            message: "HappyHorse Video Edit 需要上传源视频",
+                            title: "参数错误"
+                        }
+                    },
+                    { status: 400 }
+                );
+            }
+
+            if (video_url && happyHorseFirstFrame) {
+                return Response.json(
+                    {
+                        error: {
+                            code: "MIXED_MEDIA_NOT_ALLOWED",
+                            message: "video_url 不能和 first_frame_image 同时使用",
+                            title: "参数错误"
+                        }
+                    },
+                    { status: 400 }
+                );
+            }
+
+            if (happyHorseFirstFrame && happyHorseReferenceImages.length > 0) {
+                return Response.json(
+                    {
+                        error: {
+                            code: "MIXED_MEDIA_NOT_ALLOWED",
+                            message: "first_frame_image 不能和 image_urls 同时使用",
+                            title: "参数错误"
+                        }
+                    },
+                    { status: 400 }
+                );
+            }
+
+            if (video_url && happyHorseReferenceImages.length > 5) {
+                return Response.json(
+                    {
+                        error: {
+                            code: "TOO_MANY_IMAGES",
+                            message: "HappyHorse 视频编辑最多支持 5 张风格参考图",
+                            title: "参数错误"
+                        }
+                    },
+                    { status: 400 }
+                );
+            }
         }
 
         if (
@@ -171,7 +336,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         // 4. 计算所需积分
         const requiredCredits = calculateVideoCredits({
             resolution,
-            duration,
+            duration: String(duration),
             generateAudio: generate_audio,
             model: model as VideoCreditModel
         });
@@ -199,12 +364,12 @@ export async function action({ request, context }: Route.ActionArgs) {
             );
         }
 
-        let provider: "kie_seedance" | "apimart_seedance";
+        let provider: "kie_seedance" | "apimart_seedance" | "apimart_video";
         let taskId: string;
         let taskParams: Record<string, unknown>;
 
         try {
-            if (isApiMartModel) {
+            if (isApiMartModel || isHappyHorseModel) {
                 if (!env.APIMART_API_KEY) {
                     throw new Error("APIMART_API_KEY is not configured");
                 }
@@ -212,20 +377,32 @@ export async function action({ request, context }: Route.ActionArgs) {
                     apiKey: env.APIMART_API_KEY,
                     baseUrl: env.APIMART_BASE_URL,
                 });
-                const apiMartResponse = await apiMart.createSeedanceTask({
-                    model,
-                    prompt,
-                    imageUrls: input_urls,
-                    size: aspect_ratio,
-                    resolution,
-                    duration: Number(duration),
-                    generateAudio: generate_audio,
-                });
+                const apiMartResponse = isHappyHorseModel
+                    ? await apiMart.createHappyHorseTask({
+                        model,
+                        prompt,
+                        imageUrls: happyHorseReferenceImages,
+                        firstFrameImage: happyHorseFirstFrame,
+                        videoUrl: video_url,
+                        audioSetting: audio_setting,
+                        size: aspect_ratio as ApiMartHappyHorseSize,
+                        resolution: resolution.toUpperCase() as ApiMartHappyHorseResolution,
+                        duration: Number(duration),
+                    })
+                    : await apiMart.createSeedanceTask({
+                        model,
+                        prompt,
+                        imageUrls: input_urls,
+                        size: aspect_ratio,
+                        resolution,
+                        duration: Number(duration),
+                        generateAudio: generate_audio,
+                    });
 
-                provider = "apimart_seedance";
+                provider = isHappyHorseModel ? "apimart_video" : "apimart_seedance";
                 taskId = apiMartResponse.taskId;
                 taskParams = apiMartResponse.request;
-                console.log(`✅ ApiMart Seedance 2.0 视频任务创建成功:`, taskId);
+                console.log(`✅ ApiMart 视频任务创建成功:`, taskId);
             } else {
                 const kieAI = new KieAI({ accessKey: env.KIEAI_APIKEY });
                 const callbackUrl = new URL("/webhooks/seedance-video", env.DOMAIN).toString();
@@ -234,7 +411,7 @@ export async function action({ request, context }: Route.ActionArgs) {
                     input_urls,
                     aspect_ratio,
                     resolution,
-                    duration,
+                    duration: duration as SeedanceDuration,
                     fixed_lens,
                     generate_audio,
                     callBackUrl: callbackUrl
@@ -284,16 +461,21 @@ export async function action({ request, context }: Route.ActionArgs) {
                 input_params: {
                     model,
                     prompt,
-                    input_urls,
+                    input_urls: uploadedImageUrls,
+                    image_urls: happyHorseReferenceImages.length ? happyHorseReferenceImages : undefined,
+                    first_frame_image: happyHorseFirstFrame,
+                    video_url,
                     aspect_ratio,
                     resolution,
                     duration,
                     fixed_lens: isKieModel ? fixed_lens : undefined,
-                    generate_audio
+                    generate_audio: isHappyHorseModel ? undefined : generate_audio
                 },
                 estimated_start_at: estimatedStartAt,
                 ext: {
-                    generation_mode: input_urls.length > 0 ? "image-to-video" : "text-to-video",
+                    generation_mode: isHappyHorseModel
+                        ? mode
+                        : input_urls.length > 0 ? "image-to-video" : "text-to-video",
                     credits_consumed: requiredCredits,
                     model
                 },

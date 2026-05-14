@@ -7,6 +7,7 @@ import {
   getApiMartFailReason,
   getApiMartFirstImageUrl,
   normalizeApiMartSize,
+  normalizeApiMartSizeForModel,
 } from "../app/.server/aisdk/apimart-image";
 
 describe("ApiMart image client", () => {
@@ -34,6 +35,7 @@ describe("ApiMart image client", () => {
     expect(APIMART_IMAGE_MODEL_MAP["nano-banana-pro"]).toBe(
       "gemini-3-pro-image-preview"
     );
+    expect(APIMART_IMAGE_MODEL_MAP["gpt-image-2"]).toBe("gpt-image-2");
   });
 
   it("creates a Nano Banana 2 task with the expected payload", async () => {
@@ -110,6 +112,42 @@ describe("ApiMart image client", () => {
     expect(body).not.toHaveProperty("output_format");
   });
 
+  it("creates a GPT Image 2 task with lowercase provider resolution", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        code: 200,
+        data: [{ status: "submitted", task_id: "task_gpt2" }],
+      }),
+    });
+
+    const client = new ApiMartImage({ apiKey: "test-key" });
+    await client.createImageTask({
+      productModel: "gpt-image-2",
+      prompt: "A poster with readable title text",
+      imageUrls: [
+        "https://example.com/ref-a.png",
+        "https://example.com/ref-b.png",
+      ],
+      size: "21:9",
+      resolution: "4K",
+    });
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body).toEqual({
+      model: "gpt-image-2",
+      prompt: "A poster with readable title text",
+      size: "21:9",
+      n: 1,
+      official_fallback: false,
+      image_urls: [
+        "https://example.com/ref-a.png",
+        "https://example.com/ref-b.png",
+      ],
+      resolution: "4k",
+    });
+  });
+
   it("queries task status through /tasks/{task_id}", async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
@@ -162,6 +200,7 @@ describe("ApiMart image client", () => {
     expect(normalizeApiMartSize()).toBe("1:1");
     expect(normalizeApiMartSize("auto")).toBe("1:1");
     expect(normalizeApiMartSize("21:9")).toBe("21:9");
+    expect(normalizeApiMartSizeForModel("gpt-image-2", "auto")).toBe("auto");
 
     expect(
       getApiMartFailReason({

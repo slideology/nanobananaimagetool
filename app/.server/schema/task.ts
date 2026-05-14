@@ -6,9 +6,22 @@ import { z } from "zod";
 export const createAiImageSchema = z.object({
   mode: z.enum(["image-to-image", "text-to-image", "nano-banana-2"]),
   image: z.string().url().optional(), // Required for image-to-image mode (legacy)
-  image_urls: z.array(z.string().url()).max(14).optional(), // For advanced multi-image models
+  image_urls: z.array(z.string().url()).max(16).optional(), // For advanced multi-image models
   prompt: z.string().min(1, "Prompt is required"),
-  type: z.enum(["nano-banana", "nano-banana-edit", "nano-banana-2", "nano-banana-pro"]).default("nano-banana"),
+  type: z.enum([
+    "nano-banana",
+    "nano-banana-edit",
+    "nano-banana-2",
+    "nano-banana-pro",
+    "gpt-image-2",
+  ]).default("nano-banana"),
+  model: z.enum([
+    "nano-banana",
+    "nano-banana-edit",
+    "nano-banana-2",
+    "nano-banana-pro",
+    "gpt-image-2",
+  ]).optional(),
   width: z.number().optional().default(1024),
   height: z.number().optional().default(1024),
   aspect_ratio: z.string().optional(),
@@ -17,7 +30,7 @@ export const createAiImageSchema = z.object({
 }).refine(
   (data) => {
     // If mode is image-to-image, image URL is required
-    if (data.mode === "image-to-image" && !data.image) {
+    if (data.mode === "image-to-image" && !data.image && !data.image_urls?.length) {
       return false;
     }
     return true;

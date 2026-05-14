@@ -4,6 +4,12 @@ export type ApiMartSeedanceModel =
   | "doubao-seedance-2.0-face"
   | "doubao-seedance-2.0-fast-face";
 
+export type ApiMartHappyHorseModel = "happyhorse-1.0";
+
+export type ApiMartVideoGenerationModel =
+  | ApiMartSeedanceModel
+  | ApiMartHappyHorseModel;
+
 export type ApiMartSeedanceResolution = "480p" | "720p" | "1080p";
 
 export type ApiMartSeedanceSize =
@@ -36,10 +42,28 @@ export interface CreateApiMartSeedanceTaskOptions {
   webSearch?: boolean;
 }
 
+export type ApiMartHappyHorseResolution = "720P" | "1080P";
+export type ApiMartHappyHorseSize = "16:9" | "9:16" | "1:1" | "4:3" | "3:4";
+export type ApiMartHappyHorseAudioSetting = "origin" | "mute" | "generate";
+
+export interface CreateApiMartHappyHorseTaskOptions {
+  model: ApiMartHappyHorseModel;
+  prompt?: string;
+  size?: ApiMartHappyHorseSize;
+  resolution?: ApiMartHappyHorseResolution;
+  duration?: number;
+  firstFrameImage?: string;
+  imageUrls?: string[];
+  videoUrl?: string;
+  audioSetting?: ApiMartHappyHorseAudioSetting;
+  watermark?: boolean;
+  seed?: number;
+}
+
 export interface ApiMartSeedanceTaskCreateResult {
   taskId: string;
   status: "submitted";
-  model: ApiMartSeedanceModel;
+  model: ApiMartVideoGenerationModel;
   request: Record<string, unknown>;
 }
 

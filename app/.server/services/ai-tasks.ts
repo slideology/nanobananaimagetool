@@ -2,6 +2,11 @@ import { nanoid } from "nanoid";
 import currency from "currency.js";
 
 import type { CreateAiImageDTO } from "~/.server/schema/task";
+import {
+  GPT_IMAGE_2_ASPECT_RATIOS,
+  GPT_IMAGE_2_FOUR_K_ASPECT_RATIOS,
+  ceilToCreditsStep,
+} from "~/constants";
 
 import {
   insertAiTaskBatch,
@@ -97,6 +102,7 @@ const transformResult = (value: AiTask): AiTaskResult => {
 
 const TASK_PROVIDERS = [
   "apimart_image",
+  "apimart_video",
   "apimart_seedance",
   "apimart_seedance_avatar",
   "kie_nano_banana",
@@ -126,7 +132,7 @@ const createApiMartVideoClient = (env: Env) => {
 };
 
 const isAdvancedImageModel = (type: CreateAiImageDTO["type"]) =>
-  type === "nano-banana-2" || type === "nano-banana-pro";
+  type === "nano-banana-2" || type === "nano-banana-pro" || type === "gpt-image-2";
 
 const STANDARD_APIMART_ASPECT_RATIOS = [
   "1:1",
@@ -150,9 +156,34 @@ const NANO_BANANA_2_APIMART_ASPECT_RATIOS = [
 ] as const;
 
 const getAllowedApiMartAspectRatios = (type: CreateAiImageDTO["type"]) =>
-  type === "nano-banana-2"
+  type === "gpt-image-2"
+    ? GPT_IMAGE_2_ASPECT_RATIOS
+    : type === "nano-banana-2"
     ? NANO_BANANA_2_APIMART_ASPECT_RATIOS
     : STANDARD_APIMART_ASPECT_RATIOS;
+
+const isAllowedGptImage24KAspectRatio = (aspect: string) =>
+  GPT_IMAGE_2_FOUR_K_ASPECT_RATIOS.includes(aspect as any);
+
+export const calculateImageTaskCredits = (
+  type: CreateAiImageDTO["type"],
+  resolution: CreateAiImageDTO["resolution"]
+) => {
+  if (type === "gpt-image-2") {
+    const baseCredits = ceilToCreditsStep(30 * (0.006 / 0.0125));
+    if (resolution === "4K") return ceilToCreditsStep(baseCredits * 2.4);
+    if (resolution === "2K") return ceilToCreditsStep(baseCredits * 1.6);
+    return baseCredits;
+  }
+
+  if (isAdvancedImageModel(type)) {
+    if (resolution === "4K") return 120;
+    if (resolution === "2K") return 80;
+    return 50;
+  }
+
+  return 30;
+};
 
 const mapApiMartError = (error: ApiMartApiError) => {
   const details = {
@@ -369,7 +400,7 @@ export const updateTaskStatus = async (env: Env, taskNo: AiTask["task_no"] | AiT
     return { task: transformResult(newTask), progress: 100 };
   }
 
-  if (task.provider === "apimart_seedance") {
+  if (task.provider === "apimart_seedance" || task.provider === "apimart_video") {
     const apiMart = createApiMartVideoClient(env);
     let result: Awaited<ReturnType<ApiMartVideo["queryTask"]>>;
     try {
@@ -723,15 +754,11 @@ export const createAiImage = async (
       cdnUrl: env.CDN_URL
     }
   });
-  const { mode, image, image_urls, prompt, type, width, height, aspect_ratio, google_search, resolution } = value;
+  const { mode, image, image_urls, prompt, width, height, aspect_ratio, google_search, resolution } = value;
+  const type = value.model || value.type;
 
   // 图片生成消耗积分计算
-  let taskCredits = 30;
-  if (isAdvancedImageModel(type)) {
-    if (resolution === "4K") taskCredits = 120;
-    else if (resolution === "2K") taskCredits = 80;
-    else taskCredits = 50; // default 1K
-  }
+  const taskCredits = calculateImageTaskCredits(type, resolution);
 
   // 🔥 重要优化：提前验证积分但不扣除，避免API失败后积分已被消耗
   BusinessLogicLogger.logCreditValidation(requestId, {
@@ -775,17 +802,30 @@ export const createAiImage = async (
     });
   }
 
-  const aspect = !aspect_ratio || aspect_ratio === "auto" ? "1:1" : aspect_ratio; // ApiMart 不支持 auto，默认正方形
+  const aspect =
+    type === "gpt-image-2"
+      ? aspect_ratio || "auto"
+      : !aspect_ratio || aspect_ratio === "auto"
+      ? "1:1"
+      : aspect_ratio;
   let insertPayload: InsertAiTask;
   let imageResponse: any; // 存储API调用结果
 
-  if (type === "nano-banana" || type === "nano-banana-edit" || type === "nano-banana-2" || type === "nano-banana-pro") {
+  if (type === "nano-banana" || type === "nano-banana-edit" || type === "nano-banana-2" || type === "nano-banana-pro" || type === "gpt-image-2") {
     const allowedAspectRatios = getAllowedApiMartAspectRatios(type);
     if (!allowedAspectRatios.includes(aspect as any)) {
       throw new ParameterRangeError(
         "aspect_ratio",
         aspect,
         allowedAspectRatios.join(", ")
+      );
+    }
+
+    if (type === "gpt-image-2" && resolution === "4K" && !isAllowedGptImage24KAspectRatio(aspect)) {
+      throw new ParameterRangeError(
+        "aspect_ratio",
+        aspect,
+        GPT_IMAGE_2_FOUR_K_ASPECT_RATIOS.join(", ")
       );
     }
 
@@ -800,6 +840,10 @@ export const createAiImage = async (
       if (imageUrls.length > 5) {
         throw new ParameterRangeError("image_urls", imageUrls.length, "1-5 images");
       }
+    }
+
+    if (type === "gpt-image-2" && fileUrls && fileUrls.length > 16) {
+      throw new ParameterRangeError("image_urls", fileUrls.length, "0-16 images");
     }
 
     // 使用原始提示词（简化版本不处理样式和负面提示词）
@@ -831,7 +875,7 @@ export const createAiImage = async (
     const apiMart = createApiMartImageClient(env);
 
     try {
-      if (type === "nano-banana-2" || type === "nano-banana-pro") {
+      if (type === "nano-banana-2" || type === "nano-banana-pro" || type === "gpt-image-2") {
         console.log("🌟 调用 ApiMart Advanced Image API...", { type, resolution, aspect_ratio });
         imageResponse = await apiMart.createImageTask({
           productModel: type,
@@ -928,6 +972,7 @@ export const createAiImage = async (
       image: fileUrl,
       image_urls: fileUrls,
       prompt,
+      model: type,
       width,
       height,
       aspect_ratio,
@@ -937,6 +982,7 @@ export const createAiImage = async (
 
     const ext = {
       mode,
+      model: type,
       prompt_preview: (prompt || '').substring(0, 100),
     };
 
@@ -949,16 +995,7 @@ export const createAiImage = async (
       aspect: aspect,
       provider: "apimart_image",
       task_id: imageResponse.taskId,
-      request_param: {
-        model: imageResponse.model,
-        prompt: fullPrompt,
-        size: aspect,
-        n: 1,
-        official_fallback: false,
-        ...(fileUrls ? { image_urls: fileUrls } : {}),
-        ...(isAdvancedImageModel(type) ? { resolution: resolution || "1K" } : {}),
-        ...(type === "nano-banana-2" && google_search !== undefined ? { google_search } : {}),
-      },
+      request_param: imageResponse.request,
     };
 
     const tasks = await createAiTask([insertPayload]);
@@ -973,7 +1010,7 @@ export const createAiImage = async (
   }
 
   // 如果不是nano-banana模型，抛出错误
-  throw new UnsupportedFileFormatError(type, ["nano-banana", "nano-banana-edit", "nano-banana-2", "nano-banana-pro"]);
+  throw new UnsupportedFileFormatError(type, ["nano-banana", "nano-banana-edit", "nano-banana-2", "nano-banana-pro", "gpt-image-2"]);
 };
 
 /**

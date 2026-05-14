@@ -1,5 +1,5 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { Film, FileText, Image as ImageIcon, ChevronRight, ChevronDown, Check, Info } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect, type ReactNode } from 'react';
+import { Film, FileText, Image as ImageIcon, ChevronRight, ChevronDown, Check, Info, Video as VideoIcon } from 'lucide-react';
 import type {
     VideoGeneratorProps,
     VideoMode,
@@ -16,22 +16,34 @@ import {
     DEFAULT_VIDEO_MODEL,
     VIDEO_MODEL_OPTIONS,
     calculateVideoTaskCredits,
+    getVideoAspectRatioOptions,
+    getVideoDurationOptions,
     getMaxReferenceImages,
     getVideoPromptMaxLength,
+    getVideoResolutionOptions,
     isFastSeedance2Model as isFastSeedance2VideoModel,
+    isHappyHorseVideoModel,
     isKieVideoModel,
+    supportsVideoAspectRatio,
+    supportsVideoDuration,
+    supportsVideoResolution,
 } from './model-config';
 
 /**
  * Seedance 2.0 AI 视频生成器组件
  * 精确复原参考设计
  */
-export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
+export function VideoGenerator({
+    onTaskCreated,
+    initialModel,
+    initialMode,
+}: VideoGeneratorProps) {
     // 状态管理
-    const [mode, setMode] = useState<VideoMode>('text-to-video');
-    const [model, setModel] = useState<VideoModel>(DEFAULT_VIDEO_MODEL);
+    const [mode, setMode] = useState<VideoMode>(initialMode || 'text-to-video');
+    const [model, setModel] = useState<VideoModel>(initialModel || DEFAULT_VIDEO_MODEL);
     const [prompt, setPrompt] = useState('');
     const [referenceImages, setReferenceImages] = useState<File[]>([]);
+    const [sourceVideo, setSourceVideo] = useState<File | null>(null);
     const [aspectRatio, setAspectRatio] = useState<SeedanceAspectRatio>('16:9');
     const [resolution, setResolution] = useState<SeedanceResolution>('480p');
     const [duration, setDuration] = useState<SeedanceDuration>('4');
@@ -42,6 +54,7 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
     const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const videoInputRef = useRef<HTMLInputElement>(null);
     const authPromptModalRef = useRef<AuthPromptModalRef>(null);
     const rechargeModalRef = useRef<CreditRechargeModalRef>(null);
 
@@ -58,9 +71,30 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
     const clearEditorPayload = useEditorStore((state) => state.clearEditorPayload);
 
     const isKieModel = isKieVideoModel(model);
+    const isHappyHorseModel = isHappyHorseVideoModel(model);
     const isFastSeedance2Model = isFastSeedance2VideoModel(model);
     const maxReferenceImages = getMaxReferenceImages(model);
+    const activeMaxReferenceImages =
+        isHappyHorseModel && mode === 'video-edit'
+            ? 5
+            : isHappyHorseModel && mode === 'image-to-video'
+                ? 1
+                : maxReferenceImages;
     const promptMaxLength = getVideoPromptMaxLength(model);
+    const aspectRatioOptions = getVideoAspectRatioOptions(model);
+    const resolutionOptions = getVideoResolutionOptions(model);
+    const durationOptions = getVideoDurationOptions(model);
+    const availableModes: Array<{ id: VideoMode; name: string; icon: ReactNode }> = isHappyHorseModel
+        ? [
+            { id: 'text-to-video', name: 'Text to Video', icon: <FileText size={16} /> },
+            { id: 'image-to-video', name: 'Image to Video', icon: <ImageIcon size={16} /> },
+            { id: 'reference-image-to-video', name: 'Reference Images', icon: <ImageIcon size={16} /> },
+            { id: 'video-edit', name: 'Video Edit', icon: <VideoIcon size={16} /> },
+        ]
+        : [
+            { id: 'text-to-video', name: 'Text to Video', icon: <FileText size={16} /> },
+            { id: 'image-to-video', name: 'Image to Video', icon: <ImageIcon size={16} /> },
+        ];
 
     const selectedModel = VIDEO_MODEL_OPTIONS.find((item) => item.id === model) || VIDEO_MODEL_OPTIONS[0];
 
@@ -104,6 +138,24 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
         }
     }, [isFastSeedance2Model, resolution]);
 
+    useEffect(() => {
+        if (!availableModes.some((item) => item.id === mode)) {
+            setMode('text-to-video');
+        }
+        if (!supportsVideoResolution(model, resolution)) {
+            setResolution(isHappyHorseModel ? '720p' : '720p');
+        }
+        if (!supportsVideoAspectRatio(model, aspectRatio)) {
+            setAspectRatio(isHappyHorseModel ? '16:9' : '16:9');
+        }
+        if (!supportsVideoDuration(model, duration)) {
+            setDuration(isHappyHorseModel ? '5' : '4');
+        }
+        if (!isHappyHorseModel) {
+            setSourceVideo(null);
+        }
+    }, [model, mode, resolution, aspectRatio, duration, isHappyHorseModel]);
+
     // 计算积分消耗（与后端 video-credits.ts 保持一致）
     // 公式：基础积分 × 时长系数 × 音频系数
     const calculateCredits = useCallback(() => {
@@ -119,8 +171,8 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
     const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
 
-        if (files.length + referenceImages.length > maxReferenceImages) {
-            setError(`最多只能上传 ${maxReferenceImages} 张参考图片`);
+        if (files.length + referenceImages.length > activeMaxReferenceImages) {
+            setError(`最多只能上传 ${activeMaxReferenceImages} 张参考图片`);
             return;
         }
 
@@ -132,17 +184,50 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
 
         setReferenceImages(prev => [...prev, ...files]);
         setError('');
-    }, [referenceImages, maxReferenceImages]);
+    }, [referenceImages, activeMaxReferenceImages]);
 
     // 移除图片
     const removeImage = useCallback((index: number) => {
         setReferenceImages(prev => prev.filter((_, i) => i !== index));
     }, []);
 
+    const handleVideoUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!["video/mp4", "video/quicktime"].includes(file.type)) {
+            setError('仅支持 MP4 或 MOV 视频');
+            return;
+        }
+
+        if (file.size > 100 * 1024 * 1024) {
+            setError('视频大小不能超过 100MB');
+            return;
+        }
+
+        setSourceVideo(file);
+        setError('');
+    }, []);
+
     // 提交生成请求
     const handleSubmit = useCallback(async () => {
         if (!prompt || prompt.length < 3 || prompt.length > promptMaxLength) {
             setError(`提示词长度必须在 3-${promptMaxLength} 字符之间`);
+            return;
+        }
+
+        if (isHappyHorseModel && mode === 'image-to-video' && referenceImages.length !== 1) {
+            setError('Image to Video 需要上传 1 张首帧图');
+            return;
+        }
+
+        if (isHappyHorseModel && mode === 'reference-image-to-video' && referenceImages.length < 1) {
+            setError('Reference Images 模式至少需要 1 张参考图');
+            return;
+        }
+
+        if (isHappyHorseModel && mode === 'video-edit' && !sourceVideo) {
+            setError('Video Edit 需要上传源视频');
             return;
         }
 
@@ -182,6 +267,36 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
                 }
             }
 
+            let video_url: string | undefined;
+            if (sourceVideo) {
+                const formData = new FormData();
+                formData.append('media', sourceVideo);
+
+                const uploadResponse = await fetch('/api/upload/media', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!uploadResponse.ok) {
+                    throw new Error('视频上传失败');
+                }
+
+                const uploadData = await uploadResponse.json() as any;
+                video_url = uploadData.mediaUrl;
+            }
+
+            const happyHorsePayload = isHappyHorseModel
+                ? {
+                    mode,
+                    image_urls:
+                        mode === 'reference-image-to-video' || mode === 'video-edit'
+                            ? input_urls
+                            : undefined,
+                    first_frame_image: mode === 'image-to-video' ? input_urls[0] : undefined,
+                    video_url,
+                }
+                : {};
+
             const response = await fetch('/api/create/ai-video', {
                 method: 'POST',
                 headers: {
@@ -190,12 +305,13 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
                 body: JSON.stringify({
                     prompt,
                     model,
-                    input_urls,
+                    input_urls: isHappyHorseModel ? [] : input_urls,
+                    ...happyHorsePayload,
                     aspect_ratio: aspectRatio,
                     resolution,
                     duration,
                     fixed_lens: fixedLens,
-                    generate_audio: generateAudio,
+                    generate_audio: isHappyHorseModel ? false : generateAudio,
                 }),
             });
 
@@ -231,7 +347,7 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
         } finally {
             setSubmitting(false);
         }
-    }, [prompt, promptMaxLength, model, referenceImages, aspectRatio, resolution, duration, fixedLens, generateAudio, user, calculateCredits, credits, onTaskCreated, setCredits]);
+    }, [prompt, promptMaxLength, model, referenceImages, sourceVideo, aspectRatio, resolution, duration, fixedLens, generateAudio, user, calculateCredits, credits, onTaskCreated, setCredits, isHappyHorseModel, mode]);
 
     const estimatedCredits = calculateCredits();
 
@@ -240,31 +356,24 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
             {/* 标题 */}
             <div className="flex items-center gap-2 mb-5">
                 <Film size={18} className="text-gray-700" />
-                <h3 className="text-base font-semibold text-gray-900">Create Seedance 2.0 Video</h3>
+                <h3 className="text-base font-semibold text-gray-900">Create AI Video</h3>
             </div>
 
             {/* 模式切换 */}
-            <div className="flex gap-2 mb-5">
-                <button
-                    onClick={() => setMode('text-to-video')}
-                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'text-to-video'
-                        ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                        : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-                        }`}
-                >
-                    <FileText size={16} />
-                    <span>Text to Video</span>
-                </button>
-                <button
-                    onClick={() => setMode('image-to-video')}
-                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'image-to-video'
-                        ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                        : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-                        }`}
-                >
-                    <ImageIcon size={16} />
-                    <span>Image to Video</span>
-                </button>
+            <div className="grid grid-cols-2 gap-2 mb-5">
+                {availableModes.map((item) => (
+                    <button
+                        key={item.id}
+                        onClick={() => setMode(item.id)}
+                        className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${mode === item.id
+                            ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                            : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                            }`}
+                    >
+                        {item.icon}
+                        <span>{item.name}</span>
+                    </button>
+                ))}
             </div>
 
             {/* 模型选择 */}
@@ -311,8 +420,8 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
                 )}
             </div>
 
-            {/* 图片上传区域 (仅在 image-to-video 模式) */}
-            {mode === 'image-to-video' && (
+            {/* 图片上传区域 */}
+            {(mode === 'image-to-video' || mode === 'reference-image-to-video' || mode === 'video-edit') && (
                 <div className="mb-5">
                     <div
                         onClick={() => fileInputRef.current?.click()}
@@ -326,7 +435,7 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
                                 <p className="text-sm text-gray-700">
                                     Drag & drop or <span className="font-semibold">click to upload</span>
                                 </p>
-                                <p className="text-xs text-gray-500 mt-0.5">PNG, JPG, WebP · up to {maxReferenceImages}</p>
+                                <p className="text-xs text-gray-500 mt-0.5">PNG, JPG, WebP · up to {activeMaxReferenceImages}</p>
                             </div>
                         </div>
                     </div>
@@ -334,7 +443,7 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
                         ref={fileInputRef}
                         type="file"
                         accept="image/jpeg,image/png,image/webp"
-                        multiple
+                        multiple={activeMaxReferenceImages > 1}
                         onChange={handleImageUpload}
                         className="hidden"
                     />
@@ -362,6 +471,44 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
                 </div>
             )}
 
+            {/* 视频上传区域 */}
+            {mode === 'video-edit' && (
+                <div className="mb-5">
+                    <div
+                        onClick={() => videoInputRef.current?.click()}
+                        className="border-2 border-dashed border-gray-300 rounded-lg py-6 text-center cursor-pointer hover:border-purple-400 hover:bg-purple-50/30 transition-all"
+                    >
+                        <div className="flex flex-col items-center gap-2">
+                            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                                <VideoIcon size={20} className="text-gray-400" />
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-700">
+                                    {sourceVideo ? sourceVideo.name : <>Drag & drop or <span className="font-semibold">click to upload source video</span></>}
+                                </p>
+                                <p className="text-xs text-gray-500 mt-0.5">MP4, MOV · up to 100MB</p>
+                            </div>
+                        </div>
+                    </div>
+                    <input
+                        ref={videoInputRef}
+                        type="file"
+                        accept="video/mp4,video/quicktime"
+                        onChange={handleVideoUpload}
+                        className="hidden"
+                    />
+                    {sourceVideo && (
+                        <button
+                            type="button"
+                            onClick={() => setSourceVideo(null)}
+                            className="mt-2 text-xs font-medium text-red-600 hover:text-red-700"
+                        >
+                            Remove source video
+                        </button>
+                    )}
+                </div>
+            )}
+
             {/* 提示词输入 - 无边框样式 */}
             <div className="mb-5">
                 <textarea
@@ -385,9 +532,9 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
                             onChange={(e) => setDuration(e.target.value as SeedanceDuration)}
                             className="w-full appearance-none px-2.5 py-2 bg-gray-50 rounded-lg text-sm font-medium text-gray-900 cursor-pointer hover:bg-gray-100 transition-colors border-0 focus:ring-0"
                         >
-                            <option value="4">4s</option>
-                            <option value="8">8s</option>
-                            <option value="12">12s</option>
+                            {durationOptions.map((option) => (
+                                <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
                         </select>
                         <ChevronRight size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     </div>
@@ -402,12 +549,9 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
                             onChange={(e) => setAspectRatio(e.target.value as SeedanceAspectRatio)}
                             className="w-full appearance-none px-2.5 py-2 bg-gray-50 rounded-lg text-sm font-medium text-gray-900 cursor-pointer hover:bg-gray-100 transition-colors border-0 focus:ring-0"
                         >
-                            <option value="1:1">1:1</option>
-                            <option value="16:9">16:9</option>
-                            <option value="9:16">9:16</option>
-                            <option value="4:3">4:3</option>
-                            <option value="3:4">3:4</option>
-                            <option value="21:9">21:9</option>
+                            {aspectRatioOptions.map((option) => (
+                                <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
                         </select>
                         <ChevronRight size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     </div>
@@ -422,9 +566,11 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
                             onChange={(e) => setResolution(e.target.value as SeedanceResolution)}
                             className="w-full appearance-none px-2.5 py-2 bg-gray-50 rounded-lg text-sm font-medium text-gray-900 cursor-pointer hover:bg-gray-100 transition-colors border-0 focus:ring-0"
                         >
-                            <option value="480p">480p</option>
-                            <option value="720p">720p</option>
-                            <option value="1080p" disabled={isFastSeedance2Model}>1080p</option>
+                            {resolutionOptions.map((option) => (
+                                <option key={option.value} value={option.value} disabled={"disabled" in option ? option.disabled : false}>
+                                    {option.label}
+                                </option>
+                            ))}
                         </select>
                         <ChevronRight size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     </div>
@@ -451,7 +597,8 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
                     </div>
                 )}
 
-                <div className="flex items-center justify-between">
+                {!isHappyHorseModel && (
+                    <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                         <span className="text-sm font-medium text-gray-700">Audio</span>
                         <Info size={14} className="text-gray-400" />
@@ -465,7 +612,8 @@ export function VideoGenerator({ onTaskCreated }: VideoGeneratorProps) {
                         />
                         <div className="w-10 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
                     </label>
-                </div>
+                    </div>
+                )}
             </div>
 
             {/* 错误提示 */}

@@ -1,4 +1,5 @@
 import type { Route } from "./+types/[sitemap.xml]";
+import { PUBLIC_MODEL_PAGE_ITEMS } from "~/constants";
 
 interface Sitemaps {
   path: string;
@@ -38,6 +39,13 @@ export const loader = async ({ request, context }: Route.LoaderArgs) => {
   }[];
 
   const sitemaps = Array.from(defaultSitemaps);
+  PUBLIC_MODEL_PAGE_ITEMS.forEach((model) => {
+    sitemaps.push({
+      path: `/model/${model.slug}`,
+      priority: "0.8",
+      lastmod: new Date("2026-05-14"),
+    });
+  });
 
   sitemaps.forEach((site) => {
     const location = new URL(site.path, url);
