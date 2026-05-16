@@ -153,15 +153,15 @@ export const CreditRechargeModal = forwardRef<CreditRechargeModalRef, CreditRech
         onClose={handleClose}
       >
         {visible && (
-          <div className="modal-box w-11/12 !max-w-5xl p-0 overflow-visible relative">
+          <div className="modal-box flex max-h-[calc(100dvh-2rem)] w-11/12 !max-w-5xl flex-col overflow-hidden p-0 relative">
             {/* Header */}
             <button
-              className="absolute -top-12 right-0 btn btn-ghost btn-sm btn-circle text-white hover:bg-white/20 z-50"
+              className="absolute right-4 top-4 btn btn-ghost btn-sm btn-circle text-white hover:bg-white/20 z-50"
               onClick={() => modalRef.current?.close()}
             >
               <X size={24} />
             </button>
-            <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white rounded-t-2xl">
+            <div className="relative flex-shrink-0 bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white rounded-t-2xl">
               <div className="text-center">
                 <div className="w-16 h-16 mx-auto mb-4 bg-white/20 rounded-full flex items-center justify-center">
                   <Sparkles size={32} />
@@ -174,7 +174,7 @@ export const CreditRechargeModal = forwardRef<CreditRechargeModalRef, CreditRech
             </div>
 
             {/* Content using PricingSection */}
-            <div className="bg-base-100 rounded-b-2xl pb-6">
+            <div className="min-h-0 overflow-y-auto overscroll-contain bg-base-100 rounded-b-2xl pb-6">
               <PricingSection
                 title="Choose your package to get started"
                 subtitle=""
