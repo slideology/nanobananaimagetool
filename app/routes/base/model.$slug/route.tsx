@@ -135,6 +135,31 @@ export default function ModelPage({ loaderData }: Route.ComponentProps) {
           />
         </div>
       </section>
+
+      {model.faqs?.length ? (
+        <section className="bg-gray-50 py-14">
+          <div className="container mx-auto max-w-4xl px-4">
+            <h2 className="text-center text-3xl font-bold text-gray-900">
+              Frequently Asked Questions
+            </h2>
+            <div className="mt-10 space-y-4">
+              {model.faqs.map((faq) => (
+                <article
+                  key={faq.question}
+                  className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm"
+                >
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {faq.question}
+                  </h3>
+                  <p className="mt-3 text-sm leading-6 text-gray-600">
+                    {faq.answer}
+                  </p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
     </Fragment>
   );
 }

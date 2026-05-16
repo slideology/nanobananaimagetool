@@ -51,6 +51,34 @@ describe("public model catalog", () => {
     });
   });
 
+  it("keeps dedicated SEO metadata and FAQs for pilot model pages", () => {
+    expect(getPublicModelBySlug("gpt-image-2")).toMatchObject({
+      seo: {
+        title: "GPT Image 2 AI Generator | Next-Gen Text-to-Image",
+        description:
+          "Generate photorealistic 4K visuals with OpenAI's GPT Image 2. Experience flawless text rendering, realistic UI mockups, and advanced image editing.",
+      },
+      faqs: expect.arrayContaining([
+        expect.objectContaining({
+          question: "What is GPT Image 2 and what are its key features?",
+        }),
+      ]),
+    });
+
+    expect(getPublicModelBySlug("happyhorse-1-0")).toMatchObject({
+      seo: {
+        title: "Happy Horse 1.0 AI Video Generator | Text-to-Video",
+        description:
+          "Experience Happy Horse 1.0, the top-ranked AI video generator. Convert text and images into high-quality, cinematic 1080p videos with unified audio.",
+      },
+      faqs: expect.arrayContaining([
+        expect.objectContaining({
+          question: "What is Happy Horse 1.0 and how does it work?",
+        }),
+      ]),
+    });
+  });
+
   it("resolves existing aliases for compatibility", () => {
     expect(getPublicModelById("doubao-seedance-2.0")?.slug).toBe("seedance-2-0");
     expect(getPublicModelById("nano-banana-2")?.slug).toBe("nano-banana-2");

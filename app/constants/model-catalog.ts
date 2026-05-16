@@ -14,6 +14,11 @@ export type PublicModelPricing = {
   baseCreditModel?: string;
 };
 
+export type PublicModelFaq = {
+  question: string;
+  answer: string;
+};
+
 export type PublicModelCapabilities = {
   modes: PublicModelDefaultMode[];
   maxReferenceImages?: number;
@@ -45,6 +50,7 @@ export type PublicModelCatalogItem = {
     description: string;
     keywords: string;
   };
+  faqs?: PublicModelFaq[];
 };
 
 export const GPT_IMAGE_2_ASPECT_RATIOS = [
@@ -128,12 +134,29 @@ export const PUBLIC_MODEL_CATALOG: PublicModelCatalogItem[] = [
     docsUrl:
       "https://docs.apimart.ai/en/api-reference/images/gpt-image-2/generation",
     seo: {
-      title: "GPT Image 2 AI Image Generator",
+      title: "GPT Image 2 AI Generator | Next-Gen Text-to-Image",
       description:
-        "Create high-quality AI images with GPT Image 2. Generate from text or reference images with flexible aspect ratios and up to 4K output.",
+        "Generate photorealistic 4K visuals with OpenAI's GPT Image 2. Experience flawless text rendering, realistic UI mockups, and advanced image editing.",
       keywords:
         "GPT Image 2, AI image generator, GPT image API, text to image, image to image, 4K AI images",
     },
+    faqs: [
+      {
+        question: "What is GPT Image 2 and what are its key features?",
+        answer:
+          "GPT Image 2 is OpenAI's next-generation text-to-image model. It delivers massive upgrades in visual realism, prompt comprehension, and image composition, allowing users to generate professional-grade, photorealistic graphics from simple text descriptions.",
+      },
+      {
+        question: "Can GPT Image 2 accurately render text inside generated images?",
+        answer:
+          "Yes, this is one of its most powerful upgrades. GPT Image 2 has completely solved the \"gibberish text\" issue common in older AI models. It offers flawless text rendering, making it incredibly easy to design realistic posters, logos, and UI/UX mockups with legible, coherent typography.",
+      },
+      {
+        question: "What resolution does GPT Image 2 support, and who is it for?",
+        answer:
+          "GPT Image 2 natively supports ultra-high-definition 4K resolution output with intricate details in lighting, textures, and human anatomy. It is an ideal tool for web designers, digital marketers, concept artists, and product managers who require production-ready visual assets.",
+      },
+    ],
   },
   {
     id: "happyhorse-1.0",
@@ -171,12 +194,29 @@ export const PUBLIC_MODEL_CATALOG: PublicModelCatalogItem[] = [
     docsUrl:
       "https://docs.apimart.ai/en/api-reference/videos/happyhorse-1.0/generation",
     seo: {
-      title: "HappyHorse 1.0 AI Video Generator",
+      title: "Happy Horse 1.0 AI Video Generator | Text-to-Video",
       description:
-        "Generate and edit videos with HappyHorse 1.0. Create text-to-video, image-to-video, reference video, and video edit workflows.",
+        "Experience Happy Horse 1.0, the top-ranked AI video generator. Convert text and images into high-quality, cinematic 1080p videos with unified audio.",
       keywords:
         "HappyHorse 1.0, AI video generator, text to video, image to video, video edit, Alibaba video model",
     },
+    faqs: [
+      {
+        question: "What is Happy Horse 1.0 and how does it work?",
+        answer:
+          "Happy Horse 1.0 is a top-tier AI video generation model designed to convert text prompts and static images into cinematic-quality videos. Powered by an advanced single-stream self-attention Transformer architecture, it delivers exceptional visual stability, realistic physics, and stunning 1080p resolution.",
+      },
+      {
+        question: "What makes Happy Horse 1.0 different from other AI video tools?",
+        answer:
+          "The biggest breakthrough of Happy Horse 1.0 is its native unified audio-video generation. Instead of generating video first and adding sound later, it creates perfectly synchronized audio effects and background music simultaneously with the visuals, ensuring a seamless and immersive viewing experience.",
+      },
+      {
+        question: "Does Happy Horse 1.0 support lip-syncing and multi-camera control?",
+        answer:
+          "Yes. Happy Horse 1.0 excels at multi-shot continuity and supports multi-language lip-syncing (Lip Sync). It allows creators to maintain consistent characters across different scenes and control camera movements with professional-grade precision.",
+      },
+    ],
   },
   {
     id: "nano-banana-2",
