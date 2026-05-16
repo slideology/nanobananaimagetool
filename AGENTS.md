@@ -66,6 +66,7 @@ There is currently no configured `lint` script or ESLint config in `package.json
 - When adding, deleting, or renaming public pages, update sitemap/metadata routes under `app/routes/_meta/` as needed.
 - For AI generation changes, preserve the current split: images use ApiMart, Seedance 2.0 and HappyHorse 1.0 video use ApiMart, and Seedance 1.5 Pro plus historical Kie tasks use Kie compatibility paths.
 - Keep the public model catalog as the source of truth for model detail pages. When adding a public model page, update the catalog, route behavior, sitemap metadata, frontend model options, backend adapter, and focused tests together.
+- Keep generator primary buttons clickable once the prompt is valid. Missing reference media, login requirements, and insufficient credits should be handled on click with a clear prompt, auth modal, or recharge modal instead of silently disabling the CTA.
 
 ## 5. Pre-Commit Checklist
 
@@ -76,6 +77,7 @@ There is currently no configured `lint` script or ESLint config in `package.json
 - Check that no secrets, tokens, API keys, cookies, or local `.dev.vars` / `.env` values were committed.
 - For database changes, update schema and migrations together, then verify the intended D1 migration command.
 - For billing, credits, auth, or webhook changes, test both success and failure/rollback paths.
+- For generator CTA changes, verify that insufficient credits opens the recharge modal after click, missing required media shows an explicit validation message, and the button is not disabled merely because credits or reference media are insufficient.
 - For GPT Image 2 changes, verify text-to-image, image-to-image, max 16 reference images, `auto` aspect ratio, 4K aspect restrictions, lowercase provider resolution payloads, and 15 / 25 / 40 credit tiers.
 - For Seedance 2.0 changes, verify the four ApiMart models, 1080p restrictions, 1.5x credit multiplier, task polling, thumbnail extraction, and credit rollback on failure.
 - For HappyHorse 1.0 changes, verify the four modes, media mutual-exclusion rules, MP4/MOV upload path, 3-15 second durations, 720p/1080p resolutions, ApiMart task polling, and failure credit rollback.

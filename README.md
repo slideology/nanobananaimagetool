@@ -12,7 +12,7 @@
 - 🆓 **免费试用**: 新用户注册即获60个免费积分
 - ⚡ **即时生成**: 30-120秒完成高质量图像生成
 
-## 📝 最新进展（2026-05-15）
+## 📝 最新进展（2026-05-16）
 
 ### 最近完成的工作
 
@@ -22,10 +22,12 @@
 - **ApiMart Seedance 2.0 已接入视频生成**：`doubao-seedance-2.0` / `doubao-seedance-2.0-fast` / `doubao-seedance-2.0-face` / `doubao-seedance-2.0-fast-face` 走 ApiMart，`seedance-1.5-pro` 继续走 Kie 兼容路径。
 - **新增 HappyHorse 1.0 试点接入**：新增 `/model/happyhorse-1-0` 独立内页，`POST /api/create/ai-video` 支持 `model: "happyhorse-1.0"`，走 ApiMart `/v1/videos/generations`，支持 Text-to-Video、Image-to-Video、Reference-Image-to-Video、Video Edit 四种模式。
 - **新增视频上传能力**：新增 `/api/upload/media`，登录后可上传 MP4 / MOV 源视频到 R2，最大 100MB，用于 HappyHorse Video Edit。
+- **优化生成按钮交互**：图片和视频生成按钮不再因为积分不足或缺参考素材直接置灰；只要提示词有效即可点击，点击后会刷新用户积分，积分不足弹出充值弹窗，缺少必需参考图/源视频时展示明确校验提示。
 - **新增 Seedance 2.0 素材 API**：新增 `/api/seedance2/private-avatar` 与 `/api/seedance2/real-avatar`，先提供后端提交、审核任务入库和状态轮询能力，前台素材管理 UI 后续再补。
 - **完善视频任务轮询和失败回滚**：ApiMart `pending` / `processing` 映射为 running，`completed` 解析 `result.videos` 和 `result.thumbnail_url`，生产环境复制视频到 R2，失败或缺失结果 URL 会回滚已扣积分。
 - **积分规则更新**：GPT Image 2 按 Nano Banana 的 `$0.0125 / 30 credits` 基准换算，1K/2K/4K 为 15 / 25 / 40 credits；HappyHorse 1.0 按 Seedance 2.0 秒价比例换算，原生音频不额外加价；Seedance 2.0 四个模型继续按现有视频公式的 `1.5x` 计费。
 - **Seedance 2.0 已完成测试与正式环境验证**：测试 Worker `nanobanana-test` 已发布版本 `f7317bbf-17c5-49e5-9a46-7edf21870e25`；正式 Worker `nanobanana` 已发布版本 `240278b4-cade-495c-a13f-8ef180af6db1`，正式站点为 `https://nanobananaimage.org`。
+- **生成按钮交互修复已发布正式环境**：正式 Worker `nanobanana` 已发布版本 `e199b6b5-e917-42dc-a760-69627fd6c1f6`，已验证首页、`/model/gpt-image-2` 与 `/model/happyhorse-1-0` 返回 HTTP 200。
 - **补充试点回归测试**：新增模型 catalog、GPT Image 2、HappyHorse 1.0、图片/视频模型配置与积分测试；`npx vitest run test/model-catalog.test.ts test/apimart-image.test.ts test/apimart-video.test.ts test/image-model-config.test.ts test/video-model-config.test.ts test/video-credits.test.ts` 当前通过。
 
 ### 接下来的待办
@@ -40,7 +42,7 @@
 
 ### 当前状态结论
 
-- 当前代码规则已经收敛为：**登录送 60 Credits、上传与生成都要求登录、图片生成走 ApiMart、Seedance 2.0 与 HappyHorse 1.0 视频走 ApiMart、Seedance 1.5 Pro 走 Kie、订阅积分按计费周期发放**。
+- 当前代码规则已经收敛为：**登录送 60 Credits、上传与生成都要求登录、图片生成走 ApiMart、Seedance 2.0 与 HappyHorse 1.0 视频走 ApiMart、Seedance 1.5 Pro 走 Kie、生成按钮点击后再校验积分/必需素材、订阅积分按计费周期发放**。
 - 当前环境区分方式为：**测试环境使用 `wrangler.test.jsonc` + `CREEM_TEST_KEY` + 测试数据库**，正式环境使用 `wrangler.jsonc` + 正式 Creem Key + 正式数据库。
 - 当前发布策略仍是手动发布：先 `npm run deploy:test` 验证测试环境，再 `npm run deploy` 发布正式环境。
 
@@ -50,6 +52,7 @@
 - **双模式生成**：Text-to-Image（文字生图）+ Image-to-Image（图片转图）
 - **高质量模型**：通过 ApiMart 接入 Nano Banana、Nano Banana 2、Nano Banana Pro 与 GPT Image 2，支持高分辨率图像生成
 - **AI 视频生成**：Seedance 2.0 标准版、Fast、Face、Fast Face 与 HappyHorse 1.0 走 ApiMart，Seedance 1.5 Pro 保留 Kie 兼容链路
+- **清晰的充值体验**：生成按钮保持可点击，点击后刷新余额；积分不足时弹出充值弹窗，缺少参考图/源视频时展示明确提示
 - **智能优化**：自动提示词优化，提升生成质量
 - **批量处理**：支持多张图片同时生成，提升工作效率
 
@@ -773,4 +776,4 @@ npm run dev
 
 ---
 
-*最后更新：2026年5月15日 | 基于当前 Cloudflare Workers + ApiMart/Kie 集成状态*
+*最后更新：2026年5月16日 | 基于当前 Cloudflare Workers + ApiMart/Kie 集成状态*

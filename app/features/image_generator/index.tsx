@@ -418,9 +418,6 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         return;
       }
 
-      // 获取当前总积分
-      const totalCredits = getTotalCredits();
-
       if (!supportsImageResolution(selectedModel, resolution, aspectRatio)) {
         handleError({
           title: "Unsupported Resolution",
@@ -442,21 +439,26 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
         return;
       }
 
+      let currentCredits = getTotalCredits();
+
       // 如果用户已登录，刷新一次账户信息，确保credits最新
       if (user) {
         try {
           const res = await fetch("/api/auth");
           if (res.ok) {
             const data = await res.json().catch(() => null) as { profile: UserInfo | null; credits: number } | null;
-            if (data) setCredits(data.credits);
+            if (data && typeof data.credits === "number") {
+              currentCredits = data.credits;
+              setCredits(data.credits);
+            }
           }
         } catch { }
       }
 
       const reqCredits = getTaskCredits();
-      if (totalCredits < reqCredits) {
+      if (currentCredits < reqCredits) {
         if (rechargeModalRef.current) {
-          rechargeModalRef.current.open(credits);
+          rechargeModalRef.current.open(currentCredits);
         }
         return;
       }
@@ -575,7 +577,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           // 如果是积分不足错误，弹出充值弹窗
           const code = errorData?.error?.code;
           if ((res.status === 402 || code === 'INSUFFICIENT_CREDITS' || code === 'BIZ_001') && rechargeModalRef.current) {
-            rechargeModalRef.current.open(credits || 0);
+            rechargeModalRef.current.open(currentCredits || 0);
           }
 
           throw richError;
@@ -647,7 +649,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
       }
     };
 
-    const canGenerate = prompt.trim() && (mode === "text-to-image" || file);
+    const canGenerate = Boolean(prompt.trim());
 
     // 控件内容组件
     const ControlsContent = () => (

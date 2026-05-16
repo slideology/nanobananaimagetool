@@ -237,8 +237,23 @@ export function VideoGenerator({
         }
 
         const estimatedCredits = calculateCredits();
-        if (credits < estimatedCredits) {
-            rechargeModalRef.current?.open(credits);
+        let currentCredits = credits;
+
+        try {
+            const authResponse = await fetch('/api/auth');
+            if (authResponse.ok) {
+                const authData = await authResponse.json().catch(() => null) as { credits?: number } | null;
+                if (typeof authData?.credits === 'number') {
+                    currentCredits = authData.credits;
+                    setCredits(authData.credits);
+                }
+            }
+        } catch {
+            // Keep the persisted balance if the refresh request fails.
+        }
+
+        if (currentCredits < estimatedCredits) {
+            rechargeModalRef.current?.open(currentCredits);
             return;
         }
 
@@ -317,6 +332,10 @@ export function VideoGenerator({
 
             if (!response.ok) {
                 const errorData = await response.json() as any;
+                const code = errorData?.error?.code;
+                if ((response.status === 402 || code === 'INSUFFICIENT_CREDITS' || code === 'BIZ_001') && rechargeModalRef.current) {
+                    rechargeModalRef.current.open(currentCredits);
+                }
                 throw new Error(errorData.error?.message || '生成失败');
             }
 
