@@ -56,7 +56,7 @@ export default function ModelPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <Fragment>
-      <section className="relative min-h-[560px] overflow-hidden bg-gray-950 text-white">
+      <section className="relative mt-24 min-h-[500px] overflow-hidden bg-gray-950 text-white max-md:mt-16">
         {model.thumbnailUrl && isVideoPreview ? (
           <video
             src={model.thumbnailUrl}
@@ -74,7 +74,7 @@ export default function ModelPage({ loaderData }: Route.ComponentProps) {
           />
         ) : null}
         <div className="absolute inset-0 bg-black/55" />
-        <div className="relative container mx-auto flex min-h-[560px] max-w-7xl flex-col justify-end px-4 pb-12 pt-28">
+        <div className="relative container mx-auto flex min-h-[500px] max-w-7xl flex-col justify-end px-4 pb-12 pt-20">
           <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-purple-200">
             {model.vendor} {model.mediaType === "image" ? "Image Model" : "Video Model"}
           </p>
@@ -84,19 +84,6 @@ export default function ModelPage({ loaderData }: Route.ComponentProps) {
           <p className="mt-5 max-w-2xl text-base leading-7 text-gray-100 md:text-lg">
             {model.description}
           </p>
-          <div className="mt-6 flex flex-wrap gap-3 text-sm text-gray-100">
-            <span className="rounded-lg border border-white/20 bg-white/10 px-3 py-2">
-              {model.capabilities.modes.map(formatModeName).join(" / ")}
-            </span>
-            {model.capabilities.resolutions?.length ? (
-              <span className="rounded-lg border border-white/20 bg-white/10 px-3 py-2">
-                {model.capabilities.resolutions.join(", ")}
-              </span>
-            ) : null}
-            <span className="rounded-lg border border-white/20 bg-white/10 px-3 py-2">
-              {formatPrice(model.pricing.providerPriceUsd, model.pricing.billingUnit)}
-            </span>
-          </div>
         </div>
       </section>
 
@@ -168,10 +155,4 @@ function formatModeName(mode: string) {
     .split("-")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
-}
-
-function formatPrice(price: number, unit: "generation" | "second") {
-  return unit === "second"
-    ? `$${price.toFixed(4)}/s`
-    : `$${price.toFixed(3)}/generation`;
 }
