@@ -48,3 +48,4 @@ lerna-debug.log*
 # Browser automation artifacts
 .playwright-cli/
 .tmp/
+output/

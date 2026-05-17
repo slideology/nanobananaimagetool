@@ -238,6 +238,30 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
       }
     ];
 
+    const samplePrompts = [
+      {
+        image: "/assets/nano-banana-new-image-model-examples-v0-o7dv8xyx9uif1.webp",
+        title: "Neon product shot",
+        prompt: "Create a cinematic neon city product photo with crisp reflections, realistic lighting, and a premium campaign feel.",
+      },
+      {
+        image: "/assets/nano-banana-new-image-model-examples-v0-gioq3ao79uif1.webp",
+        title: "Macro detail",
+        prompt: "Generate an ultra-detailed macro close-up with glassy reflections, sharp texture, and a polished editorial look.",
+      },
+      {
+        image: "/assets/nano-banana-new-image-model-examples-v0-df0pa95b8uif1.webp",
+        title: "Studio still life",
+        prompt: "Create a clean studio still life with soft daylight, natural shadows, and commercial food photography detail.",
+      },
+    ];
+
+    const useSamplePrompt = useCallback((samplePrompt: string) => {
+      setMode("text-to-image");
+      setPrompt(samplePrompt);
+      clearError();
+    }, [clearError]);
+
     // 动态计算积分消耗
     const getTaskCredits = useCallback(() => {
       return getImageTaskCredits(selectedModel, resolution);
@@ -665,7 +689,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           <button
             onClick={() => setMode('image-to-image')}
             className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'image-to-image'
-              ? 'bg-purple-50 text-purple-700 border border-purple-200'
+              ? 'bg-amber-50 text-amber-800 border border-amber-200'
               : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
               }`}
           >
@@ -675,7 +699,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           <button
             onClick={() => setMode('text-to-image')}
             className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'text-to-image'
-              ? 'bg-purple-50 text-purple-700 border border-purple-200'
+              ? 'bg-amber-50 text-amber-800 border border-amber-200'
               : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
               }`}
           >
@@ -711,7 +735,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                       <span className="text-sm font-medium text-gray-900 block">{item.name}</span>
                       <span className="text-[10px] text-gray-500">{item.description}</span>
                     </div>
-                    {selectedModel === item.id && <Check size={16} className="text-purple-600" />}
+                    {selectedModel === item.id && <Check size={16} className="text-amber-700" />}
                   </div>
                 ))}
               </div>
@@ -724,7 +748,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           <div className="mb-5">
             <label className="block text-xs font-medium text-gray-600 mb-2">Reference Image</label>
 
-            <div className="border-2 border-dashed border-gray-300 rounded-lg py-6 px-4 text-center cursor-pointer hover:border-purple-400 hover:bg-purple-50/30 transition-all relative group">
+            <div className="border-2 border-dashed border-gray-300 rounded-lg py-6 px-4 text-center cursor-pointer hover:border-amber-400 hover:bg-amber-50/40 transition-all relative group">
               {files.length > 0 ? (
                 <div className="flex flex-wrap gap-3 justify-center">
                   {fileUrls.map((url, idx) => (
@@ -750,10 +774,10 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                     <ImageIcon size={20} className="text-gray-400" />
                   </div>
                   <p className="text-sm text-gray-700">
-                    Drag & drop or <span className="font-semibold text-purple-600">click to upload</span>
+                    Drag & drop or <span className="font-semibold text-amber-700">click to upload</span>
                   </p>
                   <p className="text-xs text-gray-500 mt-1">PNG, JPG, WebP (Max 10MB)</p>
-                  {isAdvancedImageModel(selectedModel) && <p className="text-xs font-medium text-purple-600 mt-1">Up to {maxReferenceImages} reference images supported</p>}
+                  {isAdvancedImageModel(selectedModel) && <p className="text-xs font-medium text-amber-700 mt-1">Up to {maxReferenceImages} reference images supported</p>}
                 </div>
               )}
 
@@ -778,7 +802,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="Describe what you want to create..."
-            className="w-full h-32 px-3 py-3 text-sm text-gray-700 placeholder-gray-400 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all resize-none shadow-sm"
+            className="w-full h-32 px-3 py-3 text-sm text-gray-700 placeholder-gray-400 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all resize-none shadow-sm"
             maxLength={1000}
           />
           <div className="absolute bottom-3 right-3 text-xs text-gray-400 pointer-events-none">
@@ -799,7 +823,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                       key={res}
                       onClick={() => !disabled && setResolution(res)}
                       disabled={disabled}
-                      className={`px-4 py-1 text-[11px] font-medium rounded-md transition-colors ${resolution === res ? 'bg-purple-100 text-purple-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50'} ${disabled ? 'opacity-40 cursor-not-allowed hover:bg-transparent' : ''}`}
+                      className={`px-4 py-1 text-[11px] font-medium rounded-md transition-colors ${resolution === res ? 'bg-amber-100 text-amber-800 shadow-sm' : 'text-gray-600 hover:bg-gray-50'} ${disabled ? 'opacity-40 cursor-not-allowed hover:bg-transparent' : ''}`}
                     >
                       {res}
                     </button>
@@ -809,7 +833,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
             </div>
             <div className="flex justify-between items-center">
               <label className="text-xs font-medium text-gray-700">Aspect Ratio</label>
-              <select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value)} className="text-xs border-gray-200 font-medium rounded-md h-8 px-2 pr-6 focus:ring-purple-500 focus:border-purple-500 bg-white border cursor-pointer outline-none shadow-sm">
+              <select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value)} className="text-xs border-gray-200 font-medium rounded-md h-8 px-2 pr-6 focus:ring-amber-500 focus:border-amber-500 bg-white border cursor-pointer outline-none shadow-sm">
                 {aspectRatioOptions.map(option => (
                   <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
@@ -820,7 +844,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                 <label className="text-xs font-medium text-gray-700">Google Search (Grounding)</label>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" className="sr-only peer" checked={googleSearch} onChange={(e) => setGoogleSearch(e.target.checked)} />
-                  <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
+                  <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-600"></div>
                 </label>
               </div>
             )}
@@ -833,7 +857,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
           onClick={handleSubmit}
           disabled={!canGenerate || submitting}
           className={`w-full py-3 px-4 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2 ${canGenerate && !submitting
-            ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800 shadow-md hover:shadow-lg"
+            ? "bg-slate-950 text-white hover:bg-slate-800 shadow-md hover:shadow-lg"
             : "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
             }`}
         >
@@ -869,21 +893,51 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
 
             {/* Initial State */}
             {!done && !submitting && (
-              <div className="aspect-video bg-gray-50 rounded-xl border border-gray-100 flex flex-col items-center justify-center text-center p-6">
-                <div className="w-12 h-12 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center mb-3">
-                  <ImageIcon className="text-gray-400" size={24} />
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="mb-4 flex items-start justify-between gap-4">
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-950">Try a proven prompt</h4>
+                    <p className="mt-1 max-w-md text-xs leading-5 text-slate-500">
+                      Pick a sample to fill the prompt, then tune it before generating.
+                    </p>
+                  </div>
+                  <span className="hidden rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 sm:inline-flex">
+                    60 free credits on sign in
+                  </span>
                 </div>
-                <h4 className="text-sm font-medium text-gray-900 mb-1">Ready to Create</h4>
-                <p className="text-xs text-gray-500 max-w-[200px]">
-                  Your generated images will appear here.
-                </p>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  {samplePrompts.map((sample) => (
+                    <button
+                      key={sample.title}
+                      type="button"
+                      onClick={() => useSamplePrompt(sample.prompt)}
+                      className="group overflow-hidden rounded-lg border border-white bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                    >
+                      <img
+                        src={sample.image}
+                        alt={`${sample.title} sample`}
+                        className="h-28 w-full object-cover transition duration-300 group-hover:scale-105"
+                      />
+                      <div className="p-3">
+                        <div className="text-xs font-semibold text-slate-950">{sample.title}</div>
+                        <div className="mt-1 text-[11px] font-medium text-amber-700">Use this prompt</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-4 rounded-lg border border-dashed border-slate-300 bg-white p-4 text-center">
+                  <ImageIcon className="mx-auto mb-2 text-slate-400" size={22} />
+                  <p className="text-xs text-slate-500">
+                    Your generated images will replace these examples here.
+                  </p>
+                </div>
               </div>
             )}
 
             {/* Submitting State */}
             {submitting && (
               <div className="aspect-video bg-gray-50 rounded-xl border border-gray-100 flex flex-col items-center justify-center text-center p-6">
-                <div className="loading loading-spinner loading-md text-purple-600 mb-3"></div>
+                <div className="loading loading-spinner loading-md text-amber-700 mb-3"></div>
                 <p className="text-sm text-gray-600 font-medium">Creating your masterpiece...</p>
                 <p className="text-xs text-gray-400 mt-1">This usually takes 10-20 seconds</p>
               </div>
@@ -896,7 +950,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                   <div key={task.task_no} className="group">
                     {/* Status Badge if running/failed */}
                     {task.status !== 'succeeded' && (
-                      <div className={`mb-2 text-xs flex items-center gap-2 ${task.status === 'failed' ? 'text-red-600' : 'text-purple-600'
+                      <div className={`mb-2 text-xs flex items-center gap-2 ${task.status === 'failed' ? 'text-red-600' : 'text-amber-700'
                         }`}>
                         {task.status === 'failed' ? (
                           <>
@@ -905,7 +959,7 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                           </>
                         ) : (
                           <>
-                            <div className="loading loading-spinner loading-xs text-purple-600"></div>
+                            <div className="loading loading-spinner loading-xs text-amber-700"></div>
                             Processing... {task.progress}%
                           </>
                         )}
@@ -937,33 +991,6 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
               </div>
             )}
           </div>
-          {/* 功能特性展示 */}
-          {!done && !submitting && (
-            <div className="mt-6">
-              <h4 className="font-medium mb-3 text-gray-700">✨ Core Features</h4>
-              <div className="space-y-3">
-                <div className="flex items-start space-x-3">
-                  <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center mt-0.5">
-                    <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                  </div>
-                  <div>
-                    <h5 className="font-medium text-sm">Natural Language Editing</h5>
-                    <p className="text-xs text-gray-600">Edit images using simple text prompts</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-5 h-5 bg-purple-100 rounded-full flex items-center justify-center mt-0.5">
-                    <div className="w-2 h-2 bg-purple-600 rounded-full"></div>
-                  </div>
-                  <div>
-                    <h5 className="font-medium text-sm">Character Consistency</h5>
-                    <p className="text-xs text-gray-600">Maintain character appearance across generations</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Hidden OAuth for programmatic login */}
           <div className="hidden">
             <GoogleOAuth ref={loginRef} />
@@ -1082,8 +1109,8 @@ export const ImageGenerator = forwardRef<ImageGeneratorRef, ImageGeneratorProps>
                               <div className="w-full bg-gray-200 rounded-full h-2">
                                 <div
                                   className={`h-2 rounded-full transition-all duration-500 ${task.progress === 0
-                                    ? "bg-gradient-to-r from-blue-300 to-blue-400 animate-pulse"
-                                    : "bg-gradient-to-r from-blue-500 to-purple-500"
+                                    ? "bg-gradient-to-r from-slate-300 to-slate-400 animate-pulse"
+                                    : "bg-gradient-to-r from-slate-700 to-amber-600"
                                     }`}
                                   style={{ width: `${Math.max(task.progress, 5)}%` }}
                                 ></div>

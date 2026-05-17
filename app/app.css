@@ -7,25 +7,25 @@
   default: false;
   prefersdark: false;
   color-scheme: "light";
-  --color-base-100: oklch(99% 0.01 85);
-  --color-base-200: oklch(97% 0.02 85);
-  --color-base-300: oklch(94% 0.03 85);
-  --color-base-content: oklch(25% 0 0);
-  --color-primary: oklch(75% 0.15 85);
-  --color-primary-content: oklch(25% 0.02 85);
-  --color-secondary: oklch(65% 0.12 140);
-  --color-secondary-content: oklch(98% 0.01 140);
-  --color-accent: oklch(70% 0.18 25);
-  --color-accent-content: oklch(98% 0.01 25);
-  --color-neutral: oklch(30% 0 0);
-  --color-neutral-content: oklch(98% 0 0);
-  --color-info: oklch(60% 0.2 220);
-  --color-info-content: oklch(98% 0.01 220);
-  --color-success: oklch(65% 0.15 140);
-  --color-success-content: oklch(98% 0.01 140);
-  --color-warning: oklch(75% 0.15 85);
-  --color-warning-content: oklch(25% 0.02 85);
-  --color-error: oklch(60% 0.2 15);
+  --color-base-100: oklch(99% 0.003 255);
+  --color-base-200: oklch(97% 0.006 255);
+  --color-base-300: oklch(92% 0.012 255);
+  --color-base-content: oklch(22% 0.035 255);
+  --color-primary: oklch(56% 0.135 52);
+  --color-primary-content: oklch(98% 0.006 255);
+  --color-secondary: oklch(45% 0.08 235);
+  --color-secondary-content: oklch(98% 0.006 255);
+  --color-accent: oklch(58% 0.105 165);
+  --color-accent-content: oklch(98% 0.006 255);
+  --color-neutral: oklch(20% 0.03 255);
+  --color-neutral-content: oklch(98% 0.006 255);
+  --color-info: oklch(55% 0.13 235);
+  --color-info-content: oklch(98% 0.006 255);
+  --color-success: oklch(58% 0.11 160);
+  --color-success-content: oklch(98% 0.006 255);
+  --color-warning: oklch(66% 0.13 65);
+  --color-warning-content: oklch(20% 0.03 255);
+  --color-error: oklch(56% 0.17 25);
   --color-error-content: oklch(98% 0.01 15);
   --radius-selector: 1rem;
   --radius-field: 2rem;
@@ -66,6 +66,10 @@
 html,
 body {
   @apply bg-base-200 text-base-content font-sans;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 h1:not(.prose h1),

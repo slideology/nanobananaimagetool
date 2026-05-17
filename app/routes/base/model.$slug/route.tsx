@@ -56,7 +56,7 @@ export default function ModelPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <Fragment>
-      <section className="relative mt-24 min-h-[500px] overflow-hidden bg-gray-950 text-white max-md:mt-16">
+      <section className="relative mt-16 min-h-[500px] overflow-hidden bg-gray-950 text-white">
         {model.thumbnailUrl && isVideoPreview ? (
           <video
             src={model.thumbnailUrl}
@@ -75,7 +75,7 @@ export default function ModelPage({ loaderData }: Route.ComponentProps) {
         ) : null}
         <div className="absolute inset-0 bg-black/55" />
         <div className="relative container mx-auto flex min-h-[500px] max-w-7xl flex-col justify-end px-4 pb-12 pt-20">
-          <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-purple-200">
+          <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-amber-200">
             {model.vendor} {model.mediaType === "image" ? "Image Model" : "Video Model"}
           </p>
           <h1 className="max-w-3xl text-4xl font-bold leading-tight md:text-6xl">
@@ -137,23 +137,33 @@ export default function ModelPage({ loaderData }: Route.ComponentProps) {
       </section>
 
       {model.faqs?.length ? (
-        <section className="bg-gray-50 py-14">
-          <div className="container mx-auto max-w-4xl px-4">
-            <h2 className="text-center text-3xl font-bold text-gray-900">
-              Frequently Asked Questions
-            </h2>
-            <div className="mt-10 space-y-4">
-              {model.faqs.map((faq) => (
-                <article
-                  key={faq.question}
-                  className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm"
-                >
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    {faq.question}
-                  </h3>
-                  <p className="mt-3 text-sm leading-6 text-gray-600">
-                    {faq.answer}
-                  </p>
+        <section className="bg-slate-50 py-16">
+          <div className="container mx-auto grid max-w-6xl grid-cols-1 gap-10 px-4 lg:grid-cols-[0.8fr_1.2fr]">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-amber-700">
+                Model guide
+              </p>
+              <h2 className="mt-4 text-3xl font-bold leading-tight text-slate-950 md:text-4xl">
+                Questions before generating
+              </h2>
+              <p className="mt-4 max-w-md text-sm leading-6 text-slate-600">
+                A quick read on how {model.displayName} behaves, where it is strongest, and what to expect before you start a paid generation.
+              </p>
+            </div>
+            <div className="divide-y divide-slate-200 border-y border-slate-200">
+              {model.faqs.map((faq, index) => (
+                <article key={faq.question} className="grid gap-4 py-6 sm:grid-cols-[3rem_1fr]">
+                  <div className="font-mono text-sm font-semibold tabular-nums text-amber-700">
+                    {String(index + 1).padStart(2, "0")}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-950">
+                      {faq.question}
+                    </h3>
+                    <p className="mt-3 text-sm leading-6 text-slate-600">
+                      {faq.answer}
+                    </p>
+                  </div>
                 </article>
               ))}
             </div>

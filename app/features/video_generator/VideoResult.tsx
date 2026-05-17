@@ -86,7 +86,7 @@ export function VideoResult({
             {currentTask ? (
                 <div className="mb-6">
                     {/* 视频预览区域 */}
-                    <div className="relative bg-gradient-to-br from-purple-100 to-blue-100 rounded-xl overflow-hidden aspect-video mb-3">
+                    <div className="relative bg-slate-100 rounded-xl overflow-hidden aspect-video mb-3">
                         {currentTask.status === 'succeeded' && currentTask.videoUrl ? (
                             // 已完成 - 显示视频
                             <>
@@ -118,7 +118,7 @@ export function VideoResult({
                                 <p className="text-sm font-medium text-gray-700 mb-2">Generating Video...</p>
                                 <div className="w-48 h-2 bg-white/50 rounded-full overflow-hidden">
                                     <div
-                                        className="h-full bg-purple-600 transition-all duration-300"
+                                        className="h-full bg-amber-600 transition-all duration-300"
                                         style={{ width: `${progress}%` }}
                                     />
                                 </div>
@@ -149,7 +149,7 @@ export function VideoResult({
                             </p>
                             <button
                                 onClick={() => currentTask.videoUrl && handleDownload(currentTask.videoUrl, currentTask.task_no)}
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors"
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-slate-950 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors"
                             >
                                 <Download size={16} />
                                 <span>Download Video</span>
@@ -160,7 +160,7 @@ export function VideoResult({
             ) : (
                 // 无任务 - 显示占位内容
                 <div className="mb-6">
-                    <div className="relative bg-gradient-to-br from-purple-100 to-blue-100 rounded-xl overflow-hidden aspect-video mb-3">
+                    <div className="relative bg-slate-100 rounded-xl overflow-hidden aspect-video mb-3">
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
                             <Play size={48} className="text-gray-400 mb-3" />
                             <p className="text-sm font-medium text-gray-600">No video yet</p>
@@ -179,7 +179,7 @@ export function VideoResult({
             <div className="text-center">
                 <a
                     href="#"
-                    className="inline-flex items-center gap-1 text-sm text-purple-600 hover:text-purple-700 font-medium"
+                    className="inline-flex items-center gap-1 text-sm text-amber-700 hover:text-amber-800 font-medium"
                 >
                     <span>View My Video History</span>
                     <span>→</span>

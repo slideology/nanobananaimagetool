@@ -82,6 +82,28 @@ export default function PricingSection({
         </div>
       )}
 
+      {!isModal && (
+        <div className="mx-auto mb-8 grid max-w-5xl grid-cols-1 overflow-hidden rounded-2xl border border-amber-200 bg-amber-50 shadow-sm md:grid-cols-[1fr_auto]">
+          <div className="p-5 md:p-6">
+            <div className="mb-2 inline-flex rounded-full bg-slate-950 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-amber-200">
+              Launch offer
+            </div>
+            <h3 className="text-2xl font-bold text-slate-950">Save up to 25% on yearly credits</h3>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+              Credits work across image and video generators. Upgrade when a prompt is ready, then keep creating without losing momentum.
+            </p>
+          </div>
+          <div className="flex items-center border-t border-amber-200 bg-white/70 p-5 md:border-l md:border-t-0 md:p-6">
+            <a
+              href="#plans"
+              className="w-full rounded-full bg-slate-950 px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-slate-800 md:w-auto"
+            >
+              Compare plans
+            </a>
+          </div>
+        </div>
+      )}
+
       <PaymentModeToggle value={paymentMode} onChange={setPaymentMode} />
 
       {/* 模式提示文案 */}
@@ -94,7 +116,8 @@ export default function PricingSection({
         </span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 max-w-7xl mx-auto mb-8">
+      <div className="relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 max-w-7xl mx-auto mb-8">
+        {!isModal && <div id="plans" className="absolute -top-24" />}
         {tiers.map((tier) => (
           <PricingCard
             key={tier.id}
@@ -102,6 +125,7 @@ export default function PricingSection({
             mode={paymentMode}
             onPurchase={onPurchase}
             loading={loading}
+            compact={isModal}
           />
         ))}
       </div>

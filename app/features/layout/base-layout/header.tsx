@@ -2,7 +2,6 @@ import clsx from "clsx";
 import { Fragment, useState } from "react";
 
 import { useUser } from "~/store";
-import { useWindowScroll } from "~/hooks/dom";
 import { GoogleOAuth } from "~/features/oauth";
 
 import { Menu, X, LogOut } from "lucide-react";
@@ -23,9 +22,6 @@ export const Header = ({ navLinks }: HeaderProps) => {
 
   const [openDrawer, setOpenDrawer] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-
-  const { y } = useWindowScroll();
-  const isScroll = y >= 30;
 
   /**
    * 处理用户退出登录
@@ -61,11 +57,9 @@ export const Header = ({ navLinks }: HeaderProps) => {
   return (
     <Fragment>
       <header
-        data-scroll={isScroll}
         className={clsx(
-          "fixed top-0 left-0 w-full z-50 transition-all duration-300",
-          "bg-transparent h-24 data-[scroll=true]:h-16 max-md:h-16",
-          "data-[scroll=true]:bg-white/90 data-[scroll=true]:shadow data-[scroll=true]:backdrop-blur"
+          "fixed top-0 left-0 z-50 h-16 w-full",
+          "border-b border-slate-200/70 bg-white/95 shadow-sm backdrop-blur"
         )}
       >
         <div className="container flex h-full items-center">

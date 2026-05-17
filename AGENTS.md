@@ -25,6 +25,8 @@ This file is for AI coding agents and contributors working in this repository.
 - `scripts/`: Operational scripts for database queries, reporting, credits, task updates, and prompt scraping.
 - `docs/`: Additional engineering, monitoring, and API/database references.
 - `public/`: Static public assets, favicon, and ads metadata.
+- `.agents/skills/`: Project-local Codex skills installed for frontend design review and existing-project redesign audits.
+- `skills-lock.json`: Lockfile for project-local Codex skills. Update it through `npx skills add` / skills tooling instead of hand-editing hashes.
 - `migrations/`: Top-level migration history/snapshots kept for compatibility.
 - `.github/workflows/`: GitHub Actions documentation. There are no active workflow YAML files in this checkout.
 
@@ -60,6 +62,9 @@ There is currently no configured `lint` script or ESLint config in `package.json
 - Keep server-only logic inside `app/.server/`; do not import server-only modules into client components.
 - React components should be functional components using hooks.
 - Styling should use Tailwind CSS 4 and DaisyUI classes from `app/app.css`; avoid adding ad hoc global CSS unless it belongs in the theme or shared app styles.
+- Current public UI direction is a restrained production-studio look: slate/neutral surfaces with amber accents. Avoid reverting to broad purple-blue AI gradients unless a specific page design calls for it.
+- Conversion-oriented UI should keep the creation path close to the top of the page, while still showing concrete sample prompts or sample results before an empty state. Empty result panels should help the user start, not just say that output will appear later.
+- Recharge and pricing surfaces must be scrollable in small viewports, keep plan CTAs visible, and avoid nested-card clutter inside modal content.
 - Follow the surrounding file style. Most current files use two-space indentation and double quotes, though some legacy tests use single quotes. Match the file you edit.
 - Keep comments useful and concise. Add comments for business rules, provider quirks, Cloudflare constraints, and non-obvious billing/credit behavior.
 - Public copy and UI text are primarily English. Existing Chinese comments/tests may remain when they clarify internal behavior.
@@ -78,6 +83,7 @@ There is currently no configured `lint` script or ESLint config in `package.json
 - For database changes, update schema and migrations together, then verify the intended D1 migration command.
 - For billing, credits, auth, or webhook changes, test both success and failure/rollback paths.
 - For generator CTA changes, verify that insufficient credits opens the recharge modal after click, missing required media shows an explicit validation message, and the button is not disabled merely because credits or reference media are insufficient.
+- For landing-page or model-page visual changes, compare desktop and mobile screenshots before shipping. Pay special attention to fixed-header overlap, hero height, sample media rendering, pricing-card alignment, and whether the first viewport still contains a clear creation or purchase path.
 - For GPT Image 2 changes, verify text-to-image, image-to-image, max 16 reference images, `auto` aspect ratio, 4K aspect restrictions, lowercase provider resolution payloads, and 15 / 25 / 40 credit tiers.
 - For Seedance 2.0 changes, verify the four ApiMart models, 1080p restrictions, 1.5x credit multiplier, task polling, thumbnail extraction, and credit rollback on failure.
 - For HappyHorse 1.0 changes, verify the four modes, media mutual-exclusion rules, MP4/MOV upload path, 3-15 second durations, 720p/1080p resolutions, ApiMart task polling, and failure credit rollback.
@@ -93,6 +99,8 @@ Only edit these with an explicit reason and extra verification:
 - `wrangler.test.jsonc`: Test Cloudflare Worker configuration. Keep it isolated from production where possible.
 - `worker-configuration.d.ts`: Generated Cloudflare binding types. Regenerate with `npm run cf-typegen`.
 - `.react-router/`, `build/`, `node_modules/`, `.wrangler/`, `*.tsbuildinfo`: Generated or local tool output.
+- `output/`: Local screenshots and browser-audit artifacts. Do not commit unless the user explicitly asks for visual evidence files in git.
+- `.agents/skills/` and `skills-lock.json`: Project-local agent skill installation. Only change when installing/updating skills deliberately.
 - `package-lock.json`, `pnpm-lock.yaml`: Only update when dependencies actually change, and avoid mixing package manager churn.
 - `app/.server/drizzle/schema.ts` and `app/.server/drizzle/migrations/`: Database contract. Changes require migration review.
 - `migrations/` and `migrations/meta/`: Migration snapshots/history. Do not hand-edit unless repairing migration metadata deliberately.

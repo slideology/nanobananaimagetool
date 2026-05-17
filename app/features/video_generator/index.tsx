@@ -385,7 +385,7 @@ export function VideoGenerator({
                         key={item.id}
                         onClick={() => setMode(item.id)}
                         className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${mode === item.id
-                            ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                            ? 'bg-amber-50 text-amber-800 border border-amber-200'
                             : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
                             }`}
                     >
@@ -431,7 +431,7 @@ export function VideoGenerator({
                                         <div className="text-sm font-medium text-gray-900">{option.name}</div>
                                         <div className="text-xs text-gray-500 truncate">{option.description}</div>
                                     </div>
-                                    {model === option.id && <Check size={16} className="text-purple-600 flex-shrink-0" />}
+                                    {model === option.id && <Check size={16} className="text-amber-700 flex-shrink-0" />}
                                 </div>
                             ))}
                         </div>
@@ -444,7 +444,7 @@ export function VideoGenerator({
                 <div className="mb-5">
                     <div
                         onClick={() => fileInputRef.current?.click()}
-                        className="border-2 border-dashed border-gray-300 rounded-lg py-8 text-center cursor-pointer hover:border-purple-400 hover:bg-purple-50/30 transition-all"
+                        className="border-2 border-dashed border-gray-300 rounded-lg py-8 text-center cursor-pointer hover:border-amber-400 hover:bg-amber-50/40 transition-all"
                     >
                         <div className="flex flex-col items-center gap-2">
                             <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
@@ -495,7 +495,7 @@ export function VideoGenerator({
                 <div className="mb-5">
                     <div
                         onClick={() => videoInputRef.current?.click()}
-                        className="border-2 border-dashed border-gray-300 rounded-lg py-6 text-center cursor-pointer hover:border-purple-400 hover:bg-purple-50/30 transition-all"
+                        className="border-2 border-dashed border-gray-300 rounded-lg py-6 text-center cursor-pointer hover:border-amber-400 hover:bg-amber-50/40 transition-all"
                     >
                         <div className="flex flex-col items-center gap-2">
                             <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
@@ -534,7 +534,7 @@ export function VideoGenerator({
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     placeholder="Describe the scene you imagine, with details."
-                    className="w-full px-3 py-3 text-sm text-gray-700 placeholder-gray-400 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all resize-none shadow-sm"
+                    className="w-full px-3 py-3 text-sm text-gray-700 placeholder-gray-400 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all resize-none shadow-sm"
                     rows={4}
                     maxLength={promptMaxLength}
                 />
@@ -611,7 +611,7 @@ export function VideoGenerator({
                                 onChange={(e) => setFixedLens(e.target.checked)}
                                 className="sr-only peer"
                             />
-                            <div className="w-10 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                            <div className="w-10 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
                         </label>
                     </div>
                 )}
@@ -629,7 +629,7 @@ export function VideoGenerator({
                             onChange={(e) => setGenerateAudio(e.target.checked)}
                             className="sr-only peer"
                         />
-                        <div className="w-10 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                        <div className="w-10 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
                     </label>
                     </div>
                 )}
@@ -646,7 +646,7 @@ export function VideoGenerator({
             <button
                 onClick={handleSubmit}
                 disabled={submitting || !prompt}
-                className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-medium text-sm hover:from-purple-700 hover:to-purple-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="w-full py-3 px-4 bg-slate-950 text-white rounded-lg font-medium text-sm hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
                 {submitting ? (
                     <span className="flex items-center justify-center gap-2">

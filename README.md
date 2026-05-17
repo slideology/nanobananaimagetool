@@ -12,10 +12,16 @@
 - 🆓 **免费试用**: 新用户注册即获60个免费积分
 - ⚡ **即时生成**: 30-120秒完成高质量图像生成
 
-## 📝 最新进展（2026-05-16）
+## 📝 最新进展（2026-05-17）
 
 ### 最近完成的工作
 
+- **完成转化导向 UI 调整**：参考 `nanobanana.io` 的页面结构后，首页改为 `Launch offer` 提示条、深色品牌 hero、明确的 `Start creating free` / `View pricing` CTA，并保留首屏下方生成器入口。
+- **优化生成器空状态**：图片结果区从纯空状态改为三组可点击 sample prompt，用户可一键填充提示词再微调，降低首次生成门槛。
+- **统一视觉系统**：全站主要交互从大面积紫色渐变收敛为 slate/neutral + amber accent，充值弹窗、Pricing、图片/视频生成器、模型页 FAQ 采用更一致的生产工具视觉。
+- **优化 Pricing 和充值体验**：Pricing 增加年度优惠说明和 credits 覆盖能力提示；充值弹窗改为更克制的深色顶部，并保持小屏滚动可用。
+- **模型内页继续收敛**：`/model/gpt-image-2` 与 `/model/happyhorse-1-0` 修复固定导航遮挡，保留媒体 hero + 生成器 + 信息摘要 + FAQ 的基础结构，后续继续补案例、对比和更深 SEO 内容。
+- **安装项目级 UI 审查 skills**：已通过 `npx skills add` 安装 `frontend-design` 与 `redesign-existing-projects`，保存在 `.agents/skills/` 与 `skills-lock.json`，用于后续页面设计和改版审查。
 - **图片生成供应商切换到 ApiMart**：新增 ApiMart 图像客户端，`nano-banana` / `nano-banana-edit` / `nano-banana-2` / `nano-banana-pro` 统一走 `https://api.apimart.ai/v1/images/generations` 异步任务接口，旧 `kie_nano_banana` 查询分支保留用于历史任务兼容。
 - **新增 Nano Banana Pro 入口**：前端模型下拉已加入 `Nano Banana Pro`，与 Nano Banana 2 一样支持 1K/2K/4K 和最多 14 张参考图，积分档位统一为 50 / 80 / 120。
 - **新增 GPT Image 2 试点接入**：新增公共模型 catalog 与 `/model/gpt-image-2` 独立内页，`POST /api/create.ai-image` 支持 `type/model: "gpt-image-2"`，走 ApiMart `/v1/images/generations`，支持文生图、图生图、最多 16 张参考图、`auto` 与多种比例、1K/2K/4K 输出和 4K 比例限制。
@@ -28,21 +34,25 @@
 - **积分规则更新**：GPT Image 2 按 Nano Banana 的 `$0.0125 / 30 credits` 基准换算，1K/2K/4K 为 15 / 25 / 40 credits；HappyHorse 1.0 按 Seedance 2.0 秒价比例换算，原生音频不额外加价；Seedance 2.0 四个模型继续按现有视频公式的 `1.5x` 计费。
 - **Seedance 2.0 已完成测试与正式环境验证**：测试 Worker `nanobanana-test` 已发布版本 `f7317bbf-17c5-49e5-9a46-7edf21870e25`；正式 Worker `nanobanana` 已发布版本 `240278b4-cade-495c-a13f-8ef180af6db1`，正式站点为 `https://nanobananaimage.org`。
 - **生成按钮交互修复已发布正式环境**：正式 Worker `nanobanana` 已发布版本 `e199b6b5-e917-42dc-a760-69627fd6c1f6`，已验证首页、`/model/gpt-image-2` 与 `/model/happyhorse-1-0` 返回 HTTP 200。
+- **转化 UI 优化已发布正式环境**：正式 Worker `nanobanana` 已发布版本 `1a794a19-3a46-4b35-90c1-9a10db94574b`，本轮包含首页 hero/offer、生成器 sample prompt、Pricing/recharge 视觉、项目 skills 与文档同步。
 - **补充试点回归测试**：新增模型 catalog、GPT Image 2、HappyHorse 1.0、图片/视频模型配置与积分测试；`npx vitest run test/model-catalog.test.ts test/apimart-image.test.ts test/apimart-video.test.ts test/image-model-config.test.ts test/video-model-config.test.ts test/video-credits.test.ts` 当前通过。
 
 ### 接下来的待办
 
 - **彻底隔离测试环境与正式环境资源**：当前测试环境虽然已切到测试域名、测试数据库和 Creem Test API，但 `KV` / `R2` 仍未完全隔离。
+- **继续深化模型内页转化内容**：参考 `nanobanana.io`，为 GPT Image 2、HappyHorse、Seedance 2.0 等页面补 `Why choose`、使用步骤、样例 gallery、模型对比、Prompt examples、底部 CTA 和更强内部链接。
+- **规划独立 `/create` 工作台**：首页负责说服和转化，`/create` 可作为更专注的生成器工作台，供导航、模型页和广告落地页统一跳转。
 - **把模型 catalog 扩展为完整模型市场**：当前只试点 `gpt-image-2` 和 `happyhorse-1.0` 两个独立内页，后续批量接入 ApiMart 图片/视频模型时继续沿用 catalog + adapter + model page 模式。
 - **补齐 entitlement 权限系统**：套餐文案里的 `No Captcha verification`、`priority queue`、`private` 等权益目前仍是展示层描述，后端尚未按 `plan_type` 落地能力控制。
 - **补齐 ApiMart 真实链路监控**：生产已上线 ApiMart 图片与 Seedance 2.0 视频；GPT Image 2 / HappyHorse 1.0 试点代码已完成本地测试，发布后需要继续关注任务失败率、余额/权限错误、结果链接复制到 R2 的成功率，以及素材审核任务状态。
 - **补订阅与生成链路测试**：为首购、续费、退款、取消、过期，以及 ApiMart 图片/视频创建任务、查询任务、失败回滚继续补服务层或 webhook 测试。
 - **清理历史兼容代码**：`guest_credit_usage`、`hasUsedGuestCredit` 和旧 Kie 图片任务兼容分支仍保留，后续可按线上历史任务消化情况逐步收敛。
-- **修复仓库现存类型检查问题**：当前 `npm run typecheck` 仍会被若干历史问题阻塞，例如 Google OAuth 类型、部分 route typegen 文件和旧别名引用，和本次计费修正无直接关系，但建议单独清理。
+- **修复仓库现存类型检查问题**：当前 `npm run typecheck` 仍会被若干历史问题阻塞，例如 Google OAuth `ux_mode` 类型、`use-error-handler` 积分弹窗类型、`THIRD_PARTY_ADS_ID` Env 类型、部分 route typegen 文件和旧别名引用，和本轮 UI/文档更新无直接关系，但建议单独清理。
 
 ### 当前状态结论
 
 - 当前代码规则已经收敛为：**登录送 60 Credits、上传与生成都要求登录、图片生成走 ApiMart、Seedance 2.0 与 HappyHorse 1.0 视频走 ApiMart、Seedance 1.5 Pro 走 Kie、生成按钮点击后再校验积分/必需素材、订阅积分按计费周期发放**。
+- 当前前端策略已经收敛为：**首页先建立价值与信任，再把用户引导到生成器；生成器空状态展示可复用样例；充值和 Pricing 更偏购买决策辅助，而不是纯套餐列表**。
 - 当前环境区分方式为：**测试环境使用 `wrangler.test.jsonc` + `CREEM_TEST_KEY` + 测试数据库**，正式环境使用 `wrangler.jsonc` + 正式 Creem Key + 正式数据库。
 - 当前发布策略仍是手动发布：先 `npm run deploy:test` 验证测试环境，再 `npm run deploy` 发布正式环境。
 
@@ -53,6 +63,7 @@
 - **高质量模型**：通过 ApiMart 接入 Nano Banana、Nano Banana 2、Nano Banana Pro 与 GPT Image 2，支持高分辨率图像生成
 - **AI 视频生成**：Seedance 2.0 标准版、Fast、Face、Fast Face 与 HappyHorse 1.0 走 ApiMart，Seedance 1.5 Pro 保留 Kie 兼容链路
 - **清晰的充值体验**：生成按钮保持可点击，点击后刷新余额；积分不足时弹出充值弹窗，缺少参考图/源视频时展示明确提示
+- **转化友好的默认体验**：首页提供明确 CTA，生成器默认展示可点击 sample prompt，Pricing 显示 credits 可覆盖的生成能力
 - **智能优化**：自动提示词优化，提升生成质量
 - **批量处理**：支持多张图片同时生成，提升工作效率
 
@@ -197,6 +208,8 @@ nanobananimagecursor/
 │   │   └── base/               # 页面路由
 │   └── 📦 store/               # 全局状态管理
 ├── ☁️ workers/                   # Cloudflare Workers 入口
+├── 🧠 .agents/skills/            # 项目级 Codex 设计/改版审查 skills
+├── 🔒 skills-lock.json           # Codex skills 锁定文件
 ├── 🚀 .github/workflows/         # CI/CD 自动部署
 ├── 📋 docs/                      # 项目文档
 ├── 🗃️ migrations/               # 数据库迁移历史
@@ -710,6 +723,12 @@ npm run dev
   - **当前问题**：目前灵感画廊向外的数据传递重度依赖 URL Query 参数和 `sessionStorage`，耦合在各组件初始化逻辑中稍显冗余。
   - **改进方案**：既然当前引入了 Zustand，建议未来将全站通用变量（如 `current_prompt`, `current_reference_image`）下沉抽离到全局 Zustand Store 中。这能让**全部生成器组件（多模态切换）无缝实时读取**而无需依赖浏览器缓存，彻底解耦 UI 层和状态层。
 
+### v1.0.2 (2026-05-17) - ApiMart 模型与转化体验升级
+- ✅ **多模型接入**：ApiMart 图片模型、Seedance 2.0、HappyHorse 1.0、GPT Image 2 已进入统一 catalog + adapter + model page 模式。
+- ✅ **生成器交互优化**：生成按钮保持可点击，积分不足改为点击后弹充值弹窗；缺少参考素材时展示明确校验提示。
+- ✅ **转化 UI 改版**：首页新增 launch offer、深色 hero、样例图和更明确 CTA；生成器空状态加入 sample prompt；Pricing 和充值弹窗改为更适合成交的结构。
+- ✅ **项目级设计审查工具**：新增 `frontend-design` 与 `redesign-existing-projects` skills，后续 UI 改动应结合这两个审查方向做桌面/移动端验收。
+
 ### 🚧 开发交接指南 (Dev Handoff & TODOs)
 *记录时间：2026-03-06*
 如果你正在切换开发设备，当前代码已全部合并至 `main` 分支并保持随时可部署状态。拉取代码后，你可以从以下几个高优待办项继续入手：
@@ -776,4 +795,4 @@ npm run dev
 
 ---
 
-*最后更新：2026年5月16日 | 基于当前 Cloudflare Workers + ApiMart/Kie 集成状态*
+*最后更新：2026年5月17日 | 基于当前 Cloudflare Workers + ApiMart/Kie 集成和转化 UI 状态*

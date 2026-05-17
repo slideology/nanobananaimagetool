@@ -53,6 +53,7 @@ export default function Home({
 }: Route.ComponentProps) {
   const [requestPayment, setRequestPayment] = useState(false);
   const user = useUser((state) => state.user);
+  const credits = useUser((state) => state.credits);
 
   // 错误处理钩子
   const { handleError } = useErrorHandler({
@@ -74,7 +75,7 @@ export default function Home({
 
   const handleUpload = useCallback(() => {
     openRef.current();
-    if (window) window.scrollTo({ top: 0, behavior: "smooth" });
+    document.querySelector("#generator")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
 
@@ -366,22 +367,82 @@ export default function Home({
 
   return (
     <Fragment>
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-primary/10 to-secondary/10 py-16">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              Create Amazing Art<br />with AI-Powered Generation
-            </h1>
-            <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              Transform your images or bring your ideas to life with AI. Upload a photo for image-to-image transformation or describe your vision for text-to-image creation.
+      <section className="mt-16 border-b border-amber-200 bg-amber-100 text-slate-950">
+        <div className="container mx-auto flex flex-col items-start justify-between gap-3 px-4 py-3 text-sm font-medium md:flex-row md:items-center">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-slate-950 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-amber-200">
+              Launch offer
+            </span>
+            <span>Nano Banana 2 yearly plans are up to 25% off for early creators.</span>
+          </div>
+          <a
+            href="#pricing"
+            className="inline-flex items-center rounded-full bg-slate-950 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
+          >
+            View offer
+          </a>
+        </div>
+      </section>
+
+      <section className="bg-slate-950 pt-10 pb-8 text-white md:pt-14 md:pb-10">
+        <div className="container mx-auto grid items-end gap-8 px-4 md:grid-cols-[minmax(0,0.95fr)_minmax(320px,0.65fr)]">
+          <div className="max-w-4xl">
+            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-amber-300">
+              AI image workbench
             </p>
+            <h1 className="text-4xl font-bold leading-tight text-pretty md:text-6xl">
+              Create images, edits, and references in one focused studio
+            </h1>
+            <p className="mt-5 max-w-2xl text-base leading-7 text-slate-300 md:text-lg">
+              Start from a prompt or bring your own image. Nano Banana keeps the creation surface close, fast, and ready for production assets.
+            </p>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <a
+                href="#generator"
+                className="inline-flex items-center justify-center rounded-full bg-amber-400 px-6 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-amber-900/20 transition hover:bg-amber-300"
+              >
+                Start creating free
+              </a>
+              <a
+                href="#pricing"
+                className="inline-flex items-center justify-center rounded-full border border-white/20 px-6 py-3 text-sm font-semibold text-white transition hover:border-white/40 hover:bg-white/10"
+              >
+                View pricing
+              </a>
+            </div>
+            <p className="mt-3 text-sm text-slate-400">
+              {user ? `You have ${credits} credits ready to use.` : "Sign in to get 60 free credits before your first paid generation."}
+            </p>
+          </div>
+          <div className="hidden grid-cols-3 gap-3 md:grid">
+            {[
+              {
+                src: "/assets/nano-banana-new-image-model-examples-v0-o7dv8xyx9uif1.webp",
+                alt: "Generated neon city image preview",
+              },
+              {
+                src: "/assets/nano-banana-new-image-model-examples-v0-gioq3ao79uif1.webp",
+                alt: "Generated eye reflection image preview",
+              },
+              {
+                src: "/assets/nano-banana-new-image-model-examples-v0-df0pa95b8uif1.webp",
+                alt: "Generated fruit bowl image preview",
+              },
+            ].map((image, index) => (
+              <img
+                key={image.src}
+                src={image.src}
+                alt={image.alt}
+                className={`h-44 w-full rounded-lg object-cover opacity-90 shadow-2xl shadow-black/25 ${index === 1 ? "translate-y-6" : ""}`}
+              />
+            ))}
           </div>
         </div>
       </section>
 
       {/* Main AI Generator Section */}
-      <section className="py-16 bg-base-100">
+      <section className="relative bg-slate-50 py-8 md:py-10">
+        <div id="generator" className="absolute -top-24" />
         <div className="container mx-auto px-4">
           <div className="max-w-7xl mx-auto">
             <div className="py-4">
@@ -390,6 +451,7 @@ export default function Home({
                 styles={imageStyles}
                 promptCategories={promptCategories}
                 inline={true}
+                initialMode="text-to-image"
               />
             </div>
           </div>

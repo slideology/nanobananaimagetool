@@ -161,13 +161,13 @@ export const CreditRechargeModal = forwardRef<CreditRechargeModalRef, CreditRech
             >
               <X size={24} />
             </button>
-            <div className="relative flex-shrink-0 bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white rounded-t-2xl">
+            <div className="relative flex-shrink-0 bg-slate-950 p-6 text-white rounded-t-2xl">
               <div className="text-center">
                 <div className="w-16 h-16 mx-auto mb-4 bg-white/20 rounded-full flex items-center justify-center">
                   <Sparkles size={32} />
                 </div>
                 <h2 className="text-2xl font-bold mb-2">🎨 Credits Required to Continue Creating</h2>
-                <p className="text-blue-100">
+                <p className="text-slate-300">
                   Current Credits: <span className="font-semibold">{currentCredits}</span>
                 </p>
               </div>

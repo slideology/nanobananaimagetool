@@ -26,19 +26,19 @@ export default function FreePlanBanner({ onStartFree }: FreePlanBannerProps) {
                         {/* Features */}
                         <ul className="space-y-2">
                             <li className="flex items-center gap-2 text-sm text-gray-700">
-                                <Check size={16} className="text-purple-600" />
+                                <Check size={16} className="text-amber-700" />
                                 <span>60 Free Credits on Sign Up</span>
                             </li>
                             <li className="flex items-center gap-2 text-sm text-gray-700">
-                                <Check size={16} className="text-purple-600" />
+                                <Check size={16} className="text-amber-700" />
                                 <span>Basic Image Generation</span>
                             </li>
                             <li className="flex items-center gap-2 text-sm text-gray-700">
-                                <Check size={16} className="text-purple-600" />
+                                <Check size={16} className="text-amber-700" />
                                 <span>Standard Response Time</span>
                             </li>
                             <li className="flex items-center gap-2 text-sm text-gray-700">
-                                <Check size={16} className="text-purple-600" />
+                                <Check size={16} className="text-amber-700" />
                                 <span>Community Support</span>
                             </li>
                         </ul>
